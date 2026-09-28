@@ -1,4 +1,4 @@
-# quill
+# igui
 
 A backend-neutral 2D/UI drawing core in Rust. Inspired by Godot's
 `SceneTree -> Node -> CanvasItem -> Node2D / Control` model, but with a

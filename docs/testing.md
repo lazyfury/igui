@@ -53,7 +53,7 @@ recording, or any OS/window capture. Verify programmatically instead:
 - **Backend pixel/output assertions** — assert against what a backend produces
   (e.g. recorded command sequences via `CommandAsserts`).
 - **DrawList command sequences** — `CommandAsserts` and golden comparisons.
-- **DOM state markers** — the web demo exposes `data-quill-*` attributes that
+- **DOM state markers** — the web demo exposes `data-igui-*` attributes that
   headless checks read from `--dump-dom` (no image capture).
 
 If a claim cannot be verified without a screenshot, say so explicitly rather than

@@ -59,7 +59,7 @@ pub enum Command {
 
 /// Help text, printed by `--help` and after argument errors.
 pub const HELP: &str = "\
-wgpu_demo — quill native wgpu demo
+wgpu_demo — igui native wgpu demo
 
 USAGE:
     wgpu_demo [OPTIONS]

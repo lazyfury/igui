@@ -58,7 +58,7 @@ so layout measures the same faces the backend draws.
 
 To override discovery with a single face, pass [`FontConfig::default_face`].
 `igui_font` reads no environment variables; a host that wants an env override
-resolves the file itself and builds the `FaceRef`. `QUILL_FONT_BOLD` is gone
+resolves the file itself and builds the `FaceRef`. `IGUI_FONT_BOLD` is gone
 (weight resolution replaces it).
 
 ## Background (the old limits)

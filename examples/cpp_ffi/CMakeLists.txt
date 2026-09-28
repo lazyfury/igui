@@ -28,10 +28,10 @@ if(NOT glfw3_FOUND)
 endif()
 
 # The Rust core + the demo_app/wgpu FFI, built as static libraries by cargo.
-set(QUILL_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../..")
-set(QUILL_FFI_LIB "${QUILL_ROOT}/target/release/libigui_ffi.a")
-set(DEMOAPP_FFI_LIB "${QUILL_ROOT}/target/release/libdemoapp_ffi.a")
-set(WGPU_FFI_LIB "${QUILL_ROOT}/target/release/libwgpu_ffi.a")
+set(IGUI_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../..")
+set(IGUI_FFI_LIB "${IGUI_ROOT}/target/release/libigui_ffi.a")
+set(DEMOAPP_FFI_LIB "${IGUI_ROOT}/target/release/libdemoapp_ffi.a")
+set(WGPU_FFI_LIB "${IGUI_ROOT}/target/release/libwgpu_ffi.a")
 
 add_executable(cpp_ffi
   src/main.cpp
@@ -45,27 +45,27 @@ add_executable(cpp_ffi
 
 target_include_directories(cpp_ffi PRIVATE
   "${CMAKE_CURRENT_SOURCE_DIR}/src"
-  "${QUILL_ROOT}/crates/ffi/igui_ffi/include"
-  "${QUILL_ROOT}/examples/demoapp_ffi/include"
-  "${QUILL_ROOT}/examples/wgpu_ffi/include")
+  "${IGUI_ROOT}/crates/ffi/igui_ffi/include"
+  "${IGUI_ROOT}/examples/demoapp_ffi/include"
+  "${IGUI_ROOT}/examples/wgpu_ffi/include")
 
 add_custom_target(igui_ffi_build
   COMMAND cargo build --release -p igui_ffi
-  WORKING_DIRECTORY "${QUILL_ROOT}"
+  WORKING_DIRECTORY "${IGUI_ROOT}"
   COMMENT "cargo build -p igui_ffi --release")
 add_custom_target(demoapp_ffi_build
   COMMAND cargo build --release -p demoapp_ffi
-  WORKING_DIRECTORY "${QUILL_ROOT}"
+  WORKING_DIRECTORY "${IGUI_ROOT}"
   COMMENT "cargo build -p demoapp_ffi --release")
 add_custom_target(wgpu_ffi_build
   COMMAND cargo build --release -p wgpu_ffi
-  WORKING_DIRECTORY "${QUILL_ROOT}"
+  WORKING_DIRECTORY "${IGUI_ROOT}"
   COMMENT "cargo build -p wgpu_ffi --release")
 add_dependencies(cpp_ffi igui_ffi_build demoapp_ffi_build wgpu_ffi_build)
 
-# Each staticlib bundles its Rust deps, so `quill_*` resolves from any of them;
+# Each staticlib bundles its Rust deps, so `igui_*` resolves from any of them;
 # they are all listed for clarity.
-target_link_libraries(cpp_ffi PRIVATE glfw "${QUILL_FFI_LIB}" "${DEMOAPP_FFI_LIB}" "${WGPU_FFI_LIB}")
+target_link_libraries(cpp_ffi PRIVATE glfw "${IGUI_FFI_LIB}" "${DEMOAPP_FFI_LIB}" "${WGPU_FFI_LIB}")
 target_link_libraries(cpp_ffi PRIVATE
   "-framework OpenGL"
   "-framework Cocoa"

@@ -1,6 +1,6 @@
 # Debugging & performance inspection
 
-quill provides two independent, backend-neutral debug tools:
+igui provides two independent, backend-neutral debug tools:
 
 | Tool | Crate | Draws |
 |---|---|---|

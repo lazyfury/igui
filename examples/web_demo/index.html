@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>quill — Notes</title>
+  <title>igui — Notes</title>
   <style>
     html, body { margin: 0; height: 100%; overflow: hidden; background: #0a0a0a; }
     #canvas { display: block; width: 100vw; height: 100vh; touch-action: none; }
@@ -34,8 +34,8 @@
     async function selfTest() {
       await wait(600); // let the first frames render
       const canvas = document.getElementById('canvas');
-      const [x, y] = (document.body.dataset.quillButton || '').split(',').map(Number);
-      const before = Number(document.body.dataset.quillClicks);
+      const [x, y] = (document.body.dataset.iguiButton || '').split(',').map(Number);
+      const before = Number(document.body.dataset.iguiClicks);
       if (!Number.isFinite(x) || !Number.isFinite(y)) throw new Error('no button probe');
 
       const opts = { clientX: x, clientY: y, bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', isPrimary: true };
@@ -46,9 +46,9 @@
       let after = before;
       for (let i = 0; i < 40 && after <= before; i++) {
         await wait(50);
-        after = Number(document.body.dataset.quillClicks);
+        after = Number(document.body.dataset.iguiClicks);
       }
-      document.body.setAttribute('data-quill-status', after === before + 1 ? 'clicked' : `fail(${before}->${after})`);
+      document.body.setAttribute('data-igui-status', after === before + 1 ? 'clicked' : `fail(${before}->${after})`);
     }
 
     init()
@@ -57,11 +57,11 @@
         if (new URLSearchParams(location.search).has('selftest')) {
           await selfTest();
         } else {
-          document.body.setAttribute('data-quill-status', hasPaintedPixels() ? 'painted' : 'blank');
+          document.body.setAttribute('data-igui-status', hasPaintedPixels() ? 'painted' : 'blank');
         }
       })
       .catch((err) => {
-        document.body.setAttribute('data-quill-status', 'error');
+        document.body.setAttribute('data-igui-status', 'error');
         document.body.innerHTML = '<pre style="color:#f88;padding:16px">' + err + '</pre>';
         console.error(err);
       });

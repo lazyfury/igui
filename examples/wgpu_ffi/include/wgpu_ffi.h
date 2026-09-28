@@ -16,7 +16,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "quill.h"
+#include "igui.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -33,11 +33,11 @@ void wgpu_ffi_free(WgpuFfi *handle);
 void wgpu_ffi_resize(WgpuFfi *handle, uint32_t width, uint32_t height, float scale);
 
 /* Render `list` to the window surface and present it. 0 on success. */
-int32_t wgpu_ffi_render(WgpuFfi *handle, const QuillDrawList *list, float clear_r,
+int32_t wgpu_ffi_render(WgpuFfi *handle, const IguiDrawList *list, float clear_r,
                         float clear_g, float clear_b, float clear_a);
 
 /* Render `list` into the backend's offscreen texture (device-pixel size). */
-int32_t wgpu_ffi_render_offscreen(WgpuFfi *handle, const QuillDrawList *list, uint32_t width,
+int32_t wgpu_ffi_render_offscreen(WgpuFfi *handle, const IguiDrawList *list, uint32_t width,
                                   uint32_t height, float scale, float clear_r, float clear_g,
                                   float clear_b, float clear_a);
 

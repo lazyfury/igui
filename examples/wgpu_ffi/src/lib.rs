@@ -16,8 +16,8 @@
 //!   back — the no-screenshot verification, and a direct comparison with the
 //!   C++ OpenGL backend's pixels.
 //!
-//! The list is the same opaque `QuillDrawList` the host built with `igui_ffi`;
-//! this crate reads it through [`igui_ffi::QuillDrawList::draw_list`].
+//! The list is the same opaque `IguiDrawList` the host built with `igui_ffi`;
+//! this crate reads it through [`igui_ffi::IguiDrawList::draw_list`].
 //!
 //! # Platform
 //!
@@ -34,7 +34,7 @@ use std::ptr::NonNull;
 
 use igui_backend_wgpu::{wgpu, WgpuBackend};
 use igui_core::{Color, Size, ViewportSize};
-use igui_ffi::QuillDrawList;
+use igui_ffi::IguiDrawList;
 use igui_render::RenderBackend;
 use wgpu::rwh::{AppKitDisplayHandle, AppKitWindowHandle, RawDisplayHandle, RawWindowHandle};
 
@@ -185,7 +185,7 @@ pub unsafe extern "C" fn wgpu_ffi_resize(
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_ffi_render(
     handle: *mut WgpuFfi,
-    list: *const QuillDrawList,
+    list: *const IguiDrawList,
     clear_r: f32,
     clear_g: f32,
     clear_b: f32,
@@ -249,7 +249,7 @@ pub unsafe extern "C" fn wgpu_ffi_render(
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_ffi_render_offscreen(
     handle: *mut WgpuFfi,
-    list: *const QuillDrawList,
+    list: *const IguiDrawList,
     width: u32,
     height: u32,
     scale: f32,
@@ -328,13 +328,13 @@ pub unsafe extern "C" fn wgpu_ffi_read_pixels(
 mod tests {
     use super::*;
     use igui_ffi::{
-        quill_draw_list_fill_rect, quill_draw_list_free, quill_draw_list_new, QuillColor,
-        QuillPaint, QuillRect,
+        igui_draw_list_fill_rect, igui_draw_list_free, igui_draw_list_new, IguiColor, IguiPaint,
+        IguiRect,
     };
 
-    fn red() -> QuillPaint {
-        QuillPaint {
-            color: QuillColor {
+    fn red() -> IguiPaint {
+        IguiPaint {
+            color: IguiColor {
                 r: 1.0,
                 g: 0.0,
                 b: 0.0,
@@ -352,12 +352,12 @@ mod tests {
             // No GPU on the test machine; nothing to verify.
             return;
         }
-        let list = quill_draw_list_new();
+        let list = igui_draw_list_new();
         unsafe {
             // A red 8x8 square at (4, 4) on a black clear.
-            quill_draw_list_fill_rect(
+            igui_draw_list_fill_rect(
                 list,
-                QuillRect {
+                IguiRect {
                     x: 4.0,
                     y: 4.0,
                     width: 8.0,
@@ -389,7 +389,7 @@ mod tests {
             "corner should be the black clear, got {outside:?}"
         );
 
-        unsafe { quill_draw_list_free(list) };
+        unsafe { igui_draw_list_free(list) };
         unsafe { wgpu_ffi_free(handle) };
     }
 

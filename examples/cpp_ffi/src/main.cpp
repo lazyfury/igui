@@ -1,7 +1,7 @@
-// The C++ host for the quill FFI demo.
+// The C++ host for the igui FFI demo.
 //
 // It owns the window and the OpenGL context, builds the UI (see `ui.cpp`) into
-// a quill `DrawList` through the FFI, and rasterizes that list with its own
+// a igui `DrawList` through the FFI, and rasterizes that list with its own
 // OpenGL backend (see `gl_backend.cpp`).
 //
 // Verification is screenshot-free: `--dump` prints the command stream the UI
@@ -58,7 +58,7 @@ struct Options {
 
 void print_help() {
     std::printf(
-        "cpp_ffi — a C++ UI + OpenGL backend on top of the quill core FFI\n"
+        "cpp_ffi — a C++ UI + OpenGL backend on top of the igui core FFI\n"
         "\n"
         "usage: cpp_ffi [--selfcheck | --dump] [--width N] [--height N] [--frames N]\n"
         "\n"
@@ -117,21 +117,21 @@ bool parse(int argc, char** argv, Options& options) {
     return true;
 }
 
-const char* tag_name(QuillCommandTag tag) {
+const char* tag_name(IguiCommandTag tag) {
     switch (tag) {
-        case QUILL_CMD_SAVE: return "save";
-        case QUILL_CMD_RESTORE: return "restore";
-        case QUILL_CMD_SET_TRANSFORM: return "set_transform";
-        case QUILL_CMD_SET_OPACITY: return "set_opacity";
-        case QUILL_CMD_CLIP_RECT: return "clip_rect";
-        case QUILL_CMD_FILL_RECT: return "fill_rect";
-        case QUILL_CMD_STROKE_RECT: return "stroke_rect";
-        case QUILL_CMD_LINE: return "line";
-        case QUILL_CMD_FILL_CIRCLE: return "fill_circle";
-        case QUILL_CMD_STROKE_CIRCLE: return "stroke_circle";
-        case QUILL_CMD_FILL_ROUNDED_RECT: return "fill_rounded_rect";
-        case QUILL_CMD_STROKE_ROUNDED_RECT: return "stroke_rounded_rect";
-        case QUILL_CMD_UNSUPPORTED: return "unsupported";
+        case IGUI_CMD_SAVE: return "save";
+        case IGUI_CMD_RESTORE: return "restore";
+        case IGUI_CMD_SET_TRANSFORM: return "set_transform";
+        case IGUI_CMD_SET_OPACITY: return "set_opacity";
+        case IGUI_CMD_CLIP_RECT: return "clip_rect";
+        case IGUI_CMD_FILL_RECT: return "fill_rect";
+        case IGUI_CMD_STROKE_RECT: return "stroke_rect";
+        case IGUI_CMD_LINE: return "line";
+        case IGUI_CMD_FILL_CIRCLE: return "fill_circle";
+        case IGUI_CMD_STROKE_CIRCLE: return "stroke_circle";
+        case IGUI_CMD_FILL_ROUNDED_RECT: return "fill_rounded_rect";
+        case IGUI_CMD_STROKE_ROUNDED_RECT: return "stroke_rounded_rect";
+        case IGUI_CMD_UNSUPPORTED: return "unsupported";
     }
     return "?";
 }
@@ -160,15 +160,15 @@ void glfw_error(int code, const char* description) {
     std::fprintf(stderr, "GLFW error %d: %s\n", code, description);
 }
 
-void print_histogram(QuillDrawList* list) {
-    const std::size_t count = quill_draw_list_len(list);
+void print_histogram(IguiDrawList* list) {
+    const std::size_t count = igui_draw_list_len(list);
     std::map<int, int> counts;
     for (std::size_t i = 0; i < count; ++i) {
-        counts[static_cast<int>(quill_draw_list_command(list, i).tag)]++;
+        counts[static_cast<int>(igui_draw_list_command(list, i).tag)]++;
     }
     std::printf("DrawList: %zu commands\n", count);
     for (const auto& [tag, n] : counts) {
-        std::printf("  %-22s %d\n", tag_name(static_cast<QuillCommandTag>(tag)), n);
+        std::printf("  %-22s %d\n", tag_name(static_cast<IguiCommandTag>(tag)), n);
     }
 }
 
@@ -180,21 +180,21 @@ int run_dump(const Options& options) {
                              static_cast<float>(options.height));
         demoapp_update(app, 0.0f);
         demoapp_layout(app);
-        QuillDrawList* list = demoapp_paint(app);
+        IguiDrawList* list = demoapp_paint(app);
         print_histogram(list);
-        quill_draw_list_free(list);
+        igui_draw_list_free(list);
         demoapp_free(app);
         return 0;
     }
 
-    QuillDrawList* list = quill_draw_list_new();
+    IguiDrawList* list = igui_draw_list_new();
     Canvas canvas(list);
     build_scene(canvas,
                 {0.0f, 0.0f, static_cast<float>(options.width),
                  static_cast<float>(options.height)},
                 options, 0.0f);
     print_histogram(list);
-    quill_draw_list_free(list);
+    igui_draw_list_free(list);
     return 0;
 }
 
@@ -209,7 +209,7 @@ GLFWwindow* create_window(const Options& options, bool visible, bool no_api) {
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
     }
     glfwWindowHint(GLFW_VISIBLE, visible ? GLFW_TRUE : GLFW_FALSE);
-    return glfwCreateWindow(options.width, options.height, "quill C++ FFI", nullptr, nullptr);
+    return glfwCreateWindow(options.width, options.height, "igui C++ FFI", nullptr, nullptr);
 }
 
 void clear_to(const Color& color) {
@@ -338,7 +338,7 @@ int run_selfcheck(const Options& options) {
 
     backend.begin_frame(fb_width, fb_height, scale);
     clear_to(palette().background);
-    QuillDrawList* list = nullptr;
+    IguiDrawList* list = nullptr;
     DemoAppHandle* demoapp = nullptr;
     if (options.demoapp) {
         demoapp = demoapp_new();
@@ -348,7 +348,7 @@ int run_selfcheck(const Options& options) {
         demoapp_layout(demoapp);
         list = demoapp_paint(demoapp);
     } else {
-        list = quill_draw_list_new();
+        list = igui_draw_list_new();
         Canvas canvas(list);
         if (options.gallery) {
             build_gallery(canvas, {0.0f, 0.0f, static_cast<float>(options.width),
@@ -364,7 +364,7 @@ int run_selfcheck(const Options& options) {
     }
     backend.submit(list);
     backend.end_frame();
-    quill_draw_list_free(list);
+    igui_draw_list_free(list);
     if (demoapp != nullptr) {
         demoapp_free(demoapp);
     }
@@ -486,7 +486,7 @@ int run_window(const Options& options) {
                                 : 1.0f;
 
         const double now = glfwGetTime();
-        QuillDrawList* list = nullptr;
+        IguiDrawList* list = nullptr;
         if (demoapp != nullptr) {
             demoapp_set_viewport(demoapp, static_cast<float>(window_width),
                                  static_cast<float>(window_height));
@@ -494,7 +494,7 @@ int run_window(const Options& options) {
             demoapp_layout(demoapp);
             list = demoapp_paint(demoapp);
         } else {
-            list = quill_draw_list_new();
+            list = igui_draw_list_new();
             Canvas canvas(list);
             build_scene(canvas,
                         {0.0f, 0.0f, static_cast<float>(window_width),
@@ -516,7 +516,7 @@ int run_window(const Options& options) {
             backend.submit(list);
             backend.end_frame();
         }
-        quill_draw_list_free(list);
+        igui_draw_list_free(list);
         last = now;
 
         if (!use_wgpu) {
@@ -548,7 +548,7 @@ int run_wgpu_selfcheck(const Options& options) {
         return 1;
     }
 
-    QuillDrawList* list = nullptr;
+    IguiDrawList* list = nullptr;
     DemoAppHandle* demoapp = nullptr;
     if (options.demoapp) {
         demoapp = demoapp_new();
@@ -558,7 +558,7 @@ int run_wgpu_selfcheck(const Options& options) {
         demoapp_layout(demoapp);
         list = demoapp_paint(demoapp);
     } else {
-        list = quill_draw_list_new();
+        list = igui_draw_list_new();
         Canvas canvas(list);
         if (options.gallery) {
             build_gallery(canvas, {0.0f, 0.0f, static_cast<float>(options.width),
@@ -577,8 +577,8 @@ int run_wgpu_selfcheck(const Options& options) {
     const int rc = wgpu_ffi_render_offscreen(wgpu, list, static_cast<uint32_t>(options.width),
                                              static_cast<uint32_t>(options.height), 1.0f,
                                              clear.r, clear.g, clear.b, clear.a);
-    const std::size_t count = quill_draw_list_len(list);
-    quill_draw_list_free(list);
+    const std::size_t count = igui_draw_list_len(list);
+    igui_draw_list_free(list);
     if (demoapp != nullptr) {
         demoapp_free(demoapp);
     }
@@ -627,9 +627,9 @@ int main(int argc, char** argv) {
     }
     // The header and the library are a contract; refuse a mismatch instead of
     // misreading the command records.
-    if (quill_abi_version() != QUILL_ABI_VERSION) {
-        std::fprintf(stderr, "ABI mismatch: header %u, library %u\n", QUILL_ABI_VERSION,
-                     quill_abi_version());
+    if (igui_abi_version() != IGUI_ABI_VERSION) {
+        std::fprintf(stderr, "ABI mismatch: header %u, library %u\n", IGUI_ABI_VERSION,
+                     igui_abi_version());
         return 3;
     }
     if (options.dump) {

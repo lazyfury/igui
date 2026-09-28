@@ -232,94 +232,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f079e83a288787bcd14a6aea84cee5c87a67c5a3e660c30f557a3d24761b3527"
 
 [[package]]
-name = "cobbled_backend_recording"
-version = "0.1.0"
-dependencies = [
- "cobbled_core",
- "cobbled_render",
-]
-
-[[package]]
-name = "cobbled_backend_wgpu"
-version = "0.1.0"
-dependencies = [
- "bytemuck",
- "cobbled_core",
- "cobbled_font",
- "cobbled_render",
- "pollster",
- "wgpu",
-]
-
-[[package]]
-name = "cobbled_components"
-version = "0.1.0"
-dependencies = [
- "cobbled_core",
- "cobbled_render",
- "cobbled_scene",
- "cobbled_theme",
- "cobbled_ui",
-]
-
-[[package]]
-name = "cobbled_core"
-version = "0.1.0"
-
-[[package]]
-name = "cobbled_font"
-version = "0.1.0"
-dependencies = [
- "ab_glyph",
- "cobbled_core",
- "font8x8",
- "memmap2",
- "rustybuzz",
- "ttf-parser",
- "unicode-bidi",
- "unicode-script",
-]
-
-[[package]]
-name = "cobbled_profile"
-version = "0.1.0"
-dependencies = [
- "cobbled_core",
- "cobbled_render",
-]
-
-[[package]]
-name = "cobbled_render"
-version = "0.1.0"
-dependencies = [
- "cobbled_core",
-]
-
-[[package]]
-name = "cobbled_scene"
-version = "0.1.0"
-dependencies = [
- "cobbled_core",
- "cobbled_render",
-]
-
-[[package]]
-name = "cobbled_theme"
-version = "0.1.0"
-dependencies = [
- "cobbled_core",
-]
-
-[[package]]
-name = "cobbled_ui"
-version = "0.1.0"
-dependencies = [
- "cobbled_core",
- "cobbled_render",
- "cobbled_scene",
-]
-
-[[package]]
 name = "codespan-reporting"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -465,15 +377,15 @@ dependencies = [
 name = "file_browser"
 version = "0.1.0"
 dependencies = [
- "cobbled_backend_recording",
- "cobbled_backend_wgpu",
- "cobbled_components",
- "cobbled_core",
- "cobbled_profile",
- "cobbled_render",
- "cobbled_scene",
- "cobbled_theme",
- "cobbled_ui",
+ "igui_backend_recording",
+ "igui_backend_wgpu",
+ "igui_components",
+ "igui_core",
+ "igui_profile",
+ "igui_render",
+ "igui_scene",
+ "igui_theme",
+ "igui_ui",
  "winit",
 ]
 
@@ -694,6 +606,94 @@ name = "hexf-parse"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dfa686283ad6dd069f105e5ab091b04c62850d3e4cf5d67debad1933f55023df"
+
+[[package]]
+name = "igui_backend_recording"
+version = "0.1.0"
+dependencies = [
+ "igui_core",
+ "igui_render",
+]
+
+[[package]]
+name = "igui_backend_wgpu"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "igui_core",
+ "igui_font",
+ "igui_render",
+ "pollster",
+ "wgpu",
+]
+
+[[package]]
+name = "igui_components"
+version = "0.1.0"
+dependencies = [
+ "igui_core",
+ "igui_render",
+ "igui_scene",
+ "igui_theme",
+ "igui_ui",
+]
+
+[[package]]
+name = "igui_core"
+version = "0.1.0"
+
+[[package]]
+name = "igui_font"
+version = "0.1.0"
+dependencies = [
+ "ab_glyph",
+ "font8x8",
+ "igui_core",
+ "memmap2",
+ "rustybuzz",
+ "ttf-parser",
+ "unicode-bidi",
+ "unicode-script",
+]
+
+[[package]]
+name = "igui_profile"
+version = "0.1.0"
+dependencies = [
+ "igui_core",
+ "igui_render",
+]
+
+[[package]]
+name = "igui_render"
+version = "0.1.0"
+dependencies = [
+ "igui_core",
+]
+
+[[package]]
+name = "igui_scene"
+version = "0.1.0"
+dependencies = [
+ "igui_core",
+ "igui_render",
+]
+
+[[package]]
+name = "igui_theme"
+version = "0.1.0"
+dependencies = [
+ "igui_core",
+]
+
+[[package]]
+name = "igui_ui"
+version = "0.1.0"
+dependencies = [
+ "igui_core",
+ "igui_render",
+ "igui_scene",
+]
 
 [[package]]
 name = "indexmap"

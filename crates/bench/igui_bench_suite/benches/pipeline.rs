@@ -1,4 +1,4 @@
-//! The quill CPU pipeline benchmark suite.
+//! The igui CPU pipeline benchmark suite.
 //!
 //! Run with `cargo bench -p igui_bench_suite`. Every benchmark is named
 //! `<group>/<scenario>/<size>` so `--filter` can select a slice:

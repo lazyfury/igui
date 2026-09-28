@@ -851,7 +851,7 @@ mod tests {
                 modified: Some(1_789_886_988 + index as u64),
             })
             .collect();
-        Listing::fixture("/tmp/quill-fixture", entries)
+        Listing::fixture("/tmp/igui-fixture", entries)
     }
 
     fn viewport() -> ViewportSize {
@@ -900,7 +900,7 @@ mod tests {
     fn the_header_shows_the_path_and_the_count() {
         let app = browser_with(7);
         assert_eq!(app.status_text(), "7 项");
-        assert_eq!(app.path(), Path::new("/tmp/quill-fixture"));
+        assert_eq!(app.path(), Path::new("/tmp/igui-fixture"));
     }
 
     #[test]
@@ -951,7 +951,7 @@ mod tests {
         // entry_00000 是目录（下标能被 10 整除的是目录）。
         app.key(Key::Enter);
         let pending = app.take_navigation().expect("请求了一次读目录");
-        assert_eq!(pending, PathBuf::from("/tmp/quill-fixture/entry_00000"));
+        assert_eq!(pending, PathBuf::from("/tmp/igui-fixture/entry_00000"));
         assert!(app.is_loading(), "状态行显示读取中");
     }
 
@@ -965,7 +965,7 @@ mod tests {
         assert!(app.status_text().contains("entry_00001"));
         assert_eq!(
             app.take_preview_request(),
-            Some(PathBuf::from("/tmp/quill-fixture/entry_00001"))
+            Some(PathBuf::from("/tmp/igui-fixture/entry_00001"))
         );
     }
 
@@ -988,7 +988,7 @@ mod tests {
         }
         assert_eq!(
             app.take_preview_request(),
-            Some(PathBuf::from("/tmp/quill-fixture/entry_00099"))
+            Some(PathBuf::from("/tmp/igui-fixture/entry_00099"))
         );
         assert!(app.take_preview_request().is_none(), "只发一个请求");
     }
@@ -1010,7 +1010,7 @@ mod tests {
         app.reload();
         assert_eq!(
             app.take_navigation(),
-            Some(PathBuf::from("/tmp/quill-fixture"))
+            Some(PathBuf::from("/tmp/igui-fixture"))
         );
     }
 

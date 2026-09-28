@@ -118,8 +118,8 @@ mod tests {
     #[test]
     fn the_path_honours_the_override() {
         // SAFETY: single-threaded assertion about an env var this test owns.
-        std::env::set_var("DEEPSEEK_BALANCE_SETTINGS", "/tmp/quill-test.json");
-        assert_eq!(path(), Some(PathBuf::from("/tmp/quill-test.json")));
+        std::env::set_var("DEEPSEEK_BALANCE_SETTINGS", "/tmp/igui-test.json");
+        assert_eq!(path(), Some(PathBuf::from("/tmp/igui-test.json")));
         std::env::remove_var("DEEPSEEK_BALANCE_SETTINGS");
     }
 }

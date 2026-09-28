@@ -73,7 +73,7 @@ fn build_app(options: Options, headless: bool) -> App {
     let logic = DemoLogic::new(options, profile.clone(), font_mode);
 
     let builder = App::new(AppConfig {
-        title: "quill — Notes".into(),
+        title: "igui — Notes".into(),
         size: (1200.0, 780.0),
         ..Default::default()
     });
@@ -88,7 +88,7 @@ fn build_app(options: Options, headless: bool) -> App {
         };
         builder
             .plugin(WinitPlugin::new(WindowConfig {
-                title: "quill — Notes".into(),
+                title: "igui — Notes".into(),
                 size: (1200.0, 780.0),
                 titlebar,
                 // The gallery has a text field; enable the platform IME.

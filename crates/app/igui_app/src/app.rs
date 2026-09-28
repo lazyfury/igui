@@ -49,7 +49,7 @@ pub struct AppConfig {
 impl Default for AppConfig {
     fn default() -> Self {
         Self {
-            title: "quill".into(),
+            title: "igui".into(),
             size: (1200.0, 780.0),
             max_frame_delta: 0.1,
         }

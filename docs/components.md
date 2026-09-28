@@ -665,7 +665,7 @@ mount time.
   leaf components as named locals first, then compose the root once at the end:
 
   ```rust
-  let header = Row::new().child(app_icon(20.0, theme)).child(Text::subheading("Quill", theme));
+  let header = Row::new().child(app_icon(20.0, theme)).child(Text::subheading("Igui", theme));
   let rows = NOTES.iter().enumerate().map(|(i, note)| {
       let slots = handles.list_rows.clone();
       note_row_view(theme, note, i, &state.selected).with_ref(move |id| slots.borrow_mut().push(id))
@@ -694,7 +694,7 @@ mount time.
 
   ```rust
   let title = NodeRef::new();
-  let header = Row::new().child(Text::subheading("Quill", theme).ref_(&title));
+  let header = Row::new().child(Text::subheading("Igui", theme).ref_(&title));
   let tree = Column::new().child(header).into_tree();
   if let Some(id) = title.get() { igui_components::set_text(&mut tree, id, "Inbox"); }
   ```

@@ -1,4 +1,4 @@
-//! `igui_theme` — design tokens for the quill developer-native UI system.
+//! `igui_theme` — design tokens for the igui developer-native UI system.
 //!
 //! This crate is pure data: colors, spacing, radii, type sizes and motion
 //! durations. It depends only on [`igui_core`] (for [`Color`]) and never on

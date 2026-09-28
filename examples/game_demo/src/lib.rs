@@ -1,4 +1,4 @@
-//! `game_demo` — a small top-down collect game built on the quill game layer.
+//! `game_demo` — a small top-down collect game built on the igui game layer.
 //!
 //! The world lives in a [`GameView`] embedded in a `igui_ui` HUD: a player
 //! sprite (animated from an embedded PNG atlas) moves with the arrow keys /

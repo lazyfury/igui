@@ -1,14 +1,14 @@
 // The C++ side of the FFI: value types plus a thin `Canvas` wrapper.
 //
-// Everything the rest of the C++ code touches goes through here, so `quill.h`
-// and the `Quill*` names appear in exactly one place. The UI and the OpenGL
+// Everything the rest of the C++ code touches goes through here, so `igui.h`
+// and the `Igui*` names appear in exactly one place. The UI and the OpenGL
 // backend speak `Vec2` / `Rect` / `Color` / `Canvas`.
 
 #pragma once
 
 #include <cmath>
 
-#include "quill.h"
+#include "igui.h"
 
 namespace cppffi {
 
@@ -36,26 +36,26 @@ struct Color {
 };
 
 // Conversions to the ABI types.
-QuillVec2 to_quill(Vec2 v);
-QuillRect to_quill(Rect r);
-QuillColor to_quill(Color c);
-QuillPaint to_quill_paint(Color c);
+IguiVec2 to_igui(Vec2 v);
+IguiRect to_igui(Rect r);
+IguiColor to_igui(Color c);
+IguiPaint to_igui_paint(Color c);
 
 // Builds a rotation about `origin`, in the y-down convention the core uses
 // (positive angle turns +X toward +Y, i.e. clockwise on screen).
-QuillTransform rotation(float angle, Vec2 origin);
+IguiTransform rotation(float angle, Vec2 origin);
 
-// Named command methods over an opaque `QuillDrawList`.
+// Named command methods over an opaque `IguiDrawList`.
 //
 // The UI writes through these instead of calling the C functions directly, so
 // it reads like drawing code rather than FFI marshalling.
 class Canvas {
 public:
-    explicit Canvas(QuillDrawList* list) : list_(list) {}
+    explicit Canvas(IguiDrawList* list) : list_(list) {}
 
     void save();
     void restore();
-    void set_transform(QuillTransform transform);
+    void set_transform(IguiTransform transform);
     void set_opacity(float opacity);
     void clip(Rect rect);
 
@@ -68,7 +68,7 @@ public:
     void stroke_rounded(Rect rect, float radius, float width, Color color);
 
 private:
-    QuillDrawList* list_;
+    IguiDrawList* list_;
 };
 
 }  // namespace cppffi

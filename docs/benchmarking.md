@@ -1,6 +1,6 @@
 # Benchmarking
 
-quill has two performance tools, and they answer different questions:
+igui has two performance tools, and they answer different questions:
 
 | Tool | Crate | Question | Output |
 |---|---|---|---|

@@ -1,7 +1,7 @@
 // The C++ UI: a tiny retained widget tree that lays itself out and emits a
-// quill `DrawList` through `Canvas`.
+// igui `DrawList` through `Canvas`.
 //
-// This is the point of the demo — the UI is organized here, in C++, and quill
+// This is the point of the demo — the UI is organized here, in C++, and igui
 // only supplies the core types and the command list. There is no Rust widget,
 // layout or theme in the picture.
 

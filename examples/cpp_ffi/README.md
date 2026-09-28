@@ -1,7 +1,7 @@
-# cpp_ffi — a C++ UI + OpenGL backend on the quill core
+# cpp_ffi — a C++ UI + OpenGL backend on the igui core
 
 This demo proves the FFI boundary from the other side: a **C++ program** builds
-its own UI, asks the quill core for a backend-neutral `DrawList`, and rasterizes
+its own UI, asks the igui core for a backend-neutral `DrawList`, and rasterizes
 it with a **C++ OpenGL 3.3 backend**. No Rust widget, layout, theme or backend
 is involved.
 
@@ -13,25 +13,25 @@ C++ UI (ui.cpp) --Canvas--> igui_ffi (Rust) --> DrawList --GlBackend--> pixels
 
 `crates/ffi/igui_ffi` is the only Rust code in the picture. It exposes:
 
-- the core value types (`QuillVec2`, `QuillRect`, `QuillColor`,
-  `QuillTransform`, `QuillCornerRadii`, `QuillPaint`) and
-- an opaque `QuillDrawList` with `quill_draw_list_*` builders and a flat
-  `QuillCommand` record to read commands back.
+- the core value types (`IguiVec2`, `IguiRect`, `IguiColor`,
+  `IguiTransform`, `IguiCornerRadii`, `IguiPaint`) and
+- an opaque `IguiDrawList` with `igui_draw_list_*` builders and a flat
+  `IguiCommand` record to read commands back.
 
-The C++ host includes `crates/ffi/igui_ffi/include/quill.h` (a hand-maintained
+The C++ host includes `crates/ffi/igui_ffi/include/igui.h` (a hand-maintained
 mirror of the `#[repr(C)]` layout) and links the `libigui_ffi.a` static library.
 Nothing from `igui_scene` / `igui_ui` crosses the boundary — the UI is
 organized in C++ on purpose.
 
 ABI v1 covers the geometry and state commands. `DrawImage` / `DrawText` read
-back as `QUILL_CMD_UNSUPPORTED` and are skipped; text would need the host to
+back as `IGUI_CMD_UNSUPPORTED` and are skipped; text would need the host to
 rasterize glyphs, which is deliberately out of scope.
 
 ## Layout
 
 | File | Concern |
 |---|---|
-| `src/canvas.{hpp,cpp}` | the only place `quill.h` appears; value types + `Canvas` |
+| `src/canvas.{hpp,cpp}` | the only place `igui.h` appears; value types + `Canvas` |
 | `src/theme.{hpp,cpp}` | the `igui_theme` tokens (dark palette + scales), mirrored for `demo_app` parity |
 | `src/widget.{hpp,cpp}` | the `Widget` base and the `Column` / `Row` layout containers |
 | `src/ui.{hpp,cpp}` | the dashboard (balance bar, chart, toggle, spinner) |
@@ -76,7 +76,7 @@ and paints it into a `DrawList` (`demoapp_paint`), then renders it with the same
 OpenGL backend. Arrow keys switch the catalog group.
 
 **Text is the caveat.** `DemoApp` emits a `DrawText` per label; ABI v1 has no
-text record, so those read back as `QUILL_CMD_UNSUPPORTED` and are skipped. The
+text record, so those read back as `IGUI_CMD_UNSUPPORTED` and are skipped. The
 layout, colors and chrome are the real app's — the labels are missing. Run
 `./build/cpp_ffi --dump --demoapp` to see it: 145 commands, 86 of them text.
 
@@ -107,4 +107,4 @@ triangle counts. This is the backend's own pixel buffer, which is the project's
 no-screenshot rule.
 
 `--dump` is the GPU-free half: it proves the FFI + UI produced the expected
-command stream. ABI mismatches are refused at startup via `quill_abi_version()`.
+command stream. ABI mismatches are refused at startup via `igui_abi_version()`.

@@ -1,4 +1,4 @@
-//! `igui_bench_suite` — deterministic benchmarks for the quill CPU pipeline.
+//! `igui_bench_suite` — deterministic benchmarks for the igui CPU pipeline.
 //!
 //! This crate owns the *scenarios*; [`igui_bench`] owns the measurement. Keeping
 //! them separate means the harness has no idea what a `SceneTree` or a `Ui` is,

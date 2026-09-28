@@ -1,4 +1,4 @@
-//! `igui_wasm` — browser integration glue for the quill drawing core.
+//! `igui_wasm` — browser integration glue for the igui drawing core.
 //!
 //! Owns the canvas lookup, `requestAnimationFrame` loop, logical size / DPR
 //! handling and the [`App`] hook. Kept separate from the pure core so Scene/UI

@@ -8,7 +8,7 @@ the conventions the demos follow. It is derived from `examples/demo_app`,
   [agent cheat sheet](#10-agent-cheat-sheet--where-to-look).
 - **Reference by API name?** `docs/components.md` (widgets, layout, input,
   extension) and `docs/design-system.md` (tokens, themed components).
-- The **`quill` facade** (`quill/`) re-exports the individual `igui_*` crates
+- The **`igui` facade** (`igui/`) re-exports the individual `igui_*` crates
   behind opt-in features (names are not flattened: import from `igui_*`).
 
 ## 1. The frame loop
@@ -181,7 +181,7 @@ igui_app::App::new(AppConfig::default())
 - Headless: `igui_headless::HeadlessPlugin` implements the `Presenter` over
   `RecordingBackend`, so a `--selfcheck` runs the **same** `AppLogic` with no
   window and no `winit` (see §7).
-- `quill` exposes the runtime behind the `app` feature (`headless` implies
+- `igui` exposes the runtime behind the `app` feature (`headless` implies
   `app`).
 
 `igui_winit::input` keeps the raw mappings (`map_key`, `pointer_button`,
@@ -238,7 +238,7 @@ reading its own data instead:
 | Full UI app pattern | `examples/demo_app/src/lib.rs` |
 | Minimal winit + wgpu host | `examples/wgpu_demo/src/app.rs` |
 | Virtualized list, resize gutter, tabs, worker results | `examples/file_browser` |
-| Photoshop-style editor using quill instead of egui (all tools + PNG import/export) | `image_editor` |
+| Photoshop-style editor using igui instead of egui (all tools + PNG import/export) | `image_editor` |
 | Menu-bar panel, two tabs, content-sized window, self-check | `examples/deepseek_balance` |
 | Backends, adding one, browser boundary | `docs/backend.md` |
 
@@ -262,6 +262,6 @@ Read this section before scanning the repo; then open only the file you need.
 - The five calls that answer most questions: `into_tree`, `layout`, `paint`,
   `route_input`, `set_text` — plus `theme.palette()`/`theme.surface(..)` for
   colours.
-- Don't: invent a `quill::{Button, ..}` import (names are not flattened),
+- Don't: invent a `igui::{Button, ..}` import (names are not flattened),
   hard-code hex, store app state in the tree, read/write the tree from inside a
   callback without a shared cell, or call `tree.add_child` for static layout.

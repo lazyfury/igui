@@ -1,6 +1,6 @@
-# quill web demo
+# igui web demo
 
-WASM + HTML Canvas 2D demo for the `quill` drawing core.
+WASM + HTML Canvas 2D demo for the `igui` drawing core.
 
 ## Build & run
 
@@ -28,7 +28,7 @@ python3 -m http.server 8080 --directory .
 
 ## Headless self-test
 
-The page sets `data-quill-status="painted"` after the first frame. It also
-reports `data-quill-button="x,y"` and `data-quill-clicks="n"`. Open with
+The page sets `data-igui-status="painted"` after the first frame. It also
+reports `data-igui-button="x,y"` and `data-igui-clicks="n"`. Open with
 `?selftest=1` to dispatch real pointer events at the button and verify the click
-counter increments (`data-quill-status="clicked"`).
+counter increments (`data-igui-status="clicked"`).

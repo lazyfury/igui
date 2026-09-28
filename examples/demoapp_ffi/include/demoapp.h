@@ -2,9 +2,9 @@
  * demoapp.h — C ABI over the real demo_app gallery (`demoapp_ffi`).
  *
  * A foreign host creates a `DemoApp`, drives its frame, and reads the resulting
- * `DrawList` back with the `quill_draw_list_*` functions from `quill.h`. The
+ * `DrawList` back with the `igui_draw_list_*` functions from `igui.h`. The
  * geometry, layout and colors are the Rust app's; `DrawText` commands have no
- * ABI v1 record and read back as `QUILL_CMD_UNSUPPORTED`.
+ * ABI v1 record and read back as `IGUI_CMD_UNSUPPORTED`.
  *
  * Layout mirrors `examples/demoapp_ffi/src/lib.rs`. A null handle is a no-op (or
  * a null list).
@@ -14,7 +14,7 @@
 
 #include <stdint.h>
 
-#include "quill.h"
+#include "igui.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -42,8 +42,8 @@ void demoapp_update(DemoAppHandle *handle, float dt);
 void demoapp_layout(DemoAppHandle *handle);
 
 /* Paint the current frame into a fresh DrawList; release it with
- * quill_draw_list_free. Returns null for a null handle. */
-QuillDrawList *demoapp_paint(const DemoAppHandle *handle);
+ * igui_draw_list_free. Returns null for a null handle. */
+IguiDrawList *demoapp_paint(const DemoAppHandle *handle);
 
 #ifdef __cplusplus
 } /* extern "C" */

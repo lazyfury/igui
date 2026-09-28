@@ -1,4 +1,4 @@
-//! `igui_svg` — backend-neutral SVG (vector) rendering for quill.
+//! `igui_svg` — backend-neutral SVG (vector) rendering for igui.
 //!
 //! Strategy ("option C"): parse a small SVG subset down to **flattened polylines**
 //! and stroke them with the existing [`igui_render`] primitives — [`Line`] for

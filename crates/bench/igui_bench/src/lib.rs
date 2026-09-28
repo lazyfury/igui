@@ -1,4 +1,4 @@
-//! `igui_bench` — a tiny, dependency-free benchmarking harness for quill.
+//! `igui_bench` — a tiny, dependency-free benchmarking harness for igui.
 //!
 //! It exists because a profiler and a benchmark answer different questions:
 //! the profiler ([`igui_profile`]) tells you **where** frame time goes, while a

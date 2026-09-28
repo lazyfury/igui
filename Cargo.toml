@@ -30,7 +30,7 @@ members = [
     "crates/window/igui_winit",
     "crates/app/igui_app",
     "crates/app/igui_headless",
-    "quill",
+    "igui",
     "examples/web_demo",
     "examples/demo_app",
     "examples/demoapp_ffi",

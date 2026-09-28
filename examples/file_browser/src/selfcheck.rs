@@ -47,7 +47,7 @@ fn fixture(count: usize) -> Listing {
             modified: Some(1_789_886_988 + index as u64 * 61),
         })
         .collect();
-    Listing::fixture("/Users/suke/Documents/quill/examples", entries)
+    Listing::fixture("/Users/suke/Documents/igui/examples", entries)
 }
 
 /// 走一遍真实的帧生命周期：建视图 -> 收清单 -> 排布 -> 绘制 -> 录下来。

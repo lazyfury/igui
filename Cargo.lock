@@ -744,6 +744,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dfa686283ad6dd069f105e5ab091b04c62850d3e4cf5d67debad1933f55023df"
 
 [[package]]
+name = "igui"
+version = "0.1.0"
+dependencies = [
+ "igui_anim",
+ "igui_app",
+ "igui_assets",
+ "igui_backend_recording",
+ "igui_components",
+ "igui_core",
+ "igui_game",
+ "igui_headless",
+ "igui_render",
+ "igui_scene",
+ "igui_theme",
+ "igui_ui",
+]
+
+[[package]]
 name = "igui_anim"
 version = "0.1.0"
 dependencies = [
@@ -1806,24 +1824,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e660451e55124f798a69a5af3f49ccfbefbd41910eefd25caf2393e1f3473ec1"
 dependencies = [
  "memchr",
-]
-
-[[package]]
-name = "quill"
-version = "0.1.0"
-dependencies = [
- "igui_anim",
- "igui_app",
- "igui_assets",
- "igui_backend_recording",
- "igui_components",
- "igui_core",
- "igui_game",
- "igui_headless",
- "igui_render",
- "igui_scene",
- "igui_theme",
- "igui_ui",
 ]
 
 [[package]]

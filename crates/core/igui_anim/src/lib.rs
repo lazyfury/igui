@@ -1,4 +1,4 @@
-//! `igui_anim` — backend-neutral, time-driven animation for quill.
+//! `igui_anim` — backend-neutral, time-driven animation for igui.
 //!
 //! A host measures time and calls [`Animator::update(dt, tree)`](Animator::update);
 //! the animator advances its tweens and writes the interpolated values either to

@@ -2,7 +2,7 @@
 
 `igui_ffi` exposes the backend-neutral core to a non-Rust host over a C ABI.
 The first consumer is `examples/cpp_ffi`: a C++ program that builds its own UI,
-fills a quill `DrawList`, and rasterizes it with its own OpenGL 3.3 backend.
+fills a igui `DrawList`, and rasterizes it with its own OpenGL 3.3 backend.
 
 The point is the boundary, not the demo:
 
@@ -10,7 +10,7 @@ The point is the boundary, not the demo:
 C++ UI (ui.cpp) --Canvas--> igui_ffi --> DrawList --C++ GlBackend--> pixels
 ```
 
-The UI is organized **in C++**. quill supplies only the core: the value types
+The UI is organized **in C++**. igui supplies only the core: the value types
 and the command list. Nothing from `igui_scene` / `igui_ui` crosses the ABI, and
 the OpenGL backend is C++, not a Rust `RenderBackend` implementation.
 
@@ -18,20 +18,20 @@ the OpenGL backend is C++, not a Rust `RenderBackend` implementation.
 
 `crates/ffi/igui_ffi` depends on `igui_core` + `igui_render` only (no backend, no
 scene/UI). Its `crate-type` is `staticlib` + `cdylib` + `rlib`, so a host links
-`libigui_ffi.a` (or the `.dylib`) and includes `include/quill.h`.
+`libigui_ffi.a` (or the `.dylib`) and includes `include/igui.h`.
 
-- **Value types** (`#[repr(C)]`, all `f32` / C enum): `QuillVec2`, `QuillRect`,
-  `QuillColor`, `QuillTransform`, `QuillCornerRadii`, `QuillPaint`.
-- **Opaque `QuillDrawList`**: `quill_draw_list_new/free/clear/len`, the state
+- **Value types** (`#[repr(C)]`, all `f32` / C enum): `IguiVec2`, `IguiRect`,
+  `IguiColor`, `IguiTransform`, `IguiCornerRadii`, `IguiPaint`.
+- **Opaque `IguiDrawList`**: `igui_draw_list_new/free/clear/len`, the state
   builders (`save`/`restore`/`set_transform`/`set_opacity`/`clip_rect`) and the
   geometry builders (`fill_rect`, `stroke_rect`, `line`, `fill_circle`,
   `stroke_circle`, `fill_rounded_rect`, `stroke_rounded_rect`).
-- **Read-back**: `quill_draw_list_command(list, index)` returns a flat
-  `QuillCommand` record — a `QuillCommandTag` plus every possible payload field.
+- **Read-back**: `igui_draw_list_command(list, index)` returns a flat
+  `IguiCommand` record — a `IguiCommandTag` plus every possible payload field.
   Unused fields are zeroed. A flat record (not a tagged union) is deliberate:
   the host is C++ with no generated union helpers, so `switch (cmd.tag)` over a
   record is the simplest safe shape.
-- **Version**: `quill_abi_version()` must equal the header's `QUILL_ABI_VERSION`
+- **Version**: `igui_abi_version()` must equal the header's `IGUI_ABI_VERSION`
   (the host refuses to run otherwise).
 
 The header is a hand-maintained mirror of the `#[repr(C)]` layout. If you change
@@ -59,7 +59,7 @@ tests that pin the round-trip, the null-pointer safety and the version.
 
 | File | Concern |
 |---|---|
-| `src/canvas.{hpp,cpp}` | the only place `quill.h` appears; value types + `Canvas` |
+| `src/canvas.{hpp,cpp}` | the only place `igui.h` appears; value types + `Canvas` |
 | `src/theme.{hpp,cpp}` | the `igui_theme` tokens, mirrored for `demo_app` parity |
 | `src/widget.{hpp,cpp}` | the `Widget` base and `Column` / `Row` containers |
 | `src/ui.{hpp,cpp}` | the dashboard |
@@ -98,11 +98,11 @@ C++ host -> demoapp_new/set_viewport/update/layout/paint -> DemoApp -> DrawList 
 - `demoapp_new` / `demoapp_new_with_mode` / `demoapp_free`
 - `demoapp_set_viewport`, `demoapp_show_group`, `demoapp_group_count`
 - `demoapp_update`, `demoapp_layout`
-- `demoapp_paint` -> a fresh `QuillDrawList*`, released with `quill_draw_list_free`
+- `demoapp_paint` -> a fresh `IguiDrawList*`, released with `igui_draw_list_free`
 
 `igui_ffi` exposes a Rust helper, `wrap_draw_list(DrawList) -> *mut
-QuillDrawList` (not part of the C ABI), so `demoapp_ffi` hands its list to the
-same `quill_draw_list_command` read-back.
+IguiDrawList` (not part of the C ABI), so `demoapp_ffi` hands its list to the
+same `igui_draw_list_command` read-back.
 
 ```bash
 ./build/cpp_ffi --demoapp            # arrow keys switch catalog group
@@ -113,7 +113,7 @@ same `quill_draw_list_command` read-back.
 **Text is the limitation.** `DemoApp` lays out with `igui_ui`'s built-in
 `ApproxTextMeasurer` (it does not depend on `igui_font`) and emits a `DrawText`
 for every label. ABI v1 has no text record, so those read back as
-`QUILL_CMD_UNSUPPORTED` and the backend skips them: the geometry, layout and
+`IGUI_CMD_UNSUPPORTED` and the backend skips them: the geometry, layout and
 colors are the real app's, the labels are missing. The `--dump` histogram makes
 that visible (86 `unsupported` of 145 commands).
 
@@ -172,7 +172,7 @@ Cargo crate and has no `cargo` gate — `build.sh` + `--selfcheck` is its gate.
 ## Scope
 
 - **ABI v1 has no text or images.** `DrawText` / `DrawImage` read back as
-  `QUILL_CMD_UNSUPPORTED`. Text would require the host to rasterize glyphs
+  `IGUI_CMD_UNSUPPORTED`. Text would require the host to rasterize glyphs
   (`igui_font` is Rust); a future ABI version could pass a glyph atlas + quads,
   but v1 keeps the demo self-contained and text-free.
 - **The OpenGL host targets macOS.** It includes `<OpenGL/gl3.h>` directly.

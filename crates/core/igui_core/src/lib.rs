@@ -1,4 +1,4 @@
-//! `igui_core` — foundation layer for the quill drawing core.
+//! `igui_core` — foundation layer for the igui drawing core.
 //!
 //! This crate owns the backend-neutral base types every other crate builds on:
 //! math ([`Vec2`], [`Size`], [`Rect`], [`Edges`], [`Transform2D`]), [`Color`],

@@ -21,11 +21,11 @@
 //!
 //! A null handle is a no-op (or a null list); every other handle must come from
 //! [`demoapp_new`] and be released with [`demoapp_free`]. The list returned by
-//! [`demoapp_paint`] is freed with `quill_draw_list_free` from `igui_ffi`.
+//! [`demoapp_paint`] is freed with `igui_draw_list_free` from `igui_ffi`.
 
 use demo_app::DemoApp;
 use igui_core::{Size, ViewportSize};
-use igui_ffi::{wrap_draw_list, QuillDrawList};
+use igui_ffi::{wrap_draw_list, IguiDrawList};
 use igui_render::PaintContext;
 use igui_theme::Mode;
 
@@ -126,14 +126,14 @@ pub unsafe extern "C" fn demoapp_layout(handle: *mut DemoAppHandle) {
 
 /// Paints the current frame into a fresh `DrawList` the host owns.
 ///
-/// The list is read with `quill_draw_list_len` / `quill_draw_list_command` and
-/// released with `quill_draw_list_free`. A null handle yields a null list.
+/// The list is read with `igui_draw_list_len` / `igui_draw_list_command` and
+/// released with `igui_draw_list_free`. A null handle yields a null list.
 ///
 /// # Safety
 ///
 /// `handle` must be null or a valid pointer from [`demoapp_new`].
 #[no_mangle]
-pub unsafe extern "C" fn demoapp_paint(handle: *const DemoAppHandle) -> *mut QuillDrawList {
+pub unsafe extern "C" fn demoapp_paint(handle: *const DemoAppHandle) -> *mut IguiDrawList {
     let Some(handle) = (unsafe { handle.as_ref() }) else {
         return std::ptr::null_mut();
     };
@@ -146,7 +146,7 @@ pub unsafe extern "C" fn demoapp_paint(handle: *const DemoAppHandle) -> *mut Qui
 mod tests {
     use super::*;
     use igui_ffi::{
-        quill_draw_list_command, quill_draw_list_free, quill_draw_list_len, QuillCommandTag,
+        igui_draw_list_command, igui_draw_list_free, igui_draw_list_len, IguiCommandTag,
     };
 
     /// The gallery lays out and paints into a list the host can read back.
@@ -162,7 +162,7 @@ mod tests {
         let list = unsafe { demoapp_paint(handle) };
         assert!(!list.is_null());
 
-        let count = unsafe { quill_draw_list_len(list) };
+        let count = unsafe { igui_draw_list_len(list) };
         assert!(
             count > 50,
             "the gallery should emit many commands, got {count}"
@@ -173,16 +173,16 @@ mod tests {
         let mut rounded = 0;
         let mut geometry = 0;
         for i in 0..count {
-            match unsafe { quill_draw_list_command(list, i) }.tag {
-                QuillCommandTag::FillRoundedRect | QuillCommandTag::StrokeRoundedRect => {
+            match unsafe { igui_draw_list_command(list, i) }.tag {
+                IguiCommandTag::FillRoundedRect | IguiCommandTag::StrokeRoundedRect => {
                     rounded += 1;
                     geometry += 1;
                 }
-                QuillCommandTag::FillRect
-                | QuillCommandTag::StrokeRect
-                | QuillCommandTag::Line
-                | QuillCommandTag::FillCircle
-                | QuillCommandTag::StrokeCircle => geometry += 1,
+                IguiCommandTag::FillRect
+                | IguiCommandTag::StrokeRect
+                | IguiCommandTag::Line
+                | IguiCommandTag::FillCircle
+                | IguiCommandTag::StrokeCircle => geometry += 1,
                 _ => {}
             }
         }
@@ -192,7 +192,7 @@ mod tests {
             "expected a full frame of geometry, got {geometry}"
         );
 
-        unsafe { quill_draw_list_free(list) };
+        unsafe { igui_draw_list_free(list) };
         unsafe { demoapp_free(handle) };
     }
 
@@ -209,8 +209,8 @@ mod tests {
             demoapp_update(handle, 0.016);
             demoapp_layout(handle);
             let list = demoapp_paint(handle);
-            let count = quill_draw_list_len(list);
-            quill_draw_list_free(list);
+            let count = igui_draw_list_len(list);
+            igui_draw_list_free(list);
             count
         };
         let first = paint(handle);

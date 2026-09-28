@@ -90,7 +90,7 @@ impl App {
             event_loop
                 .create_window(
                     Window::default_attributes()
-                        .with_title("quill — Game")
+                        .with_title("igui — Game")
                         .with_inner_size(LogicalSize::new(900.0, 640.0)),
                 )
                 .expect("create window"),

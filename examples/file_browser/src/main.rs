@@ -36,7 +36,7 @@ use std::path::PathBuf;
 use host::Options;
 
 const HELP: &str = "\
-file_browser — 用 quill 自己画的目录浏览器
+file_browser — 用 igui 自己画的目录浏览器
 
 用法:
   file_browser [选项]

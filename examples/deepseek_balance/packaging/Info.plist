@@ -7,7 +7,7 @@
 	<key>CFBundleExecutable</key>
 	<string>deepseek_balance</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.quill.deepseek-balance</string>
+	<string>com.igui.deepseek-balance</string>
 	<key>CFBundleName</key>
 	<string>DeepSeek Balance</string>
 	<key>CFBundleDisplayName</key>

@@ -70,7 +70,7 @@ pub fn api_key() -> Option<String> {
 /// own noise to stdout, so the value is fetched behind a marker and everything
 /// before it is ignored. Unix only; elsewhere the process env is all there is.
 pub fn api_key_from_shell() -> Option<String> {
-    const MARKER: &str = "__QUILL_KEY__";
+    const MARKER: &str = "__IGUI_KEY__";
     let shell = std::env::var("SHELL").ok()?;
     let output = std::process::Command::new(shell)
         .args([

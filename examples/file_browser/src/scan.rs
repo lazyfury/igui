@@ -324,7 +324,7 @@ mod tests {
 
     /// 扫一个临时目录：真实的文件系统，但内容完全可控（也完全可删）。
     fn scratch(name: &str) -> PathBuf {
-        let path = std::env::temp_dir().join(format!("quill_file_browser_{name}"));
+        let path = std::env::temp_dir().join(format!("igui_file_browser_{name}"));
         let _ = fs::remove_dir_all(&path);
         fs::create_dir_all(&path).expect("create scratch dir");
         path
@@ -350,7 +350,7 @@ mod tests {
 
     #[test]
     fn a_missing_directory_reports_why() {
-        let path = std::env::temp_dir().join("quill_file_browser_missing");
+        let path = std::env::temp_dir().join("igui_file_browser_missing");
         let _ = fs::remove_dir_all(&path);
         let listing = scan(&path, false);
         assert!(listing.entries.is_empty());

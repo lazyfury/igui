@@ -211,7 +211,7 @@ pub fn api_key() -> Option<String> {
 /// shell environment, and a running process cannot see a variable set after it
 /// started. `auth.json` is the common case, so this is the last resort.
 pub fn api_key_from_shell() -> Option<String> {
-    const MARKER: &str = "__QUILL_GO_KEY__";
+    const MARKER: &str = "__IGUI_GO_KEY__";
     let shell = std::env::var("SHELL").ok()?;
     let output = std::process::Command::new(shell)
         .args([

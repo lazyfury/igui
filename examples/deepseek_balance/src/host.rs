@@ -1483,13 +1483,13 @@ impl App {
         });
     }
 
-    /// Self-check narration; silent in a normal session. `QUILL_TRACE=1` turns
+    /// Self-check narration; silent in a normal session. `IGUI_TRACE=1` turns
     /// it on for an interactive run, which is how a placement question gets
     /// answered without reaching for a screenshot.
     fn trace(&self, message: &str) {
         if self.self_check {
             println!("[自检] {message}");
-        } else if std::env::var_os("QUILL_TRACE").is_some() {
+        } else if std::env::var_os("IGUI_TRACE").is_some() {
             println!("[trace] {message}");
         }
     }

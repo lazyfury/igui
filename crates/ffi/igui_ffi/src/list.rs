@@ -2,9 +2,9 @@
 //! read-back of the command stream.
 //!
 //! The functions take raw pointers. A null `DrawList` is a no-op (or a zeroed
-//! [`QuillCommand`] with [`QuillCommandTag::Unsupported`]), so a host cannot
+//! [`IguiCommand`] with [`IguiCommandTag::Unsupported`]), so a host cannot
 //! segfault by forgetting a null check; every other pointer must come from
-//! [`quill_draw_list_new`] and be released with [`quill_draw_list_free`].
+//! [`igui_draw_list_new`] and be released with [`igui_draw_list_free`].
 
 use igui_render::DrawCommand;
 
@@ -13,25 +13,25 @@ use crate::types::*;
 
 /// Returns [`ABI_VERSION`] so a host can check its header matches.
 #[no_mangle]
-pub extern "C" fn quill_abi_version() -> u32 {
+pub extern "C" fn igui_abi_version() -> u32 {
     ABI_VERSION
 }
 
 /// Allocates an empty [`DrawList`](igui_render::DrawList). Release it with
-/// [`quill_draw_list_free`].
+/// [`igui_draw_list_free`].
 #[no_mangle]
-pub extern "C" fn quill_draw_list_new() -> *mut QuillDrawList {
-    Box::into_raw(Box::new(QuillDrawList::new()))
+pub extern "C" fn igui_draw_list_new() -> *mut IguiDrawList {
+    Box::into_raw(Box::new(IguiDrawList::new()))
 }
 
-/// Releases a list from [`quill_draw_list_new`]. A null pointer is a no-op.
+/// Releases a list from [`igui_draw_list_new`]. A null pointer is a no-op.
 ///
 /// # Safety
 ///
-/// `list` must be null or a pointer from [`quill_draw_list_new`] that has not
+/// `list` must be null or a pointer from [`igui_draw_list_new`] that has not
 /// been freed yet.
 #[no_mangle]
-pub unsafe extern "C" fn quill_draw_list_free(list: *mut QuillDrawList) {
+pub unsafe extern "C" fn igui_draw_list_free(list: *mut IguiDrawList) {
     if list.is_null() {
         return;
     }
@@ -42,9 +42,9 @@ pub unsafe extern "C" fn quill_draw_list_free(list: *mut QuillDrawList) {
 ///
 /// # Safety
 ///
-/// `list` must be null or a valid pointer from [`quill_draw_list_new`].
+/// `list` must be null or a valid pointer from [`igui_draw_list_new`].
 #[no_mangle]
-pub unsafe extern "C" fn quill_draw_list_clear(list: *mut QuillDrawList) {
+pub unsafe extern "C" fn igui_draw_list_clear(list: *mut IguiDrawList) {
     if let Some(list) = unsafe { list.as_mut() } {
         list.list.clear();
     }
@@ -54,36 +54,36 @@ pub unsafe extern "C" fn quill_draw_list_clear(list: *mut QuillDrawList) {
 ///
 /// # Safety
 ///
-/// `list` must be null or a valid pointer from [`quill_draw_list_new`].
+/// `list` must be null or a valid pointer from [`igui_draw_list_new`].
 #[no_mangle]
-pub unsafe extern "C" fn quill_draw_list_len(list: *const QuillDrawList) -> usize {
+pub unsafe extern "C" fn igui_draw_list_len(list: *const IguiDrawList) -> usize {
     unsafe { list.as_ref() }.map_or(0, |list| list.list.len())
 }
 
 /// Reads one command back as a flat record.
 ///
 /// An out-of-bounds `index` (or a null list) yields
-/// [`QuillCommandTag::Unsupported`] with every field zeroed.
+/// [`IguiCommandTag::Unsupported`] with every field zeroed.
 ///
 /// # Safety
 ///
-/// `list` must be null or a valid pointer from [`quill_draw_list_new`].
+/// `list` must be null or a valid pointer from [`igui_draw_list_new`].
 #[no_mangle]
-pub unsafe extern "C" fn quill_draw_list_command(
-    list: *const QuillDrawList,
+pub unsafe extern "C" fn igui_draw_list_command(
+    list: *const IguiDrawList,
     index: usize,
-) -> QuillCommand {
+) -> IguiCommand {
     let Some(list) = (unsafe { list.as_ref() }) else {
-        return QuillCommand {
-            tag: QuillCommandTag::Unsupported,
-            ..QuillCommand::default()
+        return IguiCommand {
+            tag: IguiCommandTag::Unsupported,
+            ..IguiCommand::default()
         };
     };
     match list.list.commands().get(index) {
         Some(command) => command_record(command),
-        None => QuillCommand {
-            tag: QuillCommandTag::Unsupported,
-            ..QuillCommand::default()
+        None => IguiCommand {
+            tag: IguiCommandTag::Unsupported,
+            ..IguiCommand::default()
         },
     }
 }
@@ -94,9 +94,9 @@ pub unsafe extern "C" fn quill_draw_list_command(
 ///
 /// # Safety
 ///
-/// `list` must be null or a valid pointer from [`quill_draw_list_new`].
+/// `list` must be null or a valid pointer from [`igui_draw_list_new`].
 #[no_mangle]
-pub unsafe extern "C" fn quill_draw_list_save(list: *mut QuillDrawList) {
+pub unsafe extern "C" fn igui_draw_list_save(list: *mut IguiDrawList) {
     if let Some(list) = unsafe { list.as_mut() } {
         list.list.push(DrawCommand::Save);
     }
@@ -106,9 +106,9 @@ pub unsafe extern "C" fn quill_draw_list_save(list: *mut QuillDrawList) {
 ///
 /// # Safety
 ///
-/// `list` must be null or a valid pointer from [`quill_draw_list_new`].
+/// `list` must be null or a valid pointer from [`igui_draw_list_new`].
 #[no_mangle]
-pub unsafe extern "C" fn quill_draw_list_restore(list: *mut QuillDrawList) {
+pub unsafe extern "C" fn igui_draw_list_restore(list: *mut IguiDrawList) {
     if let Some(list) = unsafe { list.as_mut() } {
         list.list.push(DrawCommand::Restore);
     }
@@ -118,11 +118,11 @@ pub unsafe extern "C" fn quill_draw_list_restore(list: *mut QuillDrawList) {
 ///
 /// # Safety
 ///
-/// `list` must be null or a valid pointer from [`quill_draw_list_new`].
+/// `list` must be null or a valid pointer from [`igui_draw_list_new`].
 #[no_mangle]
-pub unsafe extern "C" fn quill_draw_list_set_transform(
-    list: *mut QuillDrawList,
-    transform: QuillTransform,
+pub unsafe extern "C" fn igui_draw_list_set_transform(
+    list: *mut IguiDrawList,
+    transform: IguiTransform,
 ) {
     if let Some(list) = unsafe { list.as_mut() } {
         list.list
@@ -134,9 +134,9 @@ pub unsafe extern "C" fn quill_draw_list_set_transform(
 ///
 /// # Safety
 ///
-/// `list` must be null or a valid pointer from [`quill_draw_list_new`].
+/// `list` must be null or a valid pointer from [`igui_draw_list_new`].
 #[no_mangle]
-pub unsafe extern "C" fn quill_draw_list_set_opacity(list: *mut QuillDrawList, opacity: f32) {
+pub unsafe extern "C" fn igui_draw_list_set_opacity(list: *mut IguiDrawList, opacity: f32) {
     if let Some(list) = unsafe { list.as_mut() } {
         list.list.push(DrawCommand::SetOpacity(opacity));
     }
@@ -146,9 +146,9 @@ pub unsafe extern "C" fn quill_draw_list_set_opacity(list: *mut QuillDrawList, o
 ///
 /// # Safety
 ///
-/// `list` must be null or a valid pointer from [`quill_draw_list_new`].
+/// `list` must be null or a valid pointer from [`igui_draw_list_new`].
 #[no_mangle]
-pub unsafe extern "C" fn quill_draw_list_clip_rect(list: *mut QuillDrawList, rect: QuillRect) {
+pub unsafe extern "C" fn igui_draw_list_clip_rect(list: *mut IguiDrawList, rect: IguiRect) {
     if let Some(list) = unsafe { list.as_mut() } {
         list.list.push(DrawCommand::ClipRect(to_rect(rect)));
     }
@@ -158,12 +158,12 @@ pub unsafe extern "C" fn quill_draw_list_clip_rect(list: *mut QuillDrawList, rec
 
 /// # Safety
 ///
-/// `list` must be null or a valid pointer from [`quill_draw_list_new`].
+/// `list` must be null or a valid pointer from [`igui_draw_list_new`].
 #[no_mangle]
-pub unsafe extern "C" fn quill_draw_list_fill_rect(
-    list: *mut QuillDrawList,
-    rect: QuillRect,
-    paint: QuillPaint,
+pub unsafe extern "C" fn igui_draw_list_fill_rect(
+    list: *mut IguiDrawList,
+    rect: IguiRect,
+    paint: IguiPaint,
 ) {
     if let Some(list) = unsafe { list.as_mut() } {
         list.list.push(DrawCommand::FillRect {
@@ -175,12 +175,12 @@ pub unsafe extern "C" fn quill_draw_list_fill_rect(
 
 /// # Safety
 ///
-/// `list` must be null or a valid pointer from [`quill_draw_list_new`].
+/// `list` must be null or a valid pointer from [`igui_draw_list_new`].
 #[no_mangle]
-pub unsafe extern "C" fn quill_draw_list_stroke_rect(
-    list: *mut QuillDrawList,
-    rect: QuillRect,
-    paint: QuillPaint,
+pub unsafe extern "C" fn igui_draw_list_stroke_rect(
+    list: *mut IguiDrawList,
+    rect: IguiRect,
+    paint: IguiPaint,
     width: f32,
 ) {
     if let Some(list) = unsafe { list.as_mut() } {
@@ -194,13 +194,13 @@ pub unsafe extern "C" fn quill_draw_list_stroke_rect(
 
 /// # Safety
 ///
-/// `list` must be null or a valid pointer from [`quill_draw_list_new`].
+/// `list` must be null or a valid pointer from [`igui_draw_list_new`].
 #[no_mangle]
-pub unsafe extern "C" fn quill_draw_list_line(
-    list: *mut QuillDrawList,
-    from: QuillVec2,
-    to: QuillVec2,
-    paint: QuillPaint,
+pub unsafe extern "C" fn igui_draw_list_line(
+    list: *mut IguiDrawList,
+    from: IguiVec2,
+    to: IguiVec2,
+    paint: IguiPaint,
     width: f32,
 ) {
     if let Some(list) = unsafe { list.as_mut() } {
@@ -215,13 +215,13 @@ pub unsafe extern "C" fn quill_draw_list_line(
 
 /// # Safety
 ///
-/// `list` must be null or a valid pointer from [`quill_draw_list_new`].
+/// `list` must be null or a valid pointer from [`igui_draw_list_new`].
 #[no_mangle]
-pub unsafe extern "C" fn quill_draw_list_fill_circle(
-    list: *mut QuillDrawList,
-    center: QuillVec2,
+pub unsafe extern "C" fn igui_draw_list_fill_circle(
+    list: *mut IguiDrawList,
+    center: IguiVec2,
     radius: f32,
-    paint: QuillPaint,
+    paint: IguiPaint,
 ) {
     if let Some(list) = unsafe { list.as_mut() } {
         list.list.push(DrawCommand::FillCircle {
@@ -234,13 +234,13 @@ pub unsafe extern "C" fn quill_draw_list_fill_circle(
 
 /// # Safety
 ///
-/// `list` must be null or a valid pointer from [`quill_draw_list_new`].
+/// `list` must be null or a valid pointer from [`igui_draw_list_new`].
 #[no_mangle]
-pub unsafe extern "C" fn quill_draw_list_stroke_circle(
-    list: *mut QuillDrawList,
-    center: QuillVec2,
+pub unsafe extern "C" fn igui_draw_list_stroke_circle(
+    list: *mut IguiDrawList,
+    center: IguiVec2,
     radius: f32,
-    paint: QuillPaint,
+    paint: IguiPaint,
     width: f32,
 ) {
     if let Some(list) = unsafe { list.as_mut() } {
@@ -255,13 +255,13 @@ pub unsafe extern "C" fn quill_draw_list_stroke_circle(
 
 /// # Safety
 ///
-/// `list` must be null or a valid pointer from [`quill_draw_list_new`].
+/// `list` must be null or a valid pointer from [`igui_draw_list_new`].
 #[no_mangle]
-pub unsafe extern "C" fn quill_draw_list_fill_rounded_rect(
-    list: *mut QuillDrawList,
-    rect: QuillRect,
-    corners: QuillCornerRadii,
-    paint: QuillPaint,
+pub unsafe extern "C" fn igui_draw_list_fill_rounded_rect(
+    list: *mut IguiDrawList,
+    rect: IguiRect,
+    corners: IguiCornerRadii,
+    paint: IguiPaint,
 ) {
     if let Some(list) = unsafe { list.as_mut() } {
         list.list.push(DrawCommand::FillRoundedRect {
@@ -274,13 +274,13 @@ pub unsafe extern "C" fn quill_draw_list_fill_rounded_rect(
 
 /// # Safety
 ///
-/// `list` must be null or a valid pointer from [`quill_draw_list_new`].
+/// `list` must be null or a valid pointer from [`igui_draw_list_new`].
 #[no_mangle]
-pub unsafe extern "C" fn quill_draw_list_stroke_rounded_rect(
-    list: *mut QuillDrawList,
-    rect: QuillRect,
-    corners: QuillCornerRadii,
-    paint: QuillPaint,
+pub unsafe extern "C" fn igui_draw_list_stroke_rounded_rect(
+    list: *mut IguiDrawList,
+    rect: IguiRect,
+    corners: IguiCornerRadii,
+    paint: IguiPaint,
     width: f32,
 ) {
     if let Some(list) = unsafe { list.as_mut() } {

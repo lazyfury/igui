@@ -1,4 +1,4 @@
-//! `igui_profile` — backend-neutral performance inspection for the quill pipeline.
+//! `igui_profile` — backend-neutral performance inspection for the igui pipeline.
 //!
 //! This crate observes the pipeline stages without owning any of them:
 //!

@@ -1,6 +1,6 @@
 [package]
 name = "igui_svg"
-description = "Backend-neutral SVG (vector) rendering for quill: parses a small SVG subset into flattened polylines and strokes them with the igui_render IR."
+description = "Backend-neutral SVG (vector) rendering for igui: parses a small SVG subset into flattened polylines and strokes them with the igui_render IR."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

@@ -477,7 +477,7 @@ mod tests {
     /// 真读一次盘：一个临时文件。
     #[test]
     fn reading_a_real_file_stops_at_the_limit() {
-        let dir = std::env::temp_dir().join("quill-preview-test");
+        let dir = std::env::temp_dir().join("igui-preview-test");
         std::fs::create_dir_all(&dir).expect("mkdir");
         let path = dir.join("sample.bin");
         // 比 PREVIEW_LIMIT 多写一点，验证读取确实在限制处停住。

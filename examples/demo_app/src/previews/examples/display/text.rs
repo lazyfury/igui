@@ -8,7 +8,7 @@ use igui_ui::{Track, WordBreak};
 use super::super::Ctx;
 
 /// A body sample long enough to wrap in a card-width column.
-const SAMPLE: &str = "Quill wraps text to the resolved width, hard-breaks overlong \
+const SAMPLE: &str = "Igui wraps text to the resolved width, hard-breaks overlong \
                       words when it must, and clamps to a line budget with an ellipsis.";
 
 pub(crate) fn type_scale(card: Card, ctx: &mut Ctx) -> Card {

@@ -1,13 +1,13 @@
 # Godot-style migration
 
 Status: **Stage 25 accepted.** Phases 1-5 and sub-stages 25.1-25.16 landed;
-Phases 6-9 (`igui_game`, native continuous loop, observability, `quill` facade)
+Phases 6-9 (`igui_game`, native continuous loop, observability, `igui` facade)
 are future stages, not part of Stage 25's acceptance. Post-25.16 work:
 `igui_font` (system font service + numeric `FontWeight`) and `Theme` as a trait
 + `DefaultTheme`. **Stages 26-32 (animation + game + GameView + facade + the
 `igui_app` runtime) are approved**; see "Approved plan — Stages 26-32" below.
 
-Goal: turn quill from "a UI toolkit that also has a scene tree" into a
+Goal: turn igui from "a UI toolkit that also has a scene tree" into a
 **2D-first scene engine** modeled on Godot, where a single `SceneTree` owns both
 world (`Node2D`) and UI (`Control`), the camera drives the world only, and UI
 lives under a `CanvasLayer` in viewport coordinates.
@@ -288,7 +288,7 @@ Additive, outside the frozen core where possible. (Only the `Visual::Image` and
 - Update `architecture.md`, `backend.md`, `components.md`, `plan.md`,
   `AGENTS.md`.
 
-### Phase 9 — packaging facade (`quill`) — PLANNED (skeleton Stage 26, `app`/`headless` Stage 31, backend features Stage 32)
+### Phase 9 — packaging facade (`igui`) — PLANNED (skeleton Stage 26, `app`/`headless` Stage 31, backend features Stage 32)
 
 Status: **planned, execute later** (can start once Phase 1 lands; finalized once
 `igui_game` exists in Phase 6).
@@ -297,15 +297,15 @@ Purpose: keep the fine-grained core crates (they enforce the dependency rules)
 but give applications one dependency with opt-in features, so a UI app never
 compiles game logic and a game never compiles UI unless it asks.
 
-- Add a facade crate `quill` that only re-exports; optional deps forwarded per
+- Add a facade crate `igui` that only re-exports; optional deps forwarded per
   feature (see the Packaging section).
-- UI-only apps depend on `quill` with `ui` + one backend; they never enable
+- UI-only apps depend on `igui` with `ui` + one backend; they never enable
   `game` and therefore never build `igui_game`.
 - Fine-grained crates stay separate; the facade does not merge them.
 
 ## Approved plan — Stages 26-32 (animation + game + GameView + facade + runtime)
 
-Approved by the user (2026-09-25). Scope: give quill animation and 2D game
+Approved by the user (2026-09-25). Scope: give igui animation and 2D game
 capabilities, and let a **GameView** run at its own frame cadence so UI work does
 not throttle it. All new capability lives in optional crates; the core stays
 backend-neutral.
@@ -343,7 +343,7 @@ game thread) is explicitly out of scope**:
 | 29 | GameView + loop | Offscreen render target / sub-viewport; fixed-step `_physics_process` vs render `_process`; `WaitUntil` host. `wgpu_demo` stays `Wait`, requesting a frame only while animating. |
 | 30 | `examples/game_demo` | New workspace member: sprites, animation, collision, camera, input; `--selfcheck` via `igui_backend_recording` (no screenshots). |
 | 31 | new crate `igui_app` | Platform-neutral plugin runtime: `App`/`AppBuilder`/`Plugin`/`AppLogic`/`ServiceMap`/`Runner`, a `Presenter` service, and the split of `igui_winit` into `WinitPlugin` + input/graphics plugins. New `igui_headless` for winit-free self-checks. Replaces `igui_winit::Host`. |
-| 32 | `quill` facade | Feature-gated re-exports: `ui` (base), `anim`, `game`, `wgpu`, `canvas`, `wasm`, `profile`, `debug`, `recording`, `bench`. Skeleton starts in Stage 26; `game` feature finalizes after Stage 28. |
+| 32 | `igui` facade | Feature-gated re-exports: `ui` (base), `anim`, `game`, `wgpu`, `canvas`, `wasm`, `profile`, `debug`, `recording`, `bench`. Skeleton starts in Stage 26; `game` feature finalizes after Stage 28. |
 
 Each stage still ends with its report and waits for approval (rule 6). Roadmap
 changes recorded here: new `igui_anim`, new `examples/game_demo`, Phase 9 facade
@@ -355,7 +355,7 @@ Stage 32).
 extension store, `Visual::Sprite`), 28.2 `RenderBackend::register_texture`
 defaulted contract (wgpu + recording), 28.3 `igui_assets` (PNG -> RGBA8), 28.4
 `igui_game` (`Sprite2D` + texture upload), 28.5 sprite-frame animation + timers +
-typed signals, 28.6 AABB/circle collision + `Area` triggers, 28.7 `quill` `game`
+typed signals, 28.6 AABB/circle collision + `Area` triggers, 28.7 `igui` `game`
 feature. No rigid bodies, no audio; `game` does not imply `ui`. Core additions
 recorded in `docs/design-system.md`.
 
@@ -388,7 +388,7 @@ Each sub-stage ends with its report and waits for approval (rule 6).
 metadata + lists; canvas deferred); 29.3 `igui_game::GameView` (optional `ui`
 feature) — sub-`SceneTree` + `Animator`/`SpriteAnimations`/`Timers`/`Areas`,
 offscreen target at `logical * scale`, composited by a `igui_ui` Control; 29.4
-`igui_game::FixedTimestep` clock + `GameView::set_fixed_step`. `quill` surfaces
+`igui_game::FixedTimestep` clock + `GameView::set_fixed_step`. `igui` surfaces
 `GameView` when `ui` + `game` are both enabled (`igui_game?/ui`). The actual
 `WaitUntil` game host lands with `examples/game_demo` (Stage 30); `wgpu_demo`
 stays `Wait` / on-demand. Single-threaded; L4 (separate game thread) is out of
@@ -470,7 +470,7 @@ Sub-stages:
 - **31.4 migrate `examples/wgpu_demo`.** Reference implementation of the new
   builder (window path), plus a new winit-free `--selfcheck` that paints one
   gallery frame through `igui_headless`. No other demo is migrated here.
-- **31.5 facade + docs.** `quill` gains an `app` feature re-exporting
+- **31.5 facade + docs.** `igui` gains an `app` feature re-exporting
   `igui_app` (and `igui_headless` behind the same/`headless` feature). Update
   `docs/ui-guide.md` §Hosting, `docs/design-system.md`, `docs/architecture.md`,
   `AGENTS.md`.
@@ -502,7 +502,7 @@ Each sub-stage ends with its report and waits for approval (rule 6).
 paint layers); 31.2 `igui_winit` split into the plugins above (deleting
 `Host` / `HostOptions` / `RenderOutcome`); 31.3 `igui_headless` over
 `RecordingBackend`; 31.4 `examples/wgpu_demo` migrated to the builder with a
-winit-free `--selfcheck`; 31.5 `quill` `app` / `headless` features + docs.
+winit-free `--selfcheck`; 31.5 `igui` `app` / `headless` features + docs.
 Deviations recorded: `FrameClock` lives in `igui_app` (no `FrameClockPlugin`);
 the borrowed winit `ActiveEventLoop` cannot be `Any + 'static`, so there is no
 `PlatformContext` — the runner publishes `SharedWindow` into services before
@@ -534,12 +534,12 @@ Phase 5-6 are the second batch.
 3. **Migration strategy.** Keep a `Ui::new()` compatibility layer (owns a tree)
    while adding the borrowed API; migrate demos afterwards.
 4. **Packaging.** Core crates stay fine-grained (they enforce the boundaries);
-   applications use a single facade crate `quill` with opt-in features.
+   applications use a single facade crate `igui` with opt-in features.
    Game logic lives only in `igui_game`, never in the core, so a UI-only app
    cannot compile it. See the Packaging section. Implementation is deferred to
    Phase 9.
 
-## Packaging — facade crate `quill`
+## Packaging — facade crate `igui`
 
 The core is intentionally many small crates: the boundaries are what enforce
 AGENTS rule 1 (no backend/DOM in the core) and the dependency direction. Do not
@@ -555,14 +555,14 @@ igui_core ──┬─ igui_render ──┬─ igui_scene ── igui_ui ──
             └─ igui_backend_{canvas,recording,wgpu}
 
 igui_game -> igui_scene (+ optional igui_ui)   [Phase 6]
-quill     -> re-exports, feature-gated                    [Phase 9]
+igui      -> re-exports, feature-gated                    [Phase 9]
 ```
 
 Minimum for a **UI-only app**: `igui_core`, `igui_render`, `igui_scene`,
 `igui_theme`, `igui_ui`, `igui_components` + one backend. It never pulls
 `igui_game`, `igui_profile`, `igui_debug_ui` or the benches unless asked.
 
-The `quill` facade feature matrix:
+The `igui` facade feature matrix:
 
 | feature | forwards to | notes |
 |---|---|---|
@@ -580,16 +580,16 @@ Applications enable only what they need:
 
 ```toml
 # desktop UI app
-quill = { path = ".../quill", default-features = false, features = ["ui", "wgpu"] }
+igui = { path = ".../igui", default-features = false, features = ["ui", "wgpu"] }
 
 # web UI app
-quill = { path = ".../quill", default-features = false, features = ["ui", "canvas", "wasm"] }
+igui = { path = ".../igui", default-features = false, features = ["ui", "canvas", "wasm"] }
 
 # 2D game (add "ui" only if it wants a HUD)
-quill = { path = ".../quill", default-features = false, features = ["game", "wgpu"] }
+igui = { path = ".../igui", default-features = false, features = ["game", "wgpu"] }
 
 # headless core (tests / tooling)
-quill = { path = ".../quill", default-features = false, features = ["ui", "recording"] }
+igui = { path = ".../igui", default-features = false, features = ["ui", "recording"] }
 ```
 
 Rules:

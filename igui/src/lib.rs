@@ -1,4 +1,4 @@
-//! `quill` — the application facade over the fine-grained core crates.
+//! `igui` — the application facade over the fine-grained core crates.
 //!
 //! The core stays deliberately split so its dependency boundaries stay
 //! enforceable. Applications depend on this one crate with opt-in features
@@ -19,15 +19,15 @@
 //!
 //! ```toml
 //! # UI app
-//! quill = { path = ".../quill", default-features = false, features = ["ui"] }
+//! igui = { path = ".../igui", default-features = false, features = ["ui"] }
 //! # 2D game
-//! quill = { path = ".../quill", default-features = false, features = ["game"] }
+//! igui = { path = ".../igui", default-features = false, features = ["game"] }
 //! # plugin runtime + headless self-check
-//! quill = { path = ".../quill", default-features = false, features = ["ui", "app", "headless"] }
+//! igui = { path = ".../igui", default-features = false, features = ["ui", "app", "headless"] }
 //! ```
 
 /// Crate name, kept for lightweight smoke checks.
-pub const CRATE: &str = "quill";
+pub const CRATE: &str = "igui";
 
 #[cfg(any(feature = "ui", feature = "anim", feature = "game", feature = "app"))]
 pub use igui_core;
@@ -68,6 +68,6 @@ mod tests {
 
     #[test]
     fn crate_identity() {
-        assert_eq!(CRATE, "quill");
+        assert_eq!(CRATE, "igui");
     }
 }

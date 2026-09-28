@@ -1,28 +1,28 @@
 //! `igui_ffi` — a C ABI over the backend-neutral core.
 //!
 //! A foreign-language host (the C++ `examples/cpp_ffi` demo is the first one)
-//! builds its own scene/UI and needs exactly two things from quill:
+//! builds its own scene/UI and needs exactly two things from igui:
 //!
 //! 1. the core value types (`Color`, `Vec2`, `Rect`, `Transform2D`) and
 //! 2. a `DrawList` it can fill with backend-neutral commands.
 //!
 //! Both are exposed here. The host then walks the list through
-//! [`quill_draw_list_command`] and rasterizes it with **its own** backend — the
+//! [`igui_draw_list_command`] and rasterizes it with **its own** backend — the
 //! C++ demo's OpenGL renderer. The UI itself is the host's business: nothing
 //! from `igui_scene` / `igui_ui` crosses this boundary.
 //!
 //! ```text
-//! C++ UI -> quill_draw_list_* -> DrawList -> C++ backend -> pixels
+//! C++ UI -> igui_draw_list_* -> DrawList -> C++ backend -> pixels
 //! ```
 //!
 //! # Layout
 //!
-//! - [`types`] — the `#[repr(C)]` records and the opaque `QuillDrawList`.
+//! - [`types`] — the `#[repr(C)]` records and the opaque `IguiDrawList`.
 //! - `convert` — marshalling between the core types and the records.
 //! - `list` — the `extern "C"` allocation, builder and read-back functions.
 //! - `tests` — the ABI contract (round-trip, null safety, version).
 //!
-//! `include/quill.h` is a hand-maintained mirror of the layout. Change one,
+//! `include/igui.h` is a hand-maintained mirror of the layout. Change one,
 //! change the other, and bump [`ABI_VERSION`]. Details: `docs/cpp-ffi.md`.
 
 mod convert;

@@ -6,7 +6,7 @@ edition.workspace = true
 # the workspace default, exactly like `examples/wgpu_demo`.
 rust-version = "1.76"
 license.workspace = true
-description = "Shared winit + wgpu window hosting for quill apps."
+description = "Shared winit + wgpu window hosting for igui apps."
 publish = false
 
 [dependencies]

@@ -140,7 +140,7 @@ logical size plus the world -> screen `canvas_transform`.)
   backend-neutral, time-driven tween manager (`Easing` curves, `Animator`,
   `TweenSpec` / `Repeat`, node-property and external-value targets); its
   `is_animating` is the host's "needs another frame" signal. No clock, backend
-  or UI dependency. The same task created the `quill` facade skeleton as
+  or UI dependency. The same task created the `igui` facade skeleton as
   re-exports only, with opt-in `ui` / `anim` features (`game` lands Stage 32).
 - Stage 27 — refresh decoupling [done]: additive core plumbing so a host can
   render only on change and keep an unchanged UI out of the frame cost. The
@@ -156,7 +156,7 @@ logical size plus the world -> screen `canvas_transform`.)
   `RenderBackend::register_texture`; new `igui_assets` decodes PNG to RGBA8; new
   `igui_game` provides `Sprite2D` + a texture-upload helper, sprite-sheet frame
   animation, lightweight timers and typed signals, and AABB/circle collision
-  queries with `Area` enter/exit triggers; the `quill` facade gained the `game`
+  queries with `Area` enter/exit triggers; the `igui` facade gained the `game`
   feature. Backend-neutral, no UI dependency (`game` does not imply `ui`), no
   rigid bodies or audio. Core additions recorded in `docs/design-system.md`;
   plan/status in `docs/godot-migration.md`.
@@ -167,7 +167,7 @@ logical size plus the world -> screen `canvas_transform`.)
   texture, recording stores metadata + lists); `igui_game` gained `GameView`
   (behind its optional `ui` feature) — an embedded sub-viewport Control that
   renders its own `SceneTree` to an offscreen target at `logical * scale` and
-  composites it — and a `FixedTimestep` clock. `quill` surfaces `GameView` when
+  composites it — and a `FixedTimestep` clock. `igui` surfaces `GameView` when
   `ui` + `game` are enabled. Single-threaded; no separate game thread.
 - Stage 30 — `examples/game_demo` [done]: a top-down collect game built on the
   game layer — a `GameView` embedded in a `igui_ui` HUD, animated sprites from an
@@ -200,7 +200,7 @@ logical size plus the world -> screen `canvas_transform`.)
   `KeyboardPlugin`, `ImePlugin`, `TextMeasurePlugin`, `ClipboardPlugin` (and a
   `FrameObserver` hook for frame-time work like IME placement). `igui_headless`
   records frames for winit-free self-checks. It replaces `igui_winit::Host`
-  (removed, not kept as a façade) and adds `app` / `headless` to the `quill`
+  (removed, not kept as a façade) and adds `app` / `headless` to the `igui`
   facade; the facade's backend features remain Stage 32. `examples/wgpu_demo` is
   migrated and gains `--selfcheck`. See `docs/godot-migration.md` → "Stage 31
   plan".

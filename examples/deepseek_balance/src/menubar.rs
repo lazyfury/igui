@@ -56,13 +56,13 @@ use winit::event_loop::EventLoopProxy;
 use crate::host::UserEvent;
 
 /// `刷新余额` — re-queries the endpoint.
-pub const MENU_REFRESH: &str = "quill.deepseek.refresh";
+pub const MENU_REFRESH: &str = "igui.deepseek.refresh";
 /// `暂停自动刷新` / `继续自动刷新` — toggles the automatic refresh timer.
-pub const MENU_PAUSE: &str = "quill.deepseek.pause";
+pub const MENU_PAUSE: &str = "igui.deepseek.pause";
 /// `打开/收起面板` — same as clicking the item.
-pub const MENU_PANEL: &str = "quill.deepseek.panel";
+pub const MENU_PANEL: &str = "igui.deepseek.panel";
 /// `退出`.
-pub const MENU_QUIT: &str = "quill.deepseek.quit";
+pub const MENU_QUIT: &str = "igui.deepseek.quit";
 
 /// Label of [`MENU_PAUSE`] while the timer is running.
 pub const PAUSE_LABEL_RUNNING: &str = "暂停自动刷新";

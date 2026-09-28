@@ -7,7 +7,7 @@
 //! draws them unchanged.
 //!
 //! It is deliberately split from `igui_ui`: a game without a HUD never compiles
-//! the UI crates (`igui_game` does **not** imply `ui`). The `quill` facade's
+//! the UI crates (`igui_game` does **not** imply `ui`). The `igui` facade's
 //! `game` feature forwards this crate.
 //!
 //! ```ignore

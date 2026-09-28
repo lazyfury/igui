@@ -1,4 +1,4 @@
-# AGENTS.md — quill
+# AGENTS.md — igui
 
 Concise working agreement. Details live in `docs/` (see the map at the bottom);
 this file is the short source of truth for rules and status.
@@ -78,7 +78,7 @@ igui_ffi      -> igui_core, igui_render
                  (C ABI over the core: the value types plus a `DrawList`
                   builder/iterator. No scene/UI and no backend — a
                   foreign-language host organizes its own UI and implements
-                  its own backend. Header: `crates/ffi/igui_ffi/include/quill.h`.)
+                  its own backend. Header: `crates/ffi/igui_ffi/include/igui.h`.)
 demoapp_ffi   -> demo_app, igui_ffi, igui_core, igui_render, igui_theme
                  (C ABI over the *real* `demo_app` gallery: a foreign host
                   creates a DemoApp, drives its frame and reads the resulting
@@ -124,9 +124,9 @@ igui_game     -> igui_core, igui_render, igui_scene, igui_assets, igui_anim
                   circle collision queries and `Area` enter/exit triggers. The
                   optional `ui` feature adds `GameView`, an embedded sub-viewport
                   Control that renders the world to an offscreen target and
-                  composites it. No backend; no rigid bodies, no audio. `quill`'s
+                  composites it. No backend; no rigid bodies, no audio. `igui`'s
                   `game` feature forwards it; `ui`+`game` surfaces `GameView`.)
-quill         -> feature-gated re-exports only:
+igui          -> feature-gated re-exports only:
                  `ui`   -> igui_core, igui_render, igui_scene, igui_theme,
                            igui_ui, igui_components
                  `anim` -> igui_anim (+ igui_core, igui_scene)
@@ -204,16 +204,16 @@ checkout.
 Planned (future stages, see `docs/godot-migration.md`):
 
 ```
-# Stage 32: remaining `quill` facade backend features (wgpu/canvas/wasm/...)
+# Stage 32: remaining `igui` facade backend features (wgpu/canvas/wasm/...)
 ```
 
 Crates are grouped by role under `crates/`: `core/` (backend-neutral),
 `platform/<backend>/` (concrete backends), `ffi/`, `debug/`, `bench/`,
 `window/` (window hosts) and `app/` (runtimes). Internal crates carry the
-**`igui_` prefix**; the public **facade is `quill`** (`quill/` at the repo
+**`igui_` prefix**; the public **facade is `igui`** (`igui/` at the repo
 root). `examples/` keep their own names and are not grouped.
 
-The core crates stay fine-grained on purpose; applications use the `quill`
+The core crates stay fine-grained on purpose; applications use the `igui`
 facade with opt-in features (`ui`, `anim`, `game`, `app`, `headless`, `wgpu`,
 `canvas`, `wasm`, `profile`, `debug`, `recording`, `bench`). A UI-only app must
 not compile `igui_game`; `anim` is independent of `game`.
@@ -302,17 +302,17 @@ notes are `docs/godot-migration.md`.
   `WinitPlugin`/`WgpuPlugin`/`PointerPlugin`/`KeyboardPlugin`/`ImePlugin`/
   `TextMeasurePlugin`/`ClipboardPlugin` (old `Host` removed); `igui_headless`
   for winit-free self-checks; `examples/wgpu_demo` migrated with `--selfcheck`;
-  `quill` gained `app`/`headless`. Previously: editable text input + shared host;
+  `igui` gained `app`/`headless`. Previously: editable text input + shared host;
   Stage 30 (`examples/game_demo`), Stage 29 (`GameView`/sub-viewport + fixed
   timestep), Stage 28 (`igui_game` 2D game layer), Stage 27 (refresh decoupling),
-  Stage 26 (`igui_anim` + `quill` facade skeleton), Stage 25 (Godot-style
+  Stage 26 (`igui_anim` + `igui` facade skeleton), Stage 25 (Godot-style
   unified scene), `igui_font`, `Theme` trait.
-- **Next (future stages):** Stage 32 — remaining `quill` facade backend features
+- **Next (future stages):** Stage 32 — remaining `igui` facade backend features
   (`wgpu`/`canvas`/`wasm`/`profile`/`debug`/`recording`/`bench`). Phase 8
   observability remains. Remaining host migrations to the `igui_app` runtime
   (`file_browser`, `deepseek_balance`, `game_demo`, and the sibling
   `image_editor` / `archiver` / `classic-game-box` checkouts) are follow-ups.
-- **Current stage:** none — next up Stage 32 (`quill` facade backend features).
+- **Current stage:** none — next up Stage 32 (`igui` facade backend features).
 
 On acceptance of a whole user task, the agent writes the durable summary into
 this file (the "Current stage" bullet under "Stages" plus any doc updates).
@@ -337,8 +337,8 @@ Then emit the report and stop for approval.
 ## Recurring decisions (do not undo)
 
 - Naming is settled: internal crates carry the `igui_` prefix (directory basename
-  == package name); the public facade is `quill` (`quill/`). Do not rename the
-  prefix again. The C ABI keeps the `quill_*` symbol prefix (`quill.h`).
+  == package name); the public facade is `igui` (`igui/`). Do not rename the
+  prefix again. The C ABI keeps the `igui_*` symbol prefix (`igui.h`).
 - Stage 8: the second backend is `igui_backend_recording`. A native macOS Core
   Graphics backend + `macos_demo` was implemented and **removed by request**; do
   not reintroduce it without an explicit ask. (Background: `docs/architecture.md`.)

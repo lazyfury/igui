@@ -1,4 +1,4 @@
-// A C++ OpenGL 3.3 backend for the quill `DrawList`.
+// A C++ OpenGL 3.3 backend for the igui `DrawList`.
 //
 // It is the host's own `RenderBackend`: transform, opacity and clip are
 // resolved on the CPU while tessellating, so the GPU pass is one flat
@@ -10,7 +10,7 @@
 #include <cstdint>
 #include <vector>
 
-#include "quill.h"
+#include "igui.h"
 
 namespace cppffi {
 
@@ -30,7 +30,7 @@ public:
     void begin_frame(int fb_width, int fb_height, float scale);
 
     // Consumes a whole draw list.
-    void submit(const QuillDrawList* list);
+    void submit(const IguiDrawList* list);
 
     // Flushes anything left in the batch.
     void end_frame();
@@ -45,25 +45,25 @@ private:
     };
 
     struct State {
-        QuillTransform transform;
+        IguiTransform transform;
         float opacity;
         bool has_clip;
-        QuillRect clip;
+        IguiRect clip;
     };
 
     void reset_state();
-    void apply(const QuillCommand& command);
+    void apply(const IguiCommand& command);
     void flush();
-    void set_scissor(const QuillRect& rect);
+    void set_scissor(const IguiRect& rect);
     void clear_scissor();
 
     // Tessellation, in the current local space; `apply` bakes the transform.
-    QuillVec2 transform_point(QuillVec2 p) const;
-    void triangle(QuillVec2 a, QuillVec2 b, QuillVec2 c, const QuillColor& color);
-    void fill_convex(const std::vector<QuillVec2>& points, const QuillColor& color);
-    void ring(const std::vector<QuillVec2>& outer, const std::vector<QuillVec2>& inner,
-              const QuillColor& color);
-    void stroke_segment(QuillVec2 from, QuillVec2 to, float width, const QuillColor& color);
+    IguiVec2 transform_point(IguiVec2 p) const;
+    void triangle(IguiVec2 a, IguiVec2 b, IguiVec2 c, const IguiColor& color);
+    void fill_convex(const std::vector<IguiVec2>& points, const IguiColor& color);
+    void ring(const std::vector<IguiVec2>& outer, const std::vector<IguiVec2>& inner,
+              const IguiColor& color);
+    void stroke_segment(IguiVec2 from, IguiVec2 to, float width, const IguiColor& color);
 
     unsigned program_ = 0;
     unsigned vao_ = 0;
@@ -76,7 +76,7 @@ private:
     std::vector<State> stack_;
     State state_{};
     bool scissor_on_ = false;
-    QuillRect scissor_{};
+    IguiRect scissor_{};
     std::uint64_t triangles_ = 0;
     std::uint64_t commands_ = 0;
 };

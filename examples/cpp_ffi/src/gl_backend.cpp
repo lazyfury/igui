@@ -58,9 +58,9 @@ unsigned compile_shader(GLenum type, const char* source) {
     return shader;
 }
 
-std::vector<QuillVec2> circle_points(QuillVec2 center, float radius, int segments) {
+std::vector<IguiVec2> circle_points(IguiVec2 center, float radius, int segments) {
     const int n = std::max(3, segments);
-    std::vector<QuillVec2> points;
+    std::vector<IguiVec2> points;
     points.reserve(static_cast<std::size_t>(n));
     for (int i = 0; i < n; ++i) {
         const float t = static_cast<float>(i) / static_cast<float>(n) * 2.0f * kPi;
@@ -74,7 +74,7 @@ std::vector<QuillVec2> circle_points(QuillVec2 center, float radius, int segment
 // Every corner emits the same number of points whether or not it has a radius,
 // so an outer polygon and its inset (used for strokes) always line up index for
 // index in `ring`.
-std::vector<QuillVec2> rounded_points(QuillRect rect, QuillCornerRadii corners, int segments,
+std::vector<IguiVec2> rounded_points(IguiRect rect, IguiCornerRadii corners, int segments,
                                       float inset) {
     const float x0 = rect.x + inset;
     const float y0 = rect.y + inset;
@@ -86,7 +86,7 @@ std::vector<QuillVec2> rounded_points(QuillRect rect, QuillCornerRadii corners, 
     const float br = std::min(std::max(0.0f, corners.bottom_right - inset), limit);
     const float bl = std::min(std::max(0.0f, corners.bottom_left - inset), limit);
 
-    std::vector<QuillVec2> points;
+    std::vector<IguiVec2> points;
     const int n = std::max(1, segments);
     auto arc = [&](float cx, float cy, float radius, float a0, float a1) {
         for (int i = 0; i <= n; ++i) {
@@ -105,7 +105,7 @@ std::vector<QuillVec2> rounded_points(QuillRect rect, QuillCornerRadii corners, 
     return points;
 }
 
-QuillColor scaled(QuillColor color, float opacity) {
+IguiColor scaled(IguiColor color, float opacity) {
     color.a *= opacity;
     return color;
 }
@@ -161,8 +161,8 @@ bool GlBackend::init() {
 
 void GlBackend::reset_state() {
     state_ = State{};
-    state_.transform = QuillTransform{QuillVec2{1.0f, 0.0f}, QuillVec2{0.0f, 1.0f},
-                                      QuillVec2{0.0f, 0.0f}};
+    state_.transform = IguiTransform{IguiVec2{1.0f, 0.0f}, IguiVec2{0.0f, 1.0f},
+                                      IguiVec2{0.0f, 0.0f}};
     state_.opacity = 1.0f;
     state_.has_clip = false;
     stack_.clear();
@@ -183,22 +183,22 @@ void GlBackend::begin_frame(int fb_width, int fb_height, float scale) {
     commands_ = 0;
 }
 
-void GlBackend::submit(const QuillDrawList* list) {
-    const std::size_t count = quill_draw_list_len(list);
+void GlBackend::submit(const IguiDrawList* list) {
+    const std::size_t count = igui_draw_list_len(list);
     for (std::size_t i = 0; i < count; ++i) {
-        apply(quill_draw_list_command(list, i));
+        apply(igui_draw_list_command(list, i));
     }
 }
 
 void GlBackend::end_frame() { flush(); }
 
-void GlBackend::apply(const QuillCommand& command) {
+void GlBackend::apply(const IguiCommand& command) {
     ++commands_;
     switch (command.tag) {
-        case QUILL_CMD_SAVE:
+        case IGUI_CMD_SAVE:
             stack_.push_back(state_);
             break;
-        case QUILL_CMD_RESTORE:
+        case IGUI_CMD_RESTORE:
             if (!stack_.empty()) {
                 // The scissor is GL state, so the batch drawn under the old
                 // clip has to go out before the pop changes it.
@@ -212,49 +212,49 @@ void GlBackend::apply(const QuillCommand& command) {
                 }
             }
             break;
-        case QUILL_CMD_SET_TRANSFORM:
+        case IGUI_CMD_SET_TRANSFORM:
             state_.transform = command.transform;
             break;
-        case QUILL_CMD_SET_OPACITY:
+        case IGUI_CMD_SET_OPACITY:
             state_.opacity = command.opacity;
             break;
-        case QUILL_CMD_CLIP_RECT:
+        case IGUI_CMD_CLIP_RECT:
             flush();
             state_.has_clip = true;
             state_.clip = command.rect;
             set_scissor(command.rect);
             break;
-        case QUILL_CMD_FILL_RECT:
+        case IGUI_CMD_FILL_RECT:
             fill_convex(rounded_points(command.rect, {}, 0, 0.0f), command.paint.color);
             break;
-        case QUILL_CMD_STROKE_RECT:
+        case IGUI_CMD_STROKE_RECT:
             ring(rounded_points(command.rect, {}, 0, 0.0f),
                  rounded_points(command.rect, {}, 0, command.width), command.paint.color);
             break;
-        case QUILL_CMD_LINE:
+        case IGUI_CMD_LINE:
             stroke_segment(command.from, command.to, command.width, command.paint.color);
             break;
-        case QUILL_CMD_FILL_CIRCLE:
+        case IGUI_CMD_FILL_CIRCLE:
             fill_convex(circle_points(command.center, command.radius, kCircleSegments),
                         command.paint.color);
             break;
-        case QUILL_CMD_STROKE_CIRCLE:
+        case IGUI_CMD_STROKE_CIRCLE:
             ring(circle_points(command.center, command.radius + command.width * 0.5f,
                                kCircleSegments),
                  circle_points(command.center, command.radius - command.width * 0.5f,
                                kCircleSegments),
                  command.paint.color);
             break;
-        case QUILL_CMD_FILL_ROUNDED_RECT:
+        case IGUI_CMD_FILL_ROUNDED_RECT:
             fill_convex(rounded_points(command.rect, command.corners, kCornerSegments, 0.0f),
                         command.paint.color);
             break;
-        case QUILL_CMD_STROKE_ROUNDED_RECT:
+        case IGUI_CMD_STROKE_ROUNDED_RECT:
             ring(rounded_points(command.rect, command.corners, kCornerSegments, 0.0f),
                  rounded_points(command.rect, command.corners, kCornerSegments, command.width),
                  command.paint.color);
             break;
-        case QUILL_CMD_UNSUPPORTED:
+        case IGUI_CMD_UNSUPPORTED:
             break;
     }
 }
@@ -275,7 +275,7 @@ void GlBackend::flush() {
     vertices_.clear();
 }
 
-void GlBackend::set_scissor(const QuillRect& rect) {
+void GlBackend::set_scissor(const IguiRect& rect) {
     const int x0 = static_cast<int>(std::floor(rect.x * scale_));
     const int y0 = static_cast<int>(std::floor(rect.y * scale_));
     const int x1 = static_cast<int>(std::ceil((rect.x + rect.width) * scale_));
@@ -296,26 +296,26 @@ void GlBackend::clear_scissor() {
     scissor_on_ = false;
 }
 
-QuillVec2 GlBackend::transform_point(QuillVec2 p) const {
-    const QuillTransform& t = state_.transform;
-    return QuillVec2{
+IguiVec2 GlBackend::transform_point(IguiVec2 p) const {
+    const IguiTransform& t = state_.transform;
+    return IguiVec2{
         t.x_axis.x * p.x + t.y_axis.x * p.y + t.origin.x,
         t.x_axis.y * p.x + t.y_axis.y * p.y + t.origin.y,
     };
 }
 
-void GlBackend::triangle(QuillVec2 a, QuillVec2 b, QuillVec2 c, const QuillColor& color) {
-    const QuillVec2 pa = transform_point(a);
-    const QuillVec2 pb = transform_point(b);
-    const QuillVec2 pc = transform_point(c);
-    const QuillColor col = scaled(color, state_.opacity);
+void GlBackend::triangle(IguiVec2 a, IguiVec2 b, IguiVec2 c, const IguiColor& color) {
+    const IguiVec2 pa = transform_point(a);
+    const IguiVec2 pb = transform_point(b);
+    const IguiVec2 pc = transform_point(c);
+    const IguiColor col = scaled(color, state_.opacity);
     vertices_.push_back({pa.x, pa.y, col.r, col.g, col.b, col.a});
     vertices_.push_back({pb.x, pb.y, col.r, col.g, col.b, col.a});
     vertices_.push_back({pc.x, pc.y, col.r, col.g, col.b, col.a});
     ++triangles_;
 }
 
-void GlBackend::fill_convex(const std::vector<QuillVec2>& points, const QuillColor& color) {
+void GlBackend::fill_convex(const std::vector<IguiVec2>& points, const IguiColor& color) {
     if (points.size() < 3) {
         return;
     }
@@ -324,8 +324,8 @@ void GlBackend::fill_convex(const std::vector<QuillVec2>& points, const QuillCol
     }
 }
 
-void GlBackend::ring(const std::vector<QuillVec2>& outer, const std::vector<QuillVec2>& inner,
-                     const QuillColor& color) {
+void GlBackend::ring(const std::vector<IguiVec2>& outer, const std::vector<IguiVec2>& inner,
+                     const IguiColor& color) {
     const std::size_t count = std::min(outer.size(), inner.size());
     if (count < 2) {
         return;
@@ -337,7 +337,7 @@ void GlBackend::ring(const std::vector<QuillVec2>& outer, const std::vector<Quil
     }
 }
 
-void GlBackend::stroke_segment(QuillVec2 from, QuillVec2 to, float width, const QuillColor& color) {
+void GlBackend::stroke_segment(IguiVec2 from, IguiVec2 to, float width, const IguiColor& color) {
     const float dx = to.x - from.x;
     const float dy = to.y - from.y;
     const float length = std::sqrt(dx * dx + dy * dy);

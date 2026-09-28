@@ -129,7 +129,7 @@ impl App {
             return;
         }
         let attributes = Window::default_attributes()
-            .with_title("quill — 文件浏览器")
+            .with_title("igui — 文件浏览器")
             .with_inner_size(LogicalSize::new(WINDOW_WIDTH, WINDOW_HEIGHT));
         let window = Arc::new(event_loop.create_window(attributes).expect("create window"));
 
@@ -325,7 +325,7 @@ impl ApplicationHandler<UserEvent> for App {
                 // 窗口标题跟着目录走 —— 一眼能看出自己在哪。
                 if let Some(window) = self.window.as_ref() {
                     window.set_title(&format!(
-                        "{} — quill 文件浏览器",
+                        "{} — igui 文件浏览器",
                         scan::display_path(self.browser.path())
                     ));
                     window.request_redraw();

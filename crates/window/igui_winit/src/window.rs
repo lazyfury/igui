@@ -46,7 +46,7 @@ pub struct WindowConfig {
 impl Default for WindowConfig {
     fn default() -> Self {
         Self {
-            title: "quill".into(),
+            title: "igui".into(),
             size: (1200.0, 780.0),
             titlebar: TitlebarMode::Native,
             ime: false,

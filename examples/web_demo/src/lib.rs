@@ -1,11 +1,11 @@
-//! quill Canvas 2D (WASM) demo.
+//! igui Canvas 2D (WASM) demo.
 //!
 //! Drives the shared, backend-neutral [`demo_app::DemoApp`] through the WASM
 //! runner: `Input -> DemoApp -> DrawList -> Canvas2dBackend`. The same app is
 //! used by the native `wgpu_demo`, so the two backends render identical
 //! scene/UI/layout code.
 //!
-//! Exposes `data-quill-button` / `data-quill-clicks` DOM attributes so a
+//! Exposes `data-igui-button` / `data-igui-clicks` DOM attributes so a
 //! headless check can drive a real click without capturing pixels.
 
 #[cfg(target_arch = "wasm32")]
@@ -41,9 +41,9 @@ mod demo {
             };
             if let Some(center) = self.0.button_center() {
                 let _ =
-                    body.set_attribute("data-quill-button", &format!("{},{}", center.x, center.y));
+                    body.set_attribute("data-igui-button", &format!("{},{}", center.x, center.y));
             }
-            let _ = body.set_attribute("data-quill-clicks", &self.0.clicks().to_string());
+            let _ = body.set_attribute("data-igui-clicks", &self.0.clicks().to_string());
         }
     }
 

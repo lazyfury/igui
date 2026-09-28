@@ -11,9 +11,9 @@ primitives, and the demo. Keep this short and move finished items to the
 > day-to-day item lists below. Where they conflict for Stages 25+,
 > `godot-migration.md` wins.
 
-> **Stages 26-31 approved** (animation + game + GameView + `quill` facade):
+> **Stages 26-31 approved** (animation + game + GameView + `igui` facade):
 > `igui_anim` (26), refresh decoupling (27), `igui_game` (28), GameView /
-> sub-viewport + fixed timestep (29), `examples/game_demo` (30), `quill` facade
+> sub-viewport + fixed timestep (29), `examples/game_demo` (30), `igui` facade
 > (31). See `docs/godot-migration.md` → "Approved plan — Stages 26-31".
 
 ## Drawing primitives

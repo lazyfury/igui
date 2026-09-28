@@ -1,4 +1,4 @@
-//! `igui_debug_ui` — backend-neutral debug visuals for quill.
+//! `igui_debug_ui` — backend-neutral debug visuals for igui.
 //!
 //! Two independent overlays, both drawn as ordinary backend-neutral
 //! `DrawCommand`s (no browser/backend/GPU dependency, verified with native
