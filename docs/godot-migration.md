@@ -288,7 +288,7 @@ Additive, outside the frozen core where possible. (Only the `Visual::Image` and
 - Update `architecture.md`, `backend.md`, `components.md`, `plan.md`,
   `AGENTS.md`.
 
-### Phase 9 — packaging facade (`igui`) — PLANNED (skeleton Stage 26, `app`/`headless` Stage 31, backend features Stage 32)
+### Phase 9 — packaging facade (`igui`) — DONE (skeleton Stage 26, `app`/`headless` Stage 31, backend features Stage 32)
 
 Status: **planned, execute later** (can start once Phase 1 lands; finalized once
 `igui_game` exists in Phase 6).
@@ -510,6 +510,19 @@ the borrowed winit `ActiveEventLoop` cannot be `Any + 'static`, so there is no
 IME placement and profiler audits; the wgpu_demo overlays stay inside its
 `AppLogic` because they share profiler state (the `InputLayer` API is covered by
 runtime tests).
+
+**Stage 32 done (accepted).** The `igui` facade gained the remaining
+feature-gated re-exports: `wgpu` (`igui_backend_wgpu`), `canvas`
+(`igui_backend_canvas`), `wasm` (`igui_wasm`, implies `canvas`), `profile`
+(`igui_profile`), `debug` (`igui_debug_ui`, implies `ui` + `profile`),
+`recording` (`igui_backend_recording`) and `bench` (`igui_bench` +
+`igui_bench_suite`). Each backend/observability feature also enables the
+`igui_core` / `igui_render` re-exports it needs; the facade still contains no
+logic. Verified by checking every feature and the common app combinations
+(`ui wgpu`, `ui canvas wasm`, `game wgpu`, `ui app headless`,
+`ui wgpu profile debug`, `ui recording bench`) independently. (The
+`wasm32-unknown-unknown` target was not installed, so the wasm cross-check was
+not run.)
 
 ## Stage 33 — unified canvas-item paint + `Widget` removal (approved, DONE)
 

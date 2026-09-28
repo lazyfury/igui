@@ -33,6 +33,20 @@ game = [
     "dep:igui_render",
     "dep:igui_scene",
 ]
+# Native render backend (wgpu).
+wgpu = ["dep:igui_backend_wgpu", "dep:igui_core", "dep:igui_render"]
+# Web render backend (HTML Canvas 2D). Compiles on any target; active on wasm.
+canvas = ["dep:igui_backend_canvas", "dep:igui_core", "dep:igui_render"]
+# Browser glue for a Canvas app (implies `canvas`).
+wasm = ["canvas", "dep:igui_wasm"]
+# Backend-neutral performance inspection (`igui_profile`).
+profile = ["dep:igui_profile", "dep:igui_core", "dep:igui_render"]
+# Debug overlays (`igui_debug_ui`); needs the UI and implies `profile`.
+debug = ["ui", "profile", "dep:igui_debug_ui"]
+# Headless recording backend (tests / `--selfcheck`).
+recording = ["dep:igui_backend_recording", "dep:igui_core", "dep:igui_render"]
+# Benchmarks.
+bench = ["dep:igui_bench", "dep:igui_bench_suite"]
 
 [dependencies]
 igui_core = { workspace = true, optional = true }
@@ -47,3 +61,10 @@ igui_assets = { workspace = true, optional = true }
 igui_app = { workspace = true, optional = true }
 igui_headless = { workspace = true, optional = true }
 igui_backend_recording = { workspace = true, optional = true }
+igui_backend_wgpu = { workspace = true, optional = true }
+igui_backend_canvas = { workspace = true, optional = true }
+igui_wasm = { workspace = true, optional = true }
+igui_profile = { workspace = true, optional = true }
+igui_debug_ui = { workspace = true, optional = true }
+igui_bench = { workspace = true, optional = true }
+igui_bench_suite = { workspace = true, optional = true }

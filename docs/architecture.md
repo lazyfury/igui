@@ -142,7 +142,8 @@ logical size plus the world -> screen `canvas_transform`.)
   `TweenSpec` / `Repeat`, node-property and external-value targets); its
   `is_animating` is the host's "needs another frame" signal. No clock, backend
   or UI dependency. The same task created the `igui` facade skeleton as
-  re-exports only, with opt-in `ui` / `anim` features (`game` lands Stage 32).
+  re-exports only, with opt-in `ui` / `anim` features (`game` landed in Stage
+  28; the backend/observability features in Stage 32).
 - Stage 27 — refresh decoupling [done]: additive core plumbing so a host can
   render only on change and keep an unchanged UI out of the frame cost. The
   `igui_ui` root state gained a `paint_generation` (bumped by layout
@@ -202,7 +203,8 @@ logical size plus the world -> screen `canvas_transform`.)
   `FrameObserver` hook for frame-time work like IME placement). `igui_headless`
   records frames for winit-free self-checks. It replaces `igui_winit::Host`
   (removed, not kept as a façade) and adds `app` / `headless` to the `igui`
-  facade; the facade's backend features remain Stage 32. `examples/wgpu_demo` is
+  facade (`app`/`headless` landed Stage 31; the backend/observability features
+  landed Stage 32). `examples/wgpu_demo` is
   migrated and gains `--selfcheck`. See `docs/godot-migration.md` → "Stage 31
   plan".
 

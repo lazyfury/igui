@@ -750,15 +750,22 @@ dependencies = [
  "igui_anim",
  "igui_app",
  "igui_assets",
+ "igui_backend_canvas",
  "igui_backend_recording",
+ "igui_backend_wgpu",
+ "igui_bench",
+ "igui_bench_suite",
  "igui_components",
  "igui_core",
+ "igui_debug_ui",
  "igui_game",
  "igui_headless",
+ "igui_profile",
  "igui_render",
  "igui_scene",
  "igui_theme",
  "igui_ui",
+ "igui_wasm",
 ]
 
 [[package]]

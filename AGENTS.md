@@ -203,11 +203,8 @@ it graduated to its own repo (a sibling checkout, `../image_editor`) and consume
 these crates through relative path deps, so it is no longer part of this
 checkout.
 
-Planned (future stages, see `docs/godot-migration.md`):
-
-```
-# Stage 32: remaining `igui` facade backend features (wgpu/canvas/wasm/...)
-```
+Planned (future stages, see `docs/godot-migration.md`): no numbered stage is
+open. Phase 8 (observability) and the host migrations below remain.
 
 Crates are grouped by role under `crates/`: `core/` (backend-neutral),
 `platform/<backend>/` (concrete backends), `ffi/`, `debug/`, `bench/`,
@@ -309,11 +306,11 @@ notes are `docs/godot-migration.md`.
   timestep), Stage 28 (`igui_game` 2D game layer), Stage 27 (refresh decoupling),
   Stage 26 (`igui_anim` + `igui` facade skeleton), Stage 25 (Godot-style
   unified scene), `igui_font`, `Theme` trait.
-- **Next (future stages):** Stage 32 — remaining `igui` facade backend features
-  (`wgpu`/`canvas`/`wasm`/`profile`/`debug`/`recording`/`bench`). Phase 8
-  observability remains. Remaining host migrations to the `igui_app` runtime
-  (`file_browser`, `deepseek_balance`, `game_demo`, and the sibling
-  `image_editor` / `archiver` / `classic-game-box` checkouts) are follow-ups.
+- **Next (future stages):** **Phase 8 (observability)** and the remaining host
+  migrations to the `igui_app` runtime (`file_browser`, `deepseek_balance`,
+  `game_demo`, and the sibling `image_editor` / `archiver` /
+  `classic-game-box` checkouts). The deferred file-size splits and layer-aware
+  UI layout (H2) are follow-ups.
 - **Un-numbered enhancement (accepted): keyboard focus navigation + named group
   hover.** `igui_ui` gained a `focus` module (`FocusNav`/`FocusDir` +
   `set_focus`/`focus_move`/`focus_up..right`/`focus_next`/`focus_prev`/
@@ -327,6 +324,12 @@ notes are `docs/godot-migration.md`.
   left/right, tab_index, group, group_hover}` and makes `Button` focusable by
   default. `examples/demo_app` gained Focus navigation / Group hover cards with
   end-to-end tests. Recorded in `docs/design-system.md`; see `docs/components.md`.
+- **Stage 32 — `igui` facade backend + observability features [accepted].** The
+  facade gained `wgpu` / `canvas` / `wasm` / `profile` / `debug` / `recording` /
+  `bench` feature-gated re-exports (`wasm` implies `canvas`; `debug` implies
+  `ui` + `profile`; each backend/observability feature also enables the
+  `igui_core` / `igui_render` it needs). The facade still contains no logic, and
+  no backend is forced.
 - **Current stage:** Stage 33 — unified canvas-item paint + `Widget` removal
   [accepted]. The closed `igui_ui::Widget` enum is gone: a `Control` is now a
   rectangle with a `Container` (`Leaf`/`Flex`/`Grid`) and an optional
