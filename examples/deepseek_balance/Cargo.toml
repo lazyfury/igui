@@ -2,7 +2,7 @@
 name = "deepseek_balance"
 version = "0.1.0"
 edition = "2021"
-# `winit` / `wgpu` (pulled in by `rough_backend_wgpu`) need newer Rust than the
+# `winit` / `wgpu` (pulled in by `igui_backend_wgpu`) need newer Rust than the
 # workspace default, exactly like `examples/wgpu_demo`.
 rust-version = "1.76"
 publish = false
@@ -19,17 +19,17 @@ serde_json = "1"
 deepseek_util = { path = "util" }
 
 # The window UI is built with the workspace's own layers (see AGENTS.md).
-rough_core = { path = "../../crates/core/rough_core" }
-rough_render = { path = "../../crates/core/rough_render" }
-rough_scene = { path = "../../crates/core/rough_scene" }
-rough_theme = { path = "../../crates/core/rough_theme" }
-rough_ui = { path = "../../crates/core/rough_ui" }
-rough_components = { path = "../../crates/core/rough_components" }
-rough_backend_wgpu = { path = "../../crates/platform/wgpu/rough_backend_wgpu" }
+igui_core = { path = "../../crates/core/igui_core" }
+igui_render = { path = "../../crates/core/igui_render" }
+igui_scene = { path = "../../crates/core/igui_scene" }
+igui_theme = { path = "../../crates/core/igui_theme" }
+igui_ui = { path = "../../crates/core/igui_ui" }
+igui_components = { path = "../../crates/core/igui_components" }
+igui_backend_wgpu = { path = "../../crates/platform/wgpu/igui_backend_wgpu" }
 # Headless self-check (`--selfcheck`): record draw lists + inspect them,
 # so the UI can be verified without a window or a screenshot.
-rough_backend_recording = { path = "../../crates/platform/recording/rough_backend_recording" }
-rough_profile = { path = "../../crates/debug/rough_profile" }
+igui_backend_recording = { path = "../../crates/platform/recording/igui_backend_recording" }
+igui_profile = { path = "../../crates/debug/igui_profile" }
 winit = "0.30"
 
 # `winit` has no tray / status-bar API (its scope is windows + the event loop),

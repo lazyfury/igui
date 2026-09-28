@@ -1,7 +1,7 @@
 //! 多窗口测试用的第二个窗口：一张无边框、无装饰的浮层，贴在桌面左下角。
 //!
 //! 视图**用组件搭**（[`Column`] + [`Text`]），不再手发绘制命令：和主视图同一套
-//! `rough_ui::layout` / `rough_ui::paint`，只是这棵树小到只有一列两行字。
+//! `igui_ui::layout` / `igui_ui::paint`，只是这棵树小到只有一列两行字。
 //!
 //! 它**没有背景**：整窗不透明的只有这两行字，其余像素是窗口的透明清屏色，所以
 //! 桌面从字缝里透出来。也正因如此宿主把系统阴影也关了 —— AppKit 是拿窗口的 alpha
@@ -19,14 +19,14 @@
 
 use std::rc::Rc;
 
-use rough_components::{Column, Component, Flex, NodeRef, Text};
-use rough_core::{Color, Edges, NodeId, ViewportSize};
-use rough_render::PaintContext;
-use rough_scene::{SceneChild, SceneTree};
+use igui_components::{Column, Component, Flex, NodeRef, Text};
+use igui_core::{Color, Edges, NodeId, ViewportSize};
+use igui_render::PaintContext;
+use igui_scene::{SceneChild, SceneTree};
 #[cfg(test)]
-use rough_theme::{default_theme, Mode};
-use rough_theme::{space, TextSize, Theme};
-use rough_ui::{self, MouseFilter, TextMeasurer};
+use igui_theme::{default_theme, Mode};
+use igui_theme::{space, TextSize, Theme};
+use igui_ui::{self, MouseFilter, TextMeasurer};
 
 use crate::api::Balance;
 
@@ -155,12 +155,12 @@ impl BadgeApp {
     /// The title line as it stands.
     #[cfg(test)]
     pub fn title_text(&self) -> Option<&str> {
-        rough_ui::widget(&self.tree, self.title).and_then(|widget| widget.text())
+        igui_ui::widget(&self.tree, self.title).and_then(|widget| widget.text())
     }
 
     /// The value line as it stands (what the next frame would paint).
     pub fn balance_text(&self) -> Option<&str> {
-        rough_ui::widget(&self.tree, self.balance).and_then(|widget| widget.text())
+        igui_ui::widget(&self.tree, self.balance).and_then(|widget| widget.text())
     }
 
     /// Shows the active tab: its title, its value prefix and the state.
@@ -169,19 +169,19 @@ impl BadgeApp {
     /// so the two windows cannot disagree, and with the loading/failed states
     /// around it.
     pub fn show(&mut self, title: &str, prefix: &str, state: &State) {
-        rough_components::set_text(&mut self.tree, self.title, title);
-        rough_components::set_text(&mut self.tree, self.balance, state.line(prefix));
+        igui_components::set_text(&mut self.tree, self.title, title);
+        igui_components::set_text(&mut self.tree, self.balance, state.line(prefix));
     }
 
     /// Installs the backend's real font metrics so measured text matches
     /// rendered text — the same adapter the main view uses.
     pub fn set_text_measurer(&mut self, measurer: Rc<dyn TextMeasurer>) {
-        rough_ui::set_text_measurer(&mut self.tree, measurer);
+        igui_ui::set_text_measurer(&mut self.tree, measurer);
     }
 
     /// Arranges the tree for a surface of `viewport` logical pixels.
     pub fn layout(&mut self, viewport: ViewportSize) {
-        rough_ui::layout(&mut self.tree, viewport);
+        igui_ui::layout(&mut self.tree, viewport);
     }
 
     /// Paints the tree. Unlike the menu-bar panel there is no backdrop command
@@ -189,7 +189,7 @@ impl BadgeApp {
     /// not paint stays transparent — which is what lets the desktop show
     /// through.
     pub fn paint(&self, ctx: &mut PaintContext) {
-        rough_ui::paint(&self.tree, ctx);
+        igui_ui::paint(&self.tree, ctx);
     }
 }
 
@@ -197,8 +197,8 @@ impl BadgeApp {
 mod tests {
     use super::*;
     use crate::api::BalanceInfo;
-    use rough_core::{Size, Vec2};
-    use rough_render::{DrawCommand, TextAlign};
+    use igui_core::{Size, Vec2};
+    use igui_render::{DrawCommand, TextAlign};
 
     /// The canned reply the host would have fetched: one currency, so the
     /// headline is `¥110.00`.
@@ -294,11 +294,11 @@ mod tests {
         let mut boxes = Vec::new();
         for id in tree.iter_visible() {
             if matches!(
-                rough_ui::widget(tree, id),
-                Some(rough_ui::Widget::Label { .. })
+                igui_ui::widget(tree, id),
+                Some(igui_ui::Widget::Label { .. })
             ) {
                 boxes.push(
-                    rough_ui::control(tree, id)
+                    igui_ui::control(tree, id)
                         .expect("a label has a control")
                         .rect,
                 );
@@ -385,8 +385,8 @@ mod tests {
 
         let labels: Vec<String> = ids
             .iter()
-            .filter_map(|id| match rough_ui::widget(tree, *id) {
-                Some(rough_ui::Widget::Label { text, .. }) => Some(text.clone()),
+            .filter_map(|id| match igui_ui::widget(tree, *id) {
+                Some(igui_ui::Widget::Label { text, .. }) => Some(text.clone()),
                 _ => None,
             })
             .collect();

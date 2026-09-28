@@ -1,8 +1,8 @@
-// A small component gallery in C++, styled from the same `rough_theme` tokens as
+// A small component gallery in C++, styled from the same `igui_theme` tokens as
 // `demo_app` (see `theme.hpp`).
 //
 // The point is a like-for-like comparison: each painter mirrors the geometry
-// and colors of its `rough_components` counterpart — button variants, checkbox,
+// and colors of its `igui_components` counterpart — button variants, checkbox,
 // switch, card, divider and badge. ABI v1 has no text, so labels are drawn as
 // neutral bars; the chrome (fill, border, radius, sizes) is what is being
 // compared.
@@ -20,22 +20,22 @@ struct ButtonState {
     bool pressed = false;
 };
 
-/// `rough_components::Button`: height 36, radius 6, padding-x 12.
+/// `igui_components::Button`: height 36, radius 6, padding-x 12.
 void paint_button(Canvas& canvas, Rect rect, ButtonVariant variant, ButtonState state = {});
 
-/// `rough_components::Checkbox`: 16x16 box, radius 4.
+/// `igui_components::Checkbox`: 16x16 box, radius 4.
 void paint_checkbox(Canvas& canvas, Rect box, bool checked);
 
-/// `rough_components::Switch`: 34x18 track, full radius, 13px knob.
+/// `igui_components::Switch`: 34x18 track, full radius, 13px knob.
 void paint_switch(Canvas& canvas, Rect track, bool on);
 
-/// `rough_components::Card`: raised surface, hairline border, radius 8.
+/// `igui_components::Card`: raised surface, hairline border, radius 8.
 void paint_card(Canvas& canvas, Rect rect, bool bordered = true);
 
-/// `rough_components::Divider`: a 1px rule at the rect's centre.
+/// `igui_components::Divider`: a 1px rule at the rect's centre.
 void paint_divider(Canvas& canvas, Rect rect);
 
-/// `rough_components::Badge`: tinted or solid, radius 4.
+/// `igui_components::Badge`: tinted or solid, radius 4.
 void paint_badge(Canvas& canvas, Rect rect, Color tone, bool solid);
 
 /// Lays out the gallery in `bounds` and paints it into `canvas`.

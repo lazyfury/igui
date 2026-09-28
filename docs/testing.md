@@ -2,44 +2,44 @@
 
 ## Layers
 
-- Math tests — `rough_core`.
-- SceneTree / transform / visibility tests — `rough_scene`.
-- DrawList / golden tests — `rough_render` + `rough_scene::paint`.
-- RecordingBackend assertions — `rough_backend_recording` (`CommandAsserts`,
+- Math tests — `igui_core`.
+- SceneTree / transform / visibility tests — `igui_scene`.
+- DrawList / golden tests — `igui_render` + `igui_scene::paint`.
+- RecordingBackend assertions — `igui_backend_recording` (`CommandAsserts`,
   `tests/pipeline.rs`).
-- wgpu pixel readback — `rough_backend_wgpu` renders to an offscreen texture and
+- wgpu pixel readback — `igui_backend_wgpu` renders to an offscreen texture and
   asserts on returned RGBA8 pixels (`tests/render.rs`); no window is created.
-- Layout / hit-test / input tests — `rough_ui` unit tests (includes flex/grid
+- Layout / hit-test / input tests — `igui_ui` unit tests (includes flex/grid
   arrangement, align/justify/order, span-aware tracks, whole-viewport layout
   caching, partial relayout via `last_arranged_nodes`, order-cache
   invalidation, and the injected-measurer wrapping path).
-- Text measurement tests — `rough_ui` asserts per-character measurement, soft
+- Text measurement tests — `igui_ui` asserts per-character measurement, soft
   wrapping (spaces, CJK, hard breaks), `TextOptions` (`max_lines`/`ellipsis`),
   button wrapping, that paint emits one `DrawText` per laid-out line, and that
   swapping the measurer recomputes the cached text layout.
-- Font tests — `rough_backend_wgpu` asserts bitmap-fallback dimensions/missing
+- Font tests — `igui_backend_wgpu` asserts bitmap-fallback dimensions/missing
   glyph, and (when a system font is present) proportional advances (`i` < `W`),
   `ascent`/`line_height`, and that ASCII + CJK glyphs rasterize. Render tests
   assert `DrawText` ink and CJK ink headlessly.
-- Profiler / inspector tests — `rough_profile` (ring buffer, summary math, every
+- Profiler / inspector tests — `igui_profile` (ring buffer, summary math, every
   `FindingCode`, budget escalation). Pure data, no clock.
-- Component debug tests — `rough_ui` asserts `paint_debug` emits one yellow
-  `StrokeRect` + a `Name #id` `DrawText` per visible control; `rough_debug_ui`
+- Component debug tests — `igui_ui` asserts `paint_debug` emits one yellow
+  `StrokeRect` + a `Name #id` `DrawText` per visible control; `igui_debug_ui`
   tests `DebugOverlay` (bounds, labels, open/closed, label options).
-- Performance panel tests — `rough_debug_ui` asserts the computed `OverlayText`,
+- Performance panel tests — `igui_debug_ui` asserts the computed `OverlayText`,
   that the labels mirror it, that the panel is pinned, and that paint emits the
   expected `DrawText`/`FillRect` commands (and nothing while closed).
-- Benchmark harness tests — `rough_bench` asserts stats math, percentile
+- Benchmark harness tests — `igui_bench` asserts stats math, percentile
   interpolation, baseline text round-trips, verdict classification (including
   threshold boundaries) and the filter/runner behavior. These are pure data, no
   timing assertions.
-- Benchmark scenario tests — `rough_bench_suite` asserts fixtures are
+- Benchmark scenario tests — `igui_bench_suite` asserts fixtures are
   deterministic (identical `DrawList`s), start clean, and hit-test to the
   expected control. They never assert on measured time.
 - Shared demo app tests — `demo_app` drives the backend-neutral `DemoApp`
   natively and asserts layout rects (panel bounds, wrapped-label clipping, flex
   fill, grid tiling/no overlap, resize) plus a full recorded frame via
-  `rough_backend_recording`. This is how the wgpu/WASM example layout is verified
+  `igui_backend_recording`. This is how the wgpu/WASM example layout is verified
   without a window or screenshot.
 
 Core behavior must be testable with native `cargo test`, without a browser.
@@ -61,8 +61,8 @@ capturing one.
 
 ## Golden / snapshot tests
 
-`DrawList` is deterministic. `rough_scene`'s `scene_to_draw_list_is_deterministic`
-and `rough_render`'s `drawing_is_deterministic` compare exact command sequences.
+`DrawList` is deterministic. `igui_scene`'s `scene_to_draw_list_is_deterministic`
+and `igui_render`'s `drawing_is_deterministic` compare exact command sequences.
 Extend by asserting the `Vec<DrawCommand>` directly.
 
 ## Benchmarks vs tests
@@ -70,17 +70,17 @@ Extend by asserting the `Vec<DrawCommand>` directly.
 Benchmarks live in `benches/` targets (`harness = false`) and are run with
 `cargo bench`, never `cargo test`. They measure time and are machine-dependent,
 so they are **not** part of the correctness suite and make no assertions on
-measured time. What *is* tested is the harness itself (`rough_bench`) and the
-determinism of every scenario fixture (`rough_bench_suite`). The `bench` profile is
+measured time. What *is* tested is the harness itself (`igui_bench`) and the
+determinism of every scenario fixture (`igui_bench_suite`). The `bench` profile is
 pinned to `opt-level = 3`. See `docs/benchmarking.md`.
 
 ## What needs a browser
 
-- `rough_backend_canvas` + `rough_wasm` (Canvas 2D) — a browser.
+- `igui_backend_canvas` + `igui_wasm` (Canvas 2D) — a browser.
 - `examples/web_demo` — a browser (functionality is also covered by native
-  `rough_ui` tests).
+  `igui_ui` tests).
 
-`rough_backend_wgpu` needs no browser: it renders offscreen and reads pixels back,
+`igui_backend_wgpu` needs no browser: it renders offscreen and reads pixels back,
 so it runs under plain `cargo test`. Its windowed demo `examples/wgpu_demo` opens a
 real window and cannot be verified without a display; it is compiled by
 `cargo check` and run manually, and the render path it uses is the same one
@@ -88,6 +88,6 @@ covered by the readback tests.
 
 The `examples/wgpu_demo` overlays are host-wired: the component bounds and the
 performance panel text, layout and emitted commands are covered by
-`rough_ui`/`rough_debug_ui` tests, and the numbers the panel displays come from
-`rough_profile` (tested with injected durations). The windowed overlays themselves
+`igui_ui`/`igui_debug_ui` tests, and the numbers the panel displays come from
+`igui_profile` (tested with injected durations). The windowed overlays themselves
 are **not** screenshot-verified.

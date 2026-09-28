@@ -5,7 +5,7 @@
 //! viewport and `DrawCommand` sequence — the data a real backend would have
 //! turned into pixels. Two layers read that recording:
 //!
-//! 1. `rough_profile::inspect` audits the frame structurally (degenerate
+//! 1. `igui_profile::inspect` audits the frame structurally (degenerate
 //!    geometry, `NaN` values, unbalanced `Save`/`Restore`, opacity out of
 //!    range, command budget) and returns a severity-ranked report.
 //! 2. Semantic checks look *inside* the commands: the title, the refresh
@@ -19,11 +19,11 @@
 //! - `cargo test` (this module's `#[cfg(test)]`) asserts the same conditions,
 //!   so a UI regression fails without opening a window.
 
-use rough_backend_recording::{RecordedFrame, RecordingBackend};
-use rough_core::{Color, Rect, Size, Vec2, ViewportSize};
-use rough_profile::{inspect, FrameCounters, FrameStats, InspectionReport, Severity};
-use rough_render::{CornerRadii, DrawCommand, PaintContext, RenderBackend};
-use rough_theme::{default_theme, Mode};
+use igui_backend_recording::{RecordedFrame, RecordingBackend};
+use igui_core::{Color, Rect, Size, Vec2, ViewportSize};
+use igui_profile::{inspect, FrameCounters, FrameStats, InspectionReport, Severity};
+use igui_render::{CornerRadii, DrawCommand, PaintContext, RenderBackend};
+use igui_theme::{default_theme, Mode};
 
 use crate::api::{Balance, BalanceInfo};
 use crate::badge::{self, BadgeApp};
@@ -292,7 +292,7 @@ fn dump_frame(frame: &RecordedFrame) {
 
 /// Prints the visible UI tree: structure, widget kind and each control's
 /// laid-out rect, so a layout problem is visible without rendering.
-fn dump_tree(tree: &rough_scene::SceneTree, controls: usize) {
+fn dump_tree(tree: &igui_scene::SceneTree, controls: usize) {
     let total = tree.iter().count();
     println!("  ui tree: {total} nodes, {controls} controls (hidden subtrees pruned)");
     for id in tree.iter_visible() {
@@ -303,19 +303,19 @@ fn dump_tree(tree: &rough_scene::SceneTree, controls: usize) {
             depth += 1;
             parent = tree.parent(pid);
         }
-        let control = rough_ui::control(tree, id)
+        let control = igui_ui::control(tree, id)
             .map(|c| format!(" rect={}", rect_s(c.rect)))
             .unwrap_or_default();
-        let widget = match rough_ui::widget(tree, id) {
-            Some(rough_ui::Widget::Panel { color, .. }) => {
+        let widget = match igui_ui::widget(tree, id) {
+            Some(igui_ui::Widget::Panel { color, .. }) => {
                 format!(" Panel {}", color_s(*color))
             }
-            Some(rough_ui::Widget::Flex(_)) => " Flex".to_string(),
-            Some(rough_ui::Widget::Grid(_)) => " Grid".to_string(),
-            Some(rough_ui::Widget::Label {
+            Some(igui_ui::Widget::Flex(_)) => " Flex".to_string(),
+            Some(igui_ui::Widget::Grid(_)) => " Grid".to_string(),
+            Some(igui_ui::Widget::Label {
                 text, font_size, ..
             }) => format!(" Label \"{}\" font={}", text, num(*font_size)),
-            Some(rough_ui::Widget::Button(button)) => {
+            Some(igui_ui::Widget::Button(button)) => {
                 format!(" Button \"{}\"", button.text)
             }
             None => String::new(),
@@ -610,7 +610,7 @@ fn run_badge(dump: Dump) -> Vec<String> {
     );
 
     if dump.wants_tree() {
-        dump_tree(app.tree(), rough_ui::control_count(app.tree()));
+        dump_tree(app.tree(), igui_ui::control_count(app.tree()));
     }
     if dump.wants_commands() {
         dump_frame(&frame);
@@ -619,7 +619,7 @@ fn run_badge(dump: Dump) -> Vec<String> {
     let mut stats = FrameStats::new(0);
     stats.counters = FrameCounters::new(
         0,
-        rough_ui::control_count(app.tree()),
+        igui_ui::control_count(app.tree()),
         frame.command_count(),
         1,
     );
@@ -713,7 +713,7 @@ pub fn run(dump: Dump) -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rough_core::Color;
+    use igui_core::Color;
 
     fn window_app() -> BalanceApp {
         BalanceApp::new(
@@ -789,7 +789,7 @@ mod tests {
         let mut stats = FrameStats::new(0);
         stats.counters = FrameCounters::new(
             0,
-            rough_ui::control_count(app.tree()),
+            igui_ui::control_count(app.tree()),
             frame.command_count(),
             1,
         );

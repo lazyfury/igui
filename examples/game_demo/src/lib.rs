@@ -1,6 +1,6 @@
 //! `game_demo` — a small top-down collect game built on the quill game layer.
 //!
-//! The world lives in a [`GameView`] embedded in a `rough_ui` HUD: a player
+//! The world lives in a [`GameView`] embedded in a `igui_ui` HUD: a player
 //! sprite (animated from an embedded PNG atlas) moves with the arrow keys /
 //! WASD, a `Camera2D` follows, and coins spawn on a timer; touching a coin fires
 //! an `Area` `on_enter` that scores. Movement runs at a fixed step via
@@ -18,16 +18,16 @@ pub use selfcheck::run_selfcheck;
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
-use rough_anim::{Easing, TweenSpec};
-use rough_components::{Component, Flex, NodeRef, Panel, Text};
-use rough_core::{Color, Edges, InputEvent, Key, NodeId, Size, Vec2, ViewportSize};
-use rough_game::{
+use igui_anim::{Easing, TweenSpec};
+use igui_components::{Component, Flex, NodeRef, Panel, Text};
+use igui_core::{Color, Edges, InputEvent, Key, NodeId, Size, Vec2, ViewportSize};
+use igui_game::{
     upload_texture, Area, CollisionShape, FixedTimestep, GameView, Sprite, SpriteFrames,
 };
-use rough_render::{PaintContext, RenderBackend, RenderTargetId, TextureId};
-use rough_scene::{SceneChild, SceneTree, Visual};
-use rough_theme::{default_theme, space, Mode, SurfaceLevel, Theme};
-use rough_ui::{self, TextMeasurer};
+use igui_render::{PaintContext, RenderBackend, RenderTargetId, TextureId};
+use igui_scene::{SceneChild, SceneTree, Visual};
+use igui_theme::{default_theme, space, Mode, SurfaceLevel, Theme};
+use igui_ui::{self, TextMeasurer};
 
 /// Crate name, kept for lightweight smoke checks.
 pub const CRATE: &str = "game_demo";
@@ -37,7 +37,7 @@ pub const CRATE: &str = "game_demo";
 /// A render target shares the `TextureId` space (see [`RenderTargetId`]), so it
 /// must use a number disjoint from the uploaded textures below.
 ///
-/// [`RenderTargetId`]: rough_render::RenderTargetId
+/// [`RenderTargetId`]: igui_render::RenderTargetId
 pub const TARGET: RenderTargetId = RenderTargetId::from_raw(100);
 
 const PLAYER_TEXTURE: TextureId = TextureId::new(1);
@@ -115,13 +115,13 @@ impl Game {
     /// Decodes/upload the art, builds the world and mounts the HUD.
     pub fn init<B: RenderBackend>(&mut self, backend: &mut B) -> Result<(), B::Error> {
         let player_image =
-            rough_assets::decode_png(assets::PLAYER_SHEET).expect("player sheet decodes");
-        let coin_image = rough_assets::decode_png(assets::COIN).expect("coin decodes");
+            igui_assets::decode_png(assets::PLAYER_SHEET).expect("player sheet decodes");
+        let coin_image = igui_assets::decode_png(assets::COIN).expect("coin decodes");
         upload_texture(backend, PLAYER_TEXTURE, &player_image)?;
         upload_texture(backend, COIN_TEXTURE, &coin_image)?;
         self.player_frames = Some(
             SpriteFrames::from_grid(
-                rough_core::Rect::from_min_size(Vec2::ZERO, Size::new(64.0, 16.0)),
+                igui_core::Rect::from_min_size(Vec2::ZERO, Size::new(64.0, 16.0)),
                 4,
                 1,
                 4,
@@ -171,7 +171,7 @@ impl Game {
 
     /// Installs `measurer` for the HUD.
     pub fn set_text_measurer(&mut self, measurer: Rc<dyn TextMeasurer>) {
-        rough_ui::set_text_measurer(&mut self.ui, measurer);
+        igui_ui::set_text_measurer(&mut self.ui, measurer);
     }
 
     /// Device-pixel ratio for the game view's offscreen target.
@@ -182,7 +182,7 @@ impl Game {
     /// Resolves the HUD layout for `viewport`.
     pub fn layout(&mut self, viewport: ViewportSize) {
         self.viewport = viewport;
-        rough_ui::layout(&mut self.ui, viewport);
+        igui_ui::layout(&mut self.ui, viewport);
         self.ui.update();
     }
 
@@ -204,7 +204,7 @@ impl Game {
 
         let control_size = self
             .view_control
-            .and_then(|id| rough_ui::control(&self.ui, id))
+            .and_then(|id| igui_ui::control(&self.ui, id))
             .map_or(self.viewport.logical_size(), |control| control.rect.size);
         self.view.set_viewport(ViewportSize::new(control_size));
         self.view.update(dt, backend)?;
@@ -216,7 +216,7 @@ impl Game {
         }
 
         if let Some(label) = self.score_label {
-            rough_components::set_text(
+            igui_components::set_text(
                 &mut self.ui,
                 label,
                 format!("Score: {}", self.score.get()),
@@ -244,17 +244,17 @@ impl Game {
 
     /// Paints the HUD (and composites the game view) into `ctx`.
     pub fn paint(&self, ctx: &mut PaintContext) {
-        rough_ui::paint(&self.ui, ctx);
+        igui_ui::paint(&self.ui, ctx);
         self.painted_generation
-            .set(rough_ui::paint_generation(&self.ui));
+            .set(igui_ui::paint_generation(&self.ui));
     }
 
     /// Whether another frame is needed (view animating, HUD dirty, unpainted).
     pub fn needs_frame(&self) -> bool {
         self.view.needs_frame()
-            || rough_ui::needs_layout(&self.ui)
+            || igui_ui::needs_layout(&self.ui)
             || self.ui.needs_update()
-            || self.painted_generation.get() != rough_ui::paint_generation(&self.ui)
+            || self.painted_generation.get() != igui_ui::paint_generation(&self.ui)
     }
 
     /// Current score.
@@ -402,8 +402,8 @@ fn pickup_position(index: f32) -> Vec2 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rough_backend_recording::RecordingBackend;
-    use rough_ui::FixedWidthTextMeasurer;
+    use igui_backend_recording::RecordingBackend;
+    use igui_ui::FixedWidthTextMeasurer;
 
     #[test]
     fn crate_identity() {
@@ -430,7 +430,7 @@ mod tests {
         assert!(
             list.commands().iter().any(|command| matches!(
                 command,
-                rough_render::DrawCommand::DrawImage { texture, .. }
+                igui_render::DrawCommand::DrawImage { texture, .. }
                     if *texture == TARGET.texture()
             )),
             "the HUD should composite the game view target"

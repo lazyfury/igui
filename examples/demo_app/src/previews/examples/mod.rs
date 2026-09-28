@@ -8,8 +8,8 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use rough_components::{Card, ListState, Router, ScrollViewState};
-use rough_theme::Theme;
+use igui_components::{Card, ListState, Router, ScrollViewState};
+use igui_theme::Theme;
 
 use crate::GalleryState;
 

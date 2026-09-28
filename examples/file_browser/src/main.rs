@@ -8,7 +8,7 @@
 //!   Backspace 回上级。读目录和读文件都在工作线程上，界面不等磁盘。
 //! - `--cli`：只在终端打印文本清单，方便脚本调用。
 //! - `--selfcheck` / `--dump`：无头自检 —— 同一套 UI 画进 `RecordingBackend`，
-//!   用 `rough_profile` 体检 + 断言关键内容，不开窗、不截图。
+//!   用 `igui_profile` 体检 + 断言关键内容，不开窗、不截图。
 //!
 //! 用法：
 //!
@@ -20,7 +20,7 @@
 //! cargo run --manifest-path examples/file_browser/Cargo.toml -- --frames 120
 //! ```
 //!
-//! 这个 demo 也是 `rough_components::List` 的第一份真实用例：目录里有多少
+//! 这个 demo 也是 `igui_components::List` 的第一份真实用例：目录里有多少
 //! 条目、选中的文件有多大，都不影响每帧成本（见 `docs/benchmarking.md`）。
 //! 三个列表 —— 目录行、hex 行、文本行 —— 都只挂视口那几行，而且同一时刻
 //! 只有两个在用（藏起来的那个连行池都不挂）。
@@ -46,7 +46,7 @@ file_browser — 用 quill 自己画的目录浏览器
       --all            显示点开头的文件（默认隐藏）
       --cli            只在终端打印文本清单，不开窗
       --selfcheck      无头自检：同一套 UI 画进 RecordingBackend，
-                       用 rough_profile 体检 + 断言关键内容，失败退出码 1
+                       用 igui_profile 体检 + 断言关键内容，失败退出码 1
       --dump           同 --selfcheck，并打印完整绘制命令
       --frames <n>     渲染 n 帧后退出（验证真实渲染管线）
       --light          使用浅色主题（默认深色）

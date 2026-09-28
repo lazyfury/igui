@@ -10,11 +10,11 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-rough_core.workspace = true
-rough_render.workspace = true
-rough_scene.workspace = true
-rough_ui.workspace = true
-rough_wasm.workspace = true
+igui_core.workspace = true
+igui_render.workspace = true
+igui_scene.workspace = true
+igui_ui.workspace = true
+igui_wasm.workspace = true
 demo_app.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]

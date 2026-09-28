@@ -15,9 +15,9 @@ mod demo {
     use wasm_bindgen::prelude::*;
     use web_sys::CanvasRenderingContext2d;
 
-    use rough_core::{Cursor, EventResult, InputEvent, ViewportSize};
-    use rough_render::PaintContext;
-    use rough_wasm::{App, CanvasTextMeasurer};
+    use igui_core::{Cursor, EventResult, InputEvent, ViewportSize};
+    use igui_render::PaintContext;
+    use igui_wasm::{App, CanvasTextMeasurer};
 
     use demo_app::DemoApp;
 
@@ -77,6 +77,6 @@ mod demo {
 
     #[wasm_bindgen(start)]
     pub fn main() -> Result<(), JsValue> {
-        rough_wasm::start("canvas", WebDemo::new())
+        igui_wasm::start("canvas", WebDemo::new())
     }
 }

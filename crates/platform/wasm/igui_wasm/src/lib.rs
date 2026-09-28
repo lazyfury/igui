@@ -1,0 +1,33 @@
+//! `igui_wasm` — browser integration glue for the quill drawing core.
+//!
+//! Owns the canvas lookup, `requestAnimationFrame` loop, logical size / DPR
+//! handling and the [`App`] hook. Kept separate from the pure core so Scene/UI
+//! stay headless-testable.
+//!
+//! On non-`wasm32` targets this crate is intentionally empty.
+
+/// Crate name, kept for lightweight smoke checks.
+pub const CRATE: &str = "igui_wasm";
+
+#[cfg(any(target_arch = "wasm32", test))]
+mod wheel;
+
+#[cfg(target_arch = "wasm32")]
+mod runner;
+#[cfg(target_arch = "wasm32")]
+mod text;
+
+#[cfg(target_arch = "wasm32")]
+pub use runner::{start, App};
+#[cfg(target_arch = "wasm32")]
+pub use text::CanvasTextMeasurer;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn crate_identity() {
+        assert_eq!(CRATE, "igui_wasm");
+    }
+}

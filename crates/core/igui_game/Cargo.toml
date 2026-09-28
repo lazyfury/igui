@@ -1,0 +1,22 @@
+[package]
+name = "igui_game"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[features]
+default = []
+# Embedded game viewport (`GameView`) hosted in a `igui_ui` tree.
+ui = ["dep:igui_ui"]
+
+[dependencies]
+igui_core.workspace = true
+igui_render.workspace = true
+igui_scene.workspace = true
+igui_assets.workspace = true
+igui_anim.workspace = true
+igui_ui = { workspace = true, optional = true }
+
+[dev-dependencies]
+igui_backend_recording.workspace = true

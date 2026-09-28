@@ -7,14 +7,14 @@
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
-use rough_components::{
+use igui_components::{
     apply_spec, Button, Card, Checkbox, Column, Component, List, ListColumn, Menu, MenuItem,
     NodeRef, Panel, ResizeHandle, Router, Row, ScrollView, Spec, Switch, Text, TextArea, TextInput,
 };
-use rough_core::{NodeId, Size};
-use rough_scene::{SceneChild, SceneTree};
-use rough_theme::{space, Theme, Tone};
-use rough_ui::{Control, SizeBasis, Widget};
+use igui_core::{NodeId, Size};
+use igui_scene::{SceneChild, SceneTree};
+use igui_theme::{space, Theme, Tone};
+use igui_ui::{Control, SizeBasis, Widget};
 
 use super::Ctx;
 

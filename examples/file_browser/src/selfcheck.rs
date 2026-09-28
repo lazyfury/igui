@@ -4,7 +4,7 @@
 //! [`RecordingBackend`] —— 录下这一帧的 viewport 和完整的 `DrawCommand`
 //! 序列，也就是真实后端本来要变成像素的那份数据。两层检查读它：
 //!
-//! 1. `rough_profile::inspect` 做结构体检（退化几何、`NaN`、
+//! 1. `igui_profile::inspect` 做结构体检（退化几何、`NaN`、
 //!    `Save`/`Restore` 配不上、opacity 越界、命令预算），按严重度排序。
 //! 2. 语义检查看命令**里面**：路径栏、状态行、行文字都得出现，而且**只出现
 //!    视口那几行**（这一条就是虚拟化的证据 —— 清单里放着 5 000 行，画出来
@@ -16,11 +16,11 @@
 //! - `cargo test --manifest-path examples/file_browser/Cargo.toml` 断言同样
 //!   的条件，不开窗就能抓到 UI 回归。
 
-use rough_backend_recording::{RecordedFrame, RecordingBackend};
-use rough_core::{InputEvent, PointerButton, Size, Vec2, ViewportSize};
-use rough_profile::{inspect, FrameCounters, FrameStats, InspectionReport, Severity};
-use rough_render::{DrawCommand, PaintContext, RenderBackend};
-use rough_theme::{default_theme, Mode};
+use igui_backend_recording::{RecordedFrame, RecordingBackend};
+use igui_core::{InputEvent, PointerButton, Size, Vec2, ViewportSize};
+use igui_profile::{inspect, FrameCounters, FrameStats, InspectionReport, Severity};
+use igui_render::{DrawCommand, PaintContext, RenderBackend};
+use igui_theme::{default_theme, Mode};
 
 use crate::preview::{self, Preview};
 use crate::scan::{Entry, Listing};
@@ -303,7 +303,7 @@ pub fn check() -> (usize, String) {
     // 落在**列表**上（主栏中间），不是落在右栏或者分隔条上 —— 滚轮是沿祖先链
     // 找滚动回调的，点在空地上就没人接。
     let over_list = Vec2::new(MAIN_WIDTH / 2.0, HEIGHT / 2.0);
-    scrolled.event(&rough_core::InputEvent::Wheel {
+    scrolled.event(&igui_core::InputEvent::Wheel {
         position: over_list,
         delta: Vec2::new(0.0, 10.0 * ROW_HEIGHT),
     });
@@ -593,7 +593,7 @@ fn summarize(command: &DrawCommand) -> String {
 }
 
 /// `x,y w x h` —— 读布局时最关心的四个数。
-fn rect_text(rect: rough_core::Rect) -> String {
+fn rect_text(rect: igui_core::Rect) -> String {
     format!(
         "{:>6.1},{:>6.1} {:>6.1}x{:>6.1}",
         rect.origin.x, rect.origin.y, rect.size.width, rect.size.height
@@ -699,13 +699,13 @@ mod tests {
         }
     }
 
-    /// 滚轮 -> `rough_ui::handle_input` -> 列表的滚动回调。核心路由通了，宿主
+    /// 滚轮 -> `igui_ui::handle_input` -> 列表的滚动回调。核心路由通了，宿主
     /// 只要把平台滚轮造成 `InputEvent::Wheel` 就行（见 `host::wheel_pixels`）。
     #[test]
     fn the_wheel_scrolls_the_list() {
         let mut app = browser(ROWS);
         let viewport = ViewportSize::new(Size::new(WIDTH, HEIGHT));
-        app.event(&rough_core::InputEvent::Wheel {
+        app.event(&igui_core::InputEvent::Wheel {
             position: Vec2::new(MAIN_WIDTH / 2.0, HEIGHT / 2.0),
             delta: Vec2::new(0.0, 10.0 * ROW_HEIGHT),
         });

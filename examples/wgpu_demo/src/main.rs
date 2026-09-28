@@ -1,7 +1,7 @@
 //! quill native `wgpu` demo.
 //!
 //! Opens a window and renders the shared, backend-neutral component-gallery
-//! `demo_app::DemoApp` UI through [`rough_backend_wgpu::WgpuBackend`], presenting
+//! `demo_app::DemoApp` UI through [`igui_backend_wgpu::WgpuBackend`], presenting
 //! it to a wgpu surface:
 //!
 //! ```text

@@ -1,11 +1,11 @@
 # Godot-style migration
 
 Status: **Stage 25 accepted.** Phases 1-5 and sub-stages 25.1-25.16 landed;
-Phases 6-9 (`rough_game`, native continuous loop, observability, `quill` facade)
+Phases 6-9 (`igui_game`, native continuous loop, observability, `quill` facade)
 are future stages, not part of Stage 25's acceptance. Post-25.16 work:
-`rough_font` (system font service + numeric `FontWeight`) and `Theme` as a trait
+`igui_font` (system font service + numeric `FontWeight`) and `Theme` as a trait
 + `DefaultTheme`. **Stages 26-32 (animation + game + GameView + facade + the
-`rough_app` runtime) are approved**; see "Approved plan — Stages 26-32" below.
+`igui_app` runtime) are approved**; see "Approved plan — Stages 26-32" below.
 
 Goal: turn quill from "a UI toolkit that also has a scene tree" into a
 **2D-first scene engine** modeled on Godot, where a single `SceneTree` owns both
@@ -23,11 +23,11 @@ native demo's `ControlFlow::Wait`. It is caused by structural decisions:
 
 | # | Hard limit | Evidence |
 |---|---|---|
-| H1 | Two trees / two ownerships | `Ui` owns its own `SceneTree` (`crates/core/rough_ui/src/ui/mod.rs`), separate from any game tree |
+| H1 | Two trees / two ownerships | `Ui` owns its own `SceneTree` (`crates/core/igui_ui/src/ui/mod.rs`), separate from any game tree |
 | H2 | Layout in absolute viewport coords, detached from `CanvasItem.world_transform` | `ControlData::rect` is "absolute in logical viewport coordinates"; `Ui::paint` emits no `SetTransform` |
-| H3 | Nodes have no user data / lifecycle | `rough_scene::Node` fields are fixed; `NodeKind` is a closed enum; AGENTS rule 5 bans ECS |
+| H3 | Nodes have no user data / lifecycle | `igui_scene::Node` fields are fixed; `NodeKind` is a closed enum; AGENTS rule 5 bans ECS |
 | H4 | Paint traversal and input routing are split | `SceneTree::paint` vs `Ui::paint`; `Ui::handle_input` vs game input |
-| H5 | Dependency direction + frozen core | `rough_ui -> rough_scene`; rule 8 freezes `rough_ui::Widget` and the backend-neutral core |
+| H5 | Dependency direction + frozen core | `igui_ui -> igui_scene`; rule 8 freezes `igui_ui::Widget` and the backend-neutral core |
 
 `ControlFlow::Wait` (only in `examples/wgpu_demo`) and the WASM `requestAnimationFrame`
 loop are **not** hard limits; the WASM runner already refreshes every frame.
@@ -56,7 +56,7 @@ Key Godot semantics we adopt:
 
 See `AGENTS.md` for the amended rules. In short, during the migration window:
 
-- The core crates (`rough_scene`, `rough_ui`) **may** be changed incompatibly.
+- The core crates (`igui_scene`, `igui_ui`) **may** be changed incompatibly.
 - Each stage still ends with the per-stage gate and a report, then waits for
   approval (rule 6 is unchanged).
 - We do **not** import Godot, its editor, or an ECS. We stay backend-neutral.
@@ -65,7 +65,7 @@ See `AGENTS.md` for the amended rules. In short, during the migration window:
 
 Each phase is a stage, gets its own report, and stops for approval.
 
-### Phase 1 — `rough_scene` generalization (single tree + node extension point)
+### Phase 1 — `igui_scene` generalization (single tree + node extension point)
 
 Purpose: kill the reason `Ui` became a god object — nodes need somewhere to hang
 engine data.
@@ -93,9 +93,9 @@ strategy (`Rc`/`Arc`) or dropping `Clone`. Decide before coding.
 - `SceneTree::paint` emits `Save -> SetTransform(canvas_transform * world) -> ...`.
 - Exit: headless tests for follow, zoom, coordinate round-trips.
 
-Landed as `rough_scene::{Viewport, Camera2DData, AnchorMode}`, the tree root is
+Landed as `igui_scene::{Viewport, Camera2DData, AnchorMode}`, the tree root is
 now `NodeKind::Viewport` (name `root`, Godot `RootViewport`), and
-`rough_core::Viewport` was renamed to `rough_core::ViewportSize`. Camera math is a
+`igui_core::Viewport` was renamed to `igui_core::ViewportSize`. Camera math is a
 direct port of the transform-relevant part of Godot
 `Camera2D::get_camera_transform` (no limits / drag / rotation / smoothing):
 `zoom_scale = 1/zoom`, `screen_offset = center ? size/2 * zoom_scale : 0`,
@@ -128,7 +128,7 @@ world SetTransforms but leaves the UI group's transforms identical.
 
 This is the largest refactor; split it.
 
-- **4a** — `rough_ui` stops owning a `SceneTree`; it borrows one. **(DONE, Stage 25.4a)**
+- **4a** — `igui_ui` stops owning a `SceneTree`; it borrows one. **(DONE, Stage 25.4a)**
   ```rust
   impl Ui {
       pub fn mount(&mut self, tree: &mut SceneTree, parent: NodeId, view: impl View);
@@ -149,13 +149,13 @@ This is the largest refactor; split it.
   carries `&mut Ui` + `&mut SceneTree`, and `ViewExt`/`Modify` thread both.
   
   Compatibility: `UiHost` owns a `SceneTree` + root control and re-exposes the
-  old convenience API; `rough_components`' `Overlays`, `rough_debug_ui` and the
+  old convenience API; `igui_components`' `Overlays`, `igui_debug_ui` and the
   demos use it (pending 4c). `Ui::layout` takes `&SceneTree` + `ViewportSize`
   (the tree identifies UI roots; the viewport rect is the layer rect) rather
   than `Rect`.
 
 - **4b** — move `ControlData` onto the `Node` extension slot; keep
-  `rough_components` / `ViewExt` / `Overlays` compiling with the new signatures.
+  `igui_components` / `ViewExt` / `Overlays` compiling with the new signatures.
   **(DONE, Stage 25.4b)**
 
   `ControlData` now lives in the node's generic `data` slot (`Node::set_data` /
@@ -169,12 +169,12 @@ This is the largest refactor; split it.
 
   **Extended (Stage 25.6, Phase 4d):** the remaining per-node state moved onto
   the tree too. `ControlData` + `Widget` + click callback + decorations +
-  `layout_dirty` now form one `rough_ui::Control` bundle stored in the node's
+  `layout_dirty` now form one `igui_ui::Control` bundle stored in the node's
   extension slot; pointer hover/press/focus ownership lives in a `GuiState` on
   the root node. `Ui` retains only the environment (theme, text measurer) and
   layout caches (`order_cache`/`text_cache`/`measure_cache` + validity
   counters), with no per-node `HashMap`s, no interaction pointers and no dirty
-  set. `rough_ui` still has no state that `rough_scene` would need to know about —
+  set. `igui_ui` still has no state that `igui_scene` would need to know about —
   the tree is the single source of truth.
 
   **Finalized (Stage 25.7, Phase 4e):** the layout cache and pass counters
@@ -192,7 +192,7 @@ This is the largest refactor; split it.
   are used, and one environment handle can drive several trees.
 
   **Free functions (Stage 25.9, Phase 4g):** the `Ui` / `UiHost` types were
-  removed entirely. `rough_ui` now exposes free functions over the tree
+  removed entirely. `igui_ui` now exposes free functions over the tree
   (`ui::add_label(&mut tree, …)`, `ui::layout(&mut tree, vp)`,
   `ui::paint(&tree, ctx)`, `ui::route_input(&mut tree, ev)`, …); `Component::mount`
   and `BuildContext` carry only the tree, and demos hold just a `SceneTree`.
@@ -200,13 +200,13 @@ This is the largest refactor; split it.
 
   **Component-native (Stage 25.10/25.11):** the `View`/`ViewExt`/`Modify`/
   `BuildContext` layer and the `add_*`/`mount`/`insert` free functions were
-  deleted. `rough_scene` gained `SceneChild` + `SceneTree::add_child(parent, c)`,
-  and `rough_components::Component` now carries a `Spec` and exposes the modifiers
+  deleted. `igui_scene` gained `SceneChild` + `SceneTree::add_child(parent, c)`,
+  and `igui_components::Component` now carries a `Spec` and exposes the modifiers
   (`child`, `background`, `surface`, `dynamic_background`, `foreground`,
-  `on_click`, `grow`, `min_size`, …) as methods. `rough_components` components
+  `on_click`, `grow`, `min_size`, …) as methods. `igui_components` components
   take a `&'static dyn Theme`; **the theme is no longer stored on
   the tree** (Phase 4f is reversed for the theme only — the text measurer still
-  lives on the root). `rough_ui` decorators no longer take a `Theme`; their
+  lives on the root). `igui_ui` decorators no longer take a `Theme`; their
   closures capture the colors they need.
 - **4c** — migrate `demo_app`, `web_demo`, `wgpu_demo` to the
   borrowed API (the demos currently use the `UiHost` compatibility host).
@@ -218,9 +218,9 @@ This is the largest refactor; split it.
   `&SceneTree`. `UiHost` remains available and is still used by the overlay
   layer's owned sub-UI and by the unit tests.
 - Retain a compatibility layer (`UiHost`) during 4a-4c. **(in place)**
-- Exit: existing `rough_ui` / `demo_app` tests pass under the new signatures; UI
+- Exit: existing `igui_ui` / `demo_app` tests pass under the new signatures; UI
   and `Node2D` coexist in one tree. **(met: `demo_app` migrated, borrowed-API
-  test in `rough_ui`)**
+  test in `igui_ui`)**
 
 ### Phase 5 — unified lifecycle and input routing (DONE, Stage 25.5)
 
@@ -239,21 +239,21 @@ tick. `SceneTree::handle_input` runs capture (tree order) then the world pick
 and `CanvasLayer` transforms, only nodes with an `_input_event` handler).
 `Ui::route_input(tree, event)` chains `_input` -> world -> GUI ->
 `_unhandled_input` (Godot `Viewport::push_input` order confirmed from source).
-Routing is **owned by `rough_scene`**: `SceneTree::route_input` runs the full
+Routing is **owned by `igui_scene`**: `SceneTree::route_input` runs the full
 order for UI-less games, and `SceneTree::route_input_with(&mut dyn GuiInput, …)`
-inserts a GUI stage. `rough_ui::Ui` implements `rough_scene::GuiInput`, so the
+inserts a GUI stage. `igui_ui::Ui` implements `igui_scene::GuiInput`, so the
 engine has no dependency on UI and an app without a HUD never needs
-`rough_ui`.
+`igui_ui`.
 GUI drags use pointer capture (`GuiState.dragging` + `Control.drag_callback`):
 on `PointerDown` a node with a drag callback captures the pointer, `PointerMove`
 is routed to it as a delta (even outside its rect) and `PointerUp` releases it.
-`rough_components::{set_on_drag}` and `Component::on_drag` expose it; `ResizeHandle`
+`igui_components::{set_on_drag}` and `Component::on_drag` expose it; `ResizeHandle`
 uses it for split-view resizing.
-`rough_core` gained `InputEvent::Wheel` and `InputState` (held buttons/keys +
+`igui_core` gained `InputEvent::Wheel` and `InputState` (held buttons/keys +
 pointer position). Multi-touch / gamepad remain future work; GUI focus/hover
 were already in `Ui` and a cross-layer focus test was added.
 
-### Phase 6 — game capabilities (new crate `rough_game`) — DONE (Stage 28)
+### Phase 6 — game capabilities (new crate `igui_game`) — DONE (Stage 28)
 
 Additive, outside the frozen core where possible. (Only the `Visual::Image` and
 `Line` items below have landed early, in Stage 25.12 and for `image_editor`.)
@@ -283,7 +283,7 @@ Additive, outside the frozen core where possible. (Only the `Visual::Image` and
 
 ### Phase 8 — observability / tests / docs
 
-- `rough_profile`: canvas-layer and camera-matrix counters / audits.
+- `igui_profile`: canvas-layer and camera-matrix counters / audits.
 - Tests: camera golden, layer order, input pick order, world/screen transforms.
 - Update `architecture.md`, `backend.md`, `components.md`, `plan.md`,
   `AGENTS.md`.
@@ -291,7 +291,7 @@ Additive, outside the frozen core where possible. (Only the `Visual::Image` and
 ### Phase 9 — packaging facade (`quill`) — PLANNED (skeleton Stage 26, `app`/`headless` Stage 31, backend features Stage 32)
 
 Status: **planned, execute later** (can start once Phase 1 lands; finalized once
-`rough_game` exists in Phase 6).
+`igui_game` exists in Phase 6).
 
 Purpose: keep the fine-grained core crates (they enforce the dependency rules)
 but give applications one dependency with opt-in features, so a UI app never
@@ -300,7 +300,7 @@ compiles game logic and a game never compiles UI unless it asks.
 - Add a facade crate `quill` that only re-exports; optional deps forwarded per
   feature (see the Packaging section).
 - UI-only apps depend on `quill` with `ui` + one backend; they never enable
-  `game` and therefore never build `rough_game`.
+  `game` and therefore never build `igui_game`.
 - Fine-grained crates stay separate; the facade does not merge them.
 
 ## Approved plan — Stages 26-32 (animation + game + GameView + facade + runtime)
@@ -318,9 +318,9 @@ causes make UI work throttle the frame rate:
 
 1. **Same-frame coupling** — expensive UI `layout`/`paint` blocks the game step
    in the same frame, regardless of where the game root sits.
-2. **Full UI repaint every frame** — `rough_ui::paint` re-walks the control tree
+2. **Full UI repaint every frame** — `igui_ui::paint` re-walks the control tree
    and rebuilds its `DrawList` even when nothing changed
-   (`crates/core/rough_ui/src/lib.rs`).
+   (`crates/core/igui_ui/src/lib.rs`).
 
 This plan adopts the single-threaded decoupling levels L1-L3; **L4 (a separate
 game thread) is explicitly out of scope**:
@@ -337,24 +337,24 @@ game thread) is explicitly out of scope**:
 
 | Stage | Crate / area | Summary |
 |---|---|---|
-| 26 | new crate `rough_anim` | Time-based tweens/easing, driving node properties and external values; `is_animating()` feeds `needs_frame`. Optional feature `anim`. |
-| 27 | core plumbing | `rough_ui` clean-layout query + UI `DrawList` cache; `rough_scene`/runtime `needs_frame`. Additive, backend-neutral, recorded per AGENTS rule 8. |
-| 28 | new crate `rough_game` | `Sprite2D` (region/atlas/flip/9-slice) + sprite-frame animation; `Timer` + light signals; AABB/circle queries + `Area` triggers; neutral `register_texture` contract + PNG decode. No rigid-body solver and no audio. `game` does not imply `ui`. |
+| 26 | new crate `igui_anim` | Time-based tweens/easing, driving node properties and external values; `is_animating()` feeds `needs_frame`. Optional feature `anim`. |
+| 27 | core plumbing | `igui_ui` clean-layout query + UI `DrawList` cache; `igui_scene`/runtime `needs_frame`. Additive, backend-neutral, recorded per AGENTS rule 8. |
+| 28 | new crate `igui_game` | `Sprite2D` (region/atlas/flip/9-slice) + sprite-frame animation; `Timer` + light signals; AABB/circle queries + `Area` triggers; neutral `register_texture` contract + PNG decode. No rigid-body solver and no audio. `game` does not imply `ui`. |
 | 29 | GameView + loop | Offscreen render target / sub-viewport; fixed-step `_physics_process` vs render `_process`; `WaitUntil` host. `wgpu_demo` stays `Wait`, requesting a frame only while animating. |
-| 30 | `examples/game_demo` | New workspace member: sprites, animation, collision, camera, input; `--selfcheck` via `rough_backend_recording` (no screenshots). |
-| 31 | new crate `rough_app` | Platform-neutral plugin runtime: `App`/`AppBuilder`/`Plugin`/`AppLogic`/`ServiceMap`/`Runner`, a `Presenter` service, and the split of `rough_winit` into `WinitPlugin` + input/graphics plugins. New `rough_headless` for winit-free self-checks. Replaces `rough_winit::Host`. |
+| 30 | `examples/game_demo` | New workspace member: sprites, animation, collision, camera, input; `--selfcheck` via `igui_backend_recording` (no screenshots). |
+| 31 | new crate `igui_app` | Platform-neutral plugin runtime: `App`/`AppBuilder`/`Plugin`/`AppLogic`/`ServiceMap`/`Runner`, a `Presenter` service, and the split of `igui_winit` into `WinitPlugin` + input/graphics plugins. New `igui_headless` for winit-free self-checks. Replaces `igui_winit::Host`. |
 | 32 | `quill` facade | Feature-gated re-exports: `ui` (base), `anim`, `game`, `wgpu`, `canvas`, `wasm`, `profile`, `debug`, `recording`, `bench`. Skeleton starts in Stage 26; `game` feature finalizes after Stage 28. |
 
 Each stage still ends with its report and waits for approval (rule 6). Roadmap
-changes recorded here: new `rough_anim`, new `examples/game_demo`, Phase 9 facade
+changes recorded here: new `igui_anim`, new `examples/game_demo`, Phase 9 facade
 started in Stage 26, the `SubViewport` item moved out of Phase 7's tail into
-Stage 29, and the `rough_app` runtime inserted as Stage 31 (facade renumbered to
+Stage 29, and the `igui_app` runtime inserted as Stage 31 (facade renumbered to
 Stage 32).
 
-**Stage 28 done (accepted).** 28.1 `rough_scene` enablers (type-keyed node
+**Stage 28 done (accepted).** 28.1 `igui_scene` enablers (type-keyed node
 extension store, `Visual::Sprite`), 28.2 `RenderBackend::register_texture`
-defaulted contract (wgpu + recording), 28.3 `rough_assets` (PNG -> RGBA8), 28.4
-`rough_game` (`Sprite2D` + texture upload), 28.5 sprite-frame animation + timers +
+defaulted contract (wgpu + recording), 28.3 `igui_assets` (PNG -> RGBA8), 28.4
+`igui_game` (`Sprite2D` + texture upload), 28.5 sprite-frame animation + timers +
 typed signals, 28.6 AABB/circle collision + `Area` triggers, 28.7 `quill` `game`
 feature. No rigid bodies, no audio; `game` does not imply `ui`. Core additions
 recorded in `docs/design-system.md`.
@@ -362,18 +362,18 @@ recorded in `docs/design-system.md`.
 ## Stage 29 plan — GameView / sub-viewport + fixed timestep (approved)
 
 Decisions (approved): `GameView` lives behind a new **optional `ui` feature on
-`rough_game`** (so `game` still does not imply `ui`); the sub-viewport uses a
+`igui_game`** (so `game` still does not imply `ui`); the sub-viewport uses a
 **true offscreen render target**; `set_physics_process` is the fixed-step API.
 
-- **29.1 `rough_scene` fixed step.** `Node` gains a `physics_process` callback
+- **29.1 `igui_scene` fixed step.** `Node` gains a `physics_process` callback
   (`set_physics_process` / `clear_physics_process` / `has_physics_process`);
   `SceneTree::physics_process(fixed_dt)` dispatches it in tree order alongside
   `process(dt)`. A host owns the accumulator and the render interpolation.
-- **29.2 render-target contract.** `rough_render` gains `RenderTargetId` and
+- **29.2 render-target contract.** `igui_render` gains `RenderTargetId` and
   `RenderBackend` support for rendering a `DrawList` into a target and sampling
   that target as a texture; wgpu implements it, recording stores targets; canvas
   deferred.
-- **29.3 `GameView`.** A `rough_ui` Control (behind `rough_game`'s optional `ui`
+- **29.3 `GameView`.** A `igui_ui` Control (behind `igui_game`'s optional `ui`
   feature) that hosts a sub-`SceneTree` + camera, lays out in the UI, advances
   its own logic, renders into its offscreen target and composites it; folds into
   `needs_frame`.
@@ -385,27 +385,27 @@ Each sub-stage ends with its report and waits for approval (rule 6).
 **Stage 29 done (accepted).** 29.1 `SceneTree::physics_process` fixed step; 29.2
 `RenderTargetId` + `create_render_target` / `destroy_render_target` /
 `render_to_target` (wgpu offscreen texture sampled as a texture; recording stores
-metadata + lists; canvas deferred); 29.3 `rough_game::GameView` (optional `ui`
+metadata + lists; canvas deferred); 29.3 `igui_game::GameView` (optional `ui`
 feature) — sub-`SceneTree` + `Animator`/`SpriteAnimations`/`Timers`/`Areas`,
-offscreen target at `logical * scale`, composited by a `rough_ui` Control; 29.4
-`rough_game::FixedTimestep` clock + `GameView::set_fixed_step`. `quill` surfaces
-`GameView` when `ui` + `game` are both enabled (`rough_game?/ui`). The actual
+offscreen target at `logical * scale`, composited by a `igui_ui` Control; 29.4
+`igui_game::FixedTimestep` clock + `GameView::set_fixed_step`. `quill` surfaces
+`GameView` when `ui` + `game` are both enabled (`igui_game?/ui`). The actual
 `WaitUntil` game host lands with `examples/game_demo` (Stage 30); `wgpu_demo`
 stays `Wait` / on-demand. Single-threaded; L4 (separate game thread) is out of
 scope.
 
 **Stage 30 done (accepted).** `examples/game_demo` — a top-down collect game: a
 `GameView` (embedded sub-viewport + HUD), an embedded PNG atlas decoded by
-`rough_assets` into `SpriteFrames`, `Camera2D` follow, `Area` coin pickups, a
-`rough_anim` spawn tween and a 120 Hz `FixedTimestep`. Window host (`winit` +
-`rough_backend_wgpu`, on-demand redraw); `--selfcheck` runs the real pipeline
-headlessly through `rough_backend_recording`. `GameView` gained `play_animation` /
+`igui_assets` into `SpriteFrames`, `Camera2D` follow, `Area` coin pickups, a
+`igui_anim` spawn tween and a 120 Hz `FixedTimestep`. Window host (`winit` +
+`igui_backend_wgpu`, on-demand redraw); `--selfcheck` runs the real pipeline
+headlessly through `igui_backend_recording`. `GameView` gained `play_animation` /
 `stop_animation`; render-target ids must stay disjoint from uploaded texture ids
 (a wgpu target creation now rejects a collision).
 
-## Stage 31 plan — `rough_app` plugin runtime (approved)
+## Stage 31 plan — `igui_app` plugin runtime (approved)
 
-Purpose: the non-core `rough_winit` currently bundles window + surface + wgpu +
+Purpose: the non-core `igui_winit` currently bundles window + surface + wgpu +
 input + IME + clipboard + text metrics in one `Host`, so the platform is not
 swappable and every demo copies its own `ApplicationHandler`. Stage 31 replaces
 it with a small plugin runtime, so an application is assembled instead of
@@ -428,10 +428,10 @@ App::new(config)
 
 Decisions (approved):
 
-1. A new **non-core** `rough_app` crate owns the runtime and must not depend on
-   `winit`/`wgpu`. It depends on `rough_core` + `rough_render` only, so the same
+1. A new **non-core** `igui_app` crate owns the runtime and must not depend on
+   `winit`/`wgpu`. It depends on `igui_core` + `igui_render` only, so the same
    app runs on any platform/graphics plugin.
-2. `rough_winit::Host` / `HostOptions` / `RenderOutcome` are **removed**, not
+2. `igui_winit::Host` / `HostOptions` / `RenderOutcome` are **removed**, not
    kept as a façade: only `examples/wgpu_demo` used them. `game_demo`,
    `file_browser` and the sibling checkouts keep their own hosts for now.
 3. Plugins are named semantically (`PointerPlugin`, `KeyboardPlugin`, ...), not
@@ -439,50 +439,50 @@ Decisions (approved):
 4. One `AppLogic` plus ordered input/paint layers (an overlay consumes input
    before the app), not a system scheduler / ECS.
 5. The render side is a backend-neutral `Presenter` service; the wgpu surface is
-   a specialization inside `WgpuPlugin`. `rough_app` never names a backend type.
+   a specialization inside `WgpuPlugin`. `igui_app` never names a backend type.
    An app that needs GPU work (texture upload, offscreen target) pulls a typed
    handle service registered by the graphics plugin (e.g. `WgpuBackend` behind
    `Rc<RefCell<..>>`, single-threaded).
 6. The runtime is testable headlessly and a host's `--selfcheck` links no
-   `winit` (`rough_headless`).
+   `winit` (`igui_headless`).
 7. `AppLogic::frame` keeps `update -> layout -> paint` separate, so the stage
    timings the profiler records stay available.
 
 Sub-stages:
 
-- **31.1 new crate `rough_app` (no winit / no wgpu).** `App` / `AppBuilder` /
+- **31.1 new crate `igui_app` (no winit / no wgpu).** `App` / `AppBuilder` /
   `AppConfig` / `Plugin` / `AppLogic` / `ServiceMap` / `Runner`; an opaque
   `PlatformEvent` / `PlatformContext` so a platform plugin can observe native
   events without the runtime knowing their type; a neutral `Presenter` trait
   (`present(&DrawList)`, viewport, resize, surface-loss outcome); ordered input
   layers; frame/init/event contexts. Tested with a fake runner and a recording
   presenter (no window).
-- **31.2 split `rough_winit` into plugins.** `WinitPlugin` (event-loop runner +
+- **31.2 split `igui_winit` into plugins.** `WinitPlugin` (event-loop runner +
   window service + a worker-thread waker for `EventLoopProxy`),
   `WgpuPlugin` (`Presenter`: surface / swapchain / backend, surface-loss
   recovery), `PointerPlugin`, `KeyboardPlugin`, `ImePlugin`,
   `TextMeasurePlugin` (replaces the copied `BackendTextMeasurer`),
   `ClipboardPlugin`, `FrameClockPlugin`. `input.rs` stays the pure mapping. The
   old `Host` / `HostOptions` / `RenderOutcome` are deleted.
-- **31.3 new crate `rough_headless`.** `HeadlessPlugin` / `HeadlessPresenter`
-  over `rough_backend_recording`: runs a fixed frame count with no window and
+- **31.3 new crate `igui_headless`.** `HeadlessPlugin` / `HeadlessPresenter`
+  over `igui_backend_recording`: runs a fixed frame count with no window and
   exposes the captured `DrawList`, so a `--selfcheck` links no `winit`.
 - **31.4 migrate `examples/wgpu_demo`.** Reference implementation of the new
   builder (window path), plus a new winit-free `--selfcheck` that paints one
-  gallery frame through `rough_headless`. No other demo is migrated here.
+  gallery frame through `igui_headless`. No other demo is migrated here.
 - **31.5 facade + docs.** `quill` gains an `app` feature re-exporting
-  `rough_app` (and `rough_headless` behind the same/`headless` feature). Update
+  `igui_app` (and `igui_headless` behind the same/`headless` feature). Update
   `docs/ui-guide.md` §Hosting, `docs/design-system.md`, `docs/architecture.md`,
   `AGENTS.md`.
 
 ### Dependency direction added
 
 ```
-rough_app      -> rough_core, rough_render                 (runtime; no platform)
-rough_winit    -> rough_app, rough_core, rough_render, rough_ui,
-                  rough_backend_wgpu, winit
-rough_headless -> rough_app, rough_backend_recording
-wgpu_demo      -> rough_app, rough_winit, rough_headless (selfcheck), ...
+igui_app      -> igui_core, igui_render                 (runtime; no platform)
+igui_winit    -> igui_app, igui_core, igui_render, igui_ui,
+                  igui_backend_wgpu, winit
+igui_headless -> igui_app, igui_backend_recording
+wgpu_demo      -> igui_app, igui_winit, igui_headless (selfcheck), ...
 ```
 
 ### Per-sub-stage gate
@@ -497,13 +497,13 @@ cargo run -p wgpu_demo -- --selfcheck   # winit-free path
 
 Each sub-stage ends with its report and waits for approval (rule 6).
 
-**Stage 31 done (accepted).** 31.1 `rough_app` (`App` / `AppBuilder` /
+**Stage 31 done (accepted).** 31.1 `igui_app` (`App` / `AppBuilder` /
 `Plugin` / `AppLogic` / `ServiceMap` / `Runner`, neutral `Presenter`, input /
-paint layers); 31.2 `rough_winit` split into the plugins above (deleting
-`Host` / `HostOptions` / `RenderOutcome`); 31.3 `rough_headless` over
+paint layers); 31.2 `igui_winit` split into the plugins above (deleting
+`Host` / `HostOptions` / `RenderOutcome`); 31.3 `igui_headless` over
 `RecordingBackend`; 31.4 `examples/wgpu_demo` migrated to the builder with a
 winit-free `--selfcheck`; 31.5 `quill` `app` / `headless` features + docs.
-Deviations recorded: `FrameClock` lives in `rough_app` (no `FrameClockPlugin`);
+Deviations recorded: `FrameClock` lives in `igui_app` (no `FrameClockPlugin`);
 the borrowed winit `ActiveEventLoop` cannot be `Any + 'static`, so there is no
 `PlatformContext` — the runner publishes `SharedWindow` into services before
 `App::resumed()`; a `FrameObserver` (with the frame's `DrawList`) was added for
@@ -524,9 +524,9 @@ Phase 5-6 are the second batch.
 
 ## Decisions (LOCKED, confirmed)
 
-1. **`Viewport` naming (DONE in Stage 25.2).** `rough_core::Viewport` is only a
-   size + DPR helper. Renamed to `rough_core::ViewportSize`; the new scene-level
-   render-context node is `rough_scene::Viewport` (root instance the tree root,
+1. **`Viewport` naming (DONE in Stage 25.2).** `igui_core::Viewport` is only a
+   size + DPR helper. Renamed to `igui_core::ViewportSize`; the new scene-level
+   render-context node is `igui_scene::Viewport` (root instance the tree root,
    Godot `RootViewport`).
 2. **Tree access from `Ui`.** Pass `&mut SceneTree` explicitly to
    `mount` / `layout` / `paint` / `handle_input`. Prefer explicit borrowing over
@@ -535,7 +535,7 @@ Phase 5-6 are the second batch.
    while adding the borrowed API; migrate demos afterwards.
 4. **Packaging.** Core crates stay fine-grained (they enforce the boundaries);
    applications use a single facade crate `quill` with opt-in features.
-   Game logic lives only in `rough_game`, never in the core, so a UI-only app
+   Game logic lives only in `igui_game`, never in the core, so a UI-only app
    cannot compile it. See the Packaging section. Implementation is deferred to
    Phase 9.
 
@@ -548,33 +548,33 @@ merge them. Instead, add a **facade** so a new project sees one dependency.
 Dependency layering:
 
 ```
-rough_core ──┬─ rough_render ──┬─ rough_scene ── rough_ui ──┬─ rough_components
-            │                │                          └─ rough_debug_ui
-            ├─ rough_theme ───┘
-            ├─ rough_profile
+igui_core ──┬─ igui_render ──┬─ igui_scene ── igui_ui ──┬─ igui_components
+            │                │                          └─ igui_debug_ui
+            ├─ igui_theme ───┘
+            ├─ igui_profile
             └─ cobbled_backend_{canvas,recording,wgpu}
 
-rough_game -> rough_scene (+ optional rough_ui)   [Phase 6]
+igui_game -> igui_scene (+ optional igui_ui)   [Phase 6]
 quill     -> re-exports, feature-gated                    [Phase 9]
 ```
 
-Minimum for a **UI-only app**: `rough_core`, `rough_render`, `rough_scene`,
-`rough_theme`, `rough_ui`, `rough_components` + one backend. It never pulls
-`rough_game`, `rough_profile`, `rough_debug_ui` or the benches unless asked.
+Minimum for a **UI-only app**: `igui_core`, `igui_render`, `igui_scene`,
+`igui_theme`, `igui_ui`, `igui_components` + one backend. It never pulls
+`igui_game`, `igui_profile`, `igui_debug_ui` or the benches unless asked.
 
 The `quill` facade feature matrix:
 
 | feature | forwards to | notes |
 |---|---|---|
-| `ui` | `rough_core`, `rough_render`, `rough_scene`, `rough_theme`, `rough_ui`, `rough_components` | base for any app |
-| `game` | `rough_game` | 2D world / sprites / collision; **does not imply `ui`** |
-| `wgpu` | `rough_backend_wgpu` | native rendering |
-| `canvas` | `rough_backend_canvas` | web rendering |
-| `wasm` | `rough_wasm` | browser glue (implies `canvas`) |
-| `profile` | `rough_profile` | optional |
-| `debug` | `rough_debug_ui` | optional |
-| `recording` | `rough_backend_recording` | tests |
-| `bench` | `rough_bench`, `rough_bench_suite` | benchmarks |
+| `ui` | `igui_core`, `igui_render`, `igui_scene`, `igui_theme`, `igui_ui`, `igui_components` | base for any app |
+| `game` | `igui_game` | 2D world / sprites / collision; **does not imply `ui`** |
+| `wgpu` | `igui_backend_wgpu` | native rendering |
+| `canvas` | `igui_backend_canvas` | web rendering |
+| `wasm` | `igui_wasm` | browser glue (implies `canvas`) |
+| `profile` | `igui_profile` | optional |
+| `debug` | `igui_debug_ui` | optional |
+| `recording` | `igui_backend_recording` | tests |
+| `bench` | `igui_bench`, `igui_bench_suite` | benchmarks |
 
 Applications enable only what they need:
 
@@ -659,7 +659,7 @@ resolved from the source (see below); Q3, Q4, Q6 are still open.
 
 ## Stage 25.1 — Phase 1 (DONE)
 
-Status: **landed.** `rough_scene` gained a generic per-node extension slot, the
+Status: **landed.** `igui_scene` gained a generic per-node extension slot, the
 `CanvasLayer` / `Camera2D` node kinds with their dedicated data, and
 `SceneTree::canvas_layer_of`. `Node` / `SceneTree` dropped `Clone` (the slot is
 `Box<dyn Any>`); `Node: Debug` is manual. No rendering or coordinate change.
@@ -671,7 +671,7 @@ Original executable plan below (kept for reference).
 
 1. **Generic node data slot** (the Phase 1 reason-to-exist).
    ```rust
-   // rough_scene::Node
+   // igui_scene::Node
    impl Node {
        pub fn set_data<T: 'static>(&mut self, value: T);
        pub fn data<T: 'static>(&self) -> Option<&T>;
@@ -681,7 +681,7 @@ Original executable plan below (kept for reference).
    }
    ```
    Backing store: `Option<Box<dyn Any>>`. Downcast by `TypeId`.
-   `rough_scene` stays generic and backend-neutral; it never names `ControlData`.
+   `igui_scene` stays generic and backend-neutral; it never names `ControlData`.
 
 2. **Node kinds:** add `NodeKind::CanvasLayer` and `NodeKind::Camera2D`.
    `Camera2D` implies a `CanvasItem` (it is a 2D node with a transform);
@@ -708,7 +708,7 @@ Original executable plan below (kept for reference).
 
 5. **Constructors/exports:** `SceneTree::add_canvas_layer(parent, name)`,
    `SceneTree::add_camera_2d(parent, name)`; re-export the new types from
-   `rough_scene::lib`.
+   `igui_scene::lib`.
 
 ### Decision to settle in this stage
 
@@ -731,7 +731,7 @@ fall back to an `Rc<RefCell<Box<dyn Any>>>` slot.
   `CanvasItem`, layer does not.
 - `canvas_layer_of` resolves the nearest ancestor; returns `None` without one;
   survives `reparent` out of a layer.
-- existing `rough_scene` transform/paint tests stay green (no behavior change).
+- existing `igui_scene` transform/paint tests stay green (no behavior change).
 
 ### Gate
 
@@ -748,8 +748,8 @@ Then emit the Stage 25.1 report and stop for approval before Phase 2.
 
 ## Stage 25 sub-stages (25.10-25.16)
 
-**25.10/25.11 (component-native API).** `rough_scene::SceneChild` +
-`SceneTree::add_child`; `rough_components::Component` carries a `Spec` and exposes
+**25.10/25.11 (component-native API).** `igui_scene::SceneChild` +
+`SceneTree::add_child`; `igui_components::Component` carries a `Spec` and exposes
 its modifiers (`child`, `background`, `surface`, `dynamic_background`,
 `foreground`, `on_click`, `grow`, `min_size`, …) as methods; components take a
 `&'static dyn Theme`; the theme is no longer stored on the tree.
@@ -759,11 +759,11 @@ its modifiers (`child`, `background`, `surface`, `dynamic_background`,
 and column separators draw a real line.
 
 **25.13 (drag + resize).** `GuiState.dragging` / `Control.drag_callback` with
-pointer capture in `rough_ui::handle_input`; `Component::on_drag`
-(`DragPhase::{Start,Move,End}` + delta) / `rough_components::set_on_drag`;
-`rough_components::ResizeHandle` (a divider-styled gutter that resizes a target
-pane's flex basis). `rough_core::Cursor` + `ControlData.cursor` +
-`Component::dynamic_cursor` + `rough_ui::hovered_cursor`; hosts map it (winit
+pointer capture in `igui_ui::handle_input`; `Component::on_drag`
+(`DragPhase::{Start,Move,End}` + delta) / `igui_components::set_on_drag`;
+`igui_components::ResizeHandle` (a divider-styled gutter that resizes a target
+pane's flex basis). `igui_core::Cursor` + `ControlData.cursor` +
+`Component::dynamic_cursor` + `igui_ui::hovered_cursor`; hosts map it (winit
 `CursorIcon`, canvas CSS `cursor`). `demo_app`'s sidebar and list gutters are
 both draggable.
 
@@ -771,9 +771,9 @@ both draggable.
 `DrawCommand::ClipRect`; resolved per layout pass into `ControlData.clip_rect`,
 intersected with the nearest clipping ancestor) + `Ui::paint` emitting one
 save/clip/restore per clipped region + clip-aware hit testing;
-`InputEvent::Wheel` routing in `rough_ui::handle_input` to the nearest
-`Control::scroll_callback` (`rough_components::set_on_scroll` /
-`Component::on_scroll`); and `rough_components::{List, ListState, ListColumn,
+`InputEvent::Wheel` routing in `igui_ui::handle_input` to the nearest
+`Control::scroll_callback` (`igui_components::set_on_scroll` /
+`Component::on_scroll`); and `igui_components::{List, ListState, ListColumn,
 RowSource}` — a virtualized list whose frame cost is flat in the row count (107
 controls / 72 commands per frame at 1 K, 10 K and 100 K rows;
 `docs/benchmarking.md`). Additive to the frozen core. Demo:

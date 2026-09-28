@@ -1,7 +1,7 @@
-// The design tokens, mirrored from `rough_theme` so the C++ components match
+// The design tokens, mirrored from `igui_theme` so the C++ components match
 // `demo_app` exactly.
 //
-// The values are copied from `crates/core/rough_theme/src/palette.rs` and
+// The values are copied from `crates/core/igui_theme/src/palette.rs` and
 // `scale.rs` (the dark palette and the comfortable density). If you change a
 // token there, change it here too — the point of the gallery is a like-for-like
 // comparison with the Rust component library.
@@ -12,7 +12,7 @@
 
 namespace cppffi {
 
-/// `rough_theme::Palette` for the dark mode.
+/// `igui_theme::Palette` for the dark mode.
 struct Palette {
     Color background;
     Color foreground;
@@ -36,7 +36,7 @@ struct Palette {
 
 const Palette& palette();
 
-/// `rough_theme::space` (base scale; the comfortable density is 1.0).
+/// `igui_theme::space` (base scale; the comfortable density is 1.0).
 namespace space {
 constexpr float XXXS = 2.0f;
 constexpr float XXS = 4.0f;
@@ -49,7 +49,7 @@ constexpr float XXL = 24.0f;
 constexpr float XXXL = 32.0f;
 }  // namespace space
 
-/// `rough_theme::radius`.
+/// `igui_theme::radius`.
 namespace radius {
 constexpr float NONE = 0.0f;
 constexpr float SM = 4.0f;
@@ -59,13 +59,13 @@ constexpr float PANEL = 10.0f;
 constexpr float FULL = 9999.0f;
 }  // namespace radius
 
-/// `rough_theme::border`.
+/// `igui_theme::border`.
 namespace border {
 constexpr float HAIRLINE = 1.0f;
 constexpr float FOCUS = 1.5f;
 }  // namespace border
 
-/// `rough_theme::control` (comfortable density).
+/// `igui_theme::control` (comfortable density).
 namespace control {
 constexpr float HEIGHT = 36.0f;
 constexpr float HEIGHT_SM = 32.0f;

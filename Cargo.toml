@@ -2,34 +2,34 @@
 resolver = "2"
 members = [
     # backend-neutral core
-    "crates/core/rough_core",
-    "crates/core/rough_scene",
-    "crates/core/rough_ui",
-    "crates/core/rough_theme",
-    "crates/core/rough_components",
-    "crates/core/rough_render",
-    "crates/core/rough_font",
-    "crates/core/rough_svg",
-    "crates/core/rough_assets",
-    "crates/core/rough_anim",
-    "crates/core/rough_game",
+    "crates/core/igui_core",
+    "crates/core/igui_scene",
+    "crates/core/igui_ui",
+    "crates/core/igui_theme",
+    "crates/core/igui_components",
+    "crates/core/igui_render",
+    "crates/core/igui_font",
+    "crates/core/igui_svg",
+    "crates/core/igui_assets",
+    "crates/core/igui_anim",
+    "crates/core/igui_game",
     # concrete backends
-    "crates/platform/canvas/rough_backend_canvas",
-    "crates/platform/recording/rough_backend_recording",
-    "crates/platform/wgpu/rough_backend_wgpu",
-    "crates/platform/wasm/rough_wasm",
+    "crates/platform/canvas/igui_backend_canvas",
+    "crates/platform/recording/igui_backend_recording",
+    "crates/platform/wgpu/igui_backend_wgpu",
+    "crates/platform/wasm/igui_wasm",
     # C ABI
-    "crates/ffi/rough_ffi",
+    "crates/ffi/igui_ffi",
     # observability
-    "crates/debug/rough_profile",
-    "crates/debug/rough_debug_ui",
+    "crates/debug/igui_profile",
+    "crates/debug/igui_debug_ui",
     # benchmarking
-    "crates/bench/rough_bench",
-    "crates/bench/rough_bench_suite",
+    "crates/bench/igui_bench",
+    "crates/bench/igui_bench_suite",
     # window hosts / application runtime
-    "crates/window/rough_winit",
-    "crates/app/rough_app",
-    "crates/app/rough_headless",
+    "crates/window/igui_winit",
+    "crates/app/igui_app",
+    "crates/app/igui_headless",
     "quill",
     "examples/web_demo",
     "examples/demo_app",
@@ -48,29 +48,29 @@ license = "MIT OR Apache-2.0"
 repository = ""
 
 [workspace.dependencies]
-rough_core = { path = "crates/core/rough_core" }
-rough_scene = { path = "crates/core/rough_scene" }
-rough_ui = { path = "crates/core/rough_ui" }
-rough_theme = { path = "crates/core/rough_theme" }
-rough_components = { path = "crates/core/rough_components" }
-rough_render = { path = "crates/core/rough_render" }
-rough_font = { path = "crates/core/rough_font" }
-rough_svg = { path = "crates/core/rough_svg" }
-rough_assets = { path = "crates/core/rough_assets" }
-rough_anim = { path = "crates/core/rough_anim" }
-rough_game = { path = "crates/core/rough_game" }
-rough_backend_canvas = { path = "crates/platform/canvas/rough_backend_canvas" }
-rough_backend_recording = { path = "crates/platform/recording/rough_backend_recording" }
-rough_backend_wgpu = { path = "crates/platform/wgpu/rough_backend_wgpu" }
-rough_wasm = { path = "crates/platform/wasm/rough_wasm" }
-rough_ffi = { path = "crates/ffi/rough_ffi" }
-rough_profile = { path = "crates/debug/rough_profile" }
-rough_debug_ui = { path = "crates/debug/rough_debug_ui" }
-rough_bench = { path = "crates/bench/rough_bench" }
-rough_bench_suite = { path = "crates/bench/rough_bench_suite" }
-rough_winit = { path = "crates/window/rough_winit" }
-rough_app = { path = "crates/app/rough_app" }
-rough_headless = { path = "crates/app/rough_headless" }
+igui_core = { path = "crates/core/igui_core" }
+igui_scene = { path = "crates/core/igui_scene" }
+igui_ui = { path = "crates/core/igui_ui" }
+igui_theme = { path = "crates/core/igui_theme" }
+igui_components = { path = "crates/core/igui_components" }
+igui_render = { path = "crates/core/igui_render" }
+igui_font = { path = "crates/core/igui_font" }
+igui_svg = { path = "crates/core/igui_svg" }
+igui_assets = { path = "crates/core/igui_assets" }
+igui_anim = { path = "crates/core/igui_anim" }
+igui_game = { path = "crates/core/igui_game" }
+igui_backend_canvas = { path = "crates/platform/canvas/igui_backend_canvas" }
+igui_backend_recording = { path = "crates/platform/recording/igui_backend_recording" }
+igui_backend_wgpu = { path = "crates/platform/wgpu/igui_backend_wgpu" }
+igui_wasm = { path = "crates/platform/wasm/igui_wasm" }
+igui_ffi = { path = "crates/ffi/igui_ffi" }
+igui_profile = { path = "crates/debug/igui_profile" }
+igui_debug_ui = { path = "crates/debug/igui_debug_ui" }
+igui_bench = { path = "crates/bench/igui_bench" }
+igui_bench_suite = { path = "crates/bench/igui_bench_suite" }
+igui_winit = { path = "crates/window/igui_winit" }
+igui_app = { path = "crates/app/igui_app" }
+igui_headless = { path = "crates/app/igui_headless" }
 demo_app = { path = "examples/demo_app" }
 
 [profile.release]

@@ -1,0 +1,14 @@
+[package]
+name = "igui_debug_ui"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+igui_core.workspace = true
+igui_scene.workspace = true
+igui_render.workspace = true
+igui_ui.workspace = true
+igui_components.workspace = true
+igui_profile.workspace = true

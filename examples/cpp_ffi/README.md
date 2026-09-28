@@ -6,21 +6,21 @@ it with a **C++ OpenGL 3.3 backend**. No Rust widget, layout, theme or backend
 is involved.
 
 ```text
-C++ UI (ui.cpp) --Canvas--> rough_ffi (Rust) --> DrawList --GlBackend--> pixels
+C++ UI (ui.cpp) --Canvas--> igui_ffi (Rust) --> DrawList --GlBackend--> pixels
 ```
 
 ## The boundary
 
-`crates/ffi/rough_ffi` is the only Rust code in the picture. It exposes:
+`crates/ffi/igui_ffi` is the only Rust code in the picture. It exposes:
 
 - the core value types (`QuillVec2`, `QuillRect`, `QuillColor`,
   `QuillTransform`, `QuillCornerRadii`, `QuillPaint`) and
 - an opaque `QuillDrawList` with `quill_draw_list_*` builders and a flat
   `QuillCommand` record to read commands back.
 
-The C++ host includes `crates/ffi/rough_ffi/include/quill.h` (a hand-maintained
-mirror of the `#[repr(C)]` layout) and links the `librough_ffi.a` static library.
-Nothing from `rough_scene` / `rough_ui` crosses the boundary — the UI is
+The C++ host includes `crates/ffi/igui_ffi/include/quill.h` (a hand-maintained
+mirror of the `#[repr(C)]` layout) and links the `libigui_ffi.a` static library.
+Nothing from `igui_scene` / `igui_ui` crosses the boundary — the UI is
 organized in C++ on purpose.
 
 ABI v1 covers the geometry and state commands. `DrawImage` / `DrawText` read
@@ -32,7 +32,7 @@ rasterize glyphs, which is deliberately out of scope.
 | File | Concern |
 |---|---|
 | `src/canvas.{hpp,cpp}` | the only place `quill.h` appears; value types + `Canvas` |
-| `src/theme.{hpp,cpp}` | the `rough_theme` tokens (dark palette + scales), mirrored for `demo_app` parity |
+| `src/theme.{hpp,cpp}` | the `igui_theme` tokens (dark palette + scales), mirrored for `demo_app` parity |
 | `src/widget.{hpp,cpp}` | the `Widget` base and the `Column` / `Row` layout containers |
 | `src/ui.{hpp,cpp}` | the dashboard (balance bar, chart, toggle, spinner) |
 | `src/gallery.{hpp,cpp}` | a few `demo_app`-styled components (button / checkbox / switch / card / divider / badge) |
@@ -46,7 +46,7 @@ Requires a C++17 toolchain, CMake ≥ 3.20 and macOS. GLFW is used if installed,
 otherwise the pinned 3.4 release is fetched at configure time.
 
 ```bash
-./build.sh                 # cargo build -p rough_ffi + demoapp_ffi + wgpu_ffi, then CMake
+./build.sh                 # cargo build -p igui_ffi + demoapp_ffi + wgpu_ffi, then CMake
 ./build/cpp_ffi            # the live dashboard window
 ./build/cpp_ffi --gallery  # the component gallery, styled like demo_app
 ./build/cpp_ffi --demoapp  # the real demo_app gallery, loaded through demoapp_ffi
@@ -59,8 +59,8 @@ otherwise the pinned 3.4 release is fetched at configure time.
 
 The gallery is the like-for-like comparison with `examples/demo_app`. Its
 components are reimplemented in C++ from the same tokens: `src/theme.cpp`
-mirrors `rough_theme`'s dark `Palette` and `scale.rs`, and `src/gallery.cpp`
-matches the geometry of `rough_components` (button height 36 / radius 6, checkbox
+mirrors `igui_theme`'s dark `Palette` and `scale.rs`, and `src/gallery.cpp`
+matches the geometry of `igui_components` (button height 36 / radius 6, checkbox
 16×16 / radius 4, switch 34×18 / full radius, card radius 8 + hairline border,
 1px divider, badge radius 4). ABI v1 has no text, so labels are drawn as
 neutral bars — the chrome (fill, border, radius, sizes) is what to compare.
@@ -82,12 +82,12 @@ layout, colors and chrome are the real app's — the labels are missing. Run
 
 ## Two backends (`--wgpu`)
 
-`examples/wgpu_ffi` wraps the existing Rust `rough_backend_wgpu` in a C ABI, so
+`examples/wgpu_ffi` wraps the existing Rust `igui_backend_wgpu` in a C ABI, so
 the same `DrawList` can be rendered two ways:
 
 ```text
 DrawList ─┬─> C++ GlBackend (OpenGL 3.3)   [default]
-          └─> wgpu_ffi -> rough_backend_wgpu [--wgpu]
+          └─> wgpu_ffi -> igui_backend_wgpu [--wgpu]
 ```
 
 `--wgpu` creates the window with `GLFW_CLIENT_API = GLFW_NO_API` (no GL context)

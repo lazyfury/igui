@@ -2,10 +2,10 @@
 
 use std::rc::Rc;
 
-use rough_components::{Button, Column, Component, Flex, NodeRef, Panel, Row, Text};
-use rough_core::{Color, Edges};
-use rough_theme::{radius, space, Mode, Theme, Tone};
-use rough_ui::{Align, SizeBasis, SurfaceStyle};
+use igui_components::{Button, Column, Component, Flex, NodeRef, Panel, Row, Text};
+use igui_core::{Color, Edges};
+use igui_theme::{radius, space, Mode, Theme, Tone};
+use igui_ui::{Align, SizeBasis, SurfaceStyle};
 
 use crate::catalog;
 use crate::GalleryState;
@@ -67,7 +67,7 @@ pub fn build(theme: &'static dyn Theme, state: &GalleryState, primary_slot: &Nod
         .children(rows)
         .child(Flex::new().padding(Edges::ZERO).grow(1.0))
         .child(toggle)
-        .child(Text::caption("rough_components · v0.1.0", theme).tone(Tone::Subtle))
+        .child(Text::caption("igui_components · v0.1.0", theme).tone(Tone::Subtle))
 }
 
 /// One selectable group row (selection + hover share the nav surface).
@@ -106,9 +106,9 @@ fn app_icon(theme: &'static dyn Theme, size: f32) -> Panel {
         .min_size(size, size)
         .surface(SurfaceStyle::new(theme.palette().accent).radius(radius::SM))
         .foreground(move |ctx, rect, _| {
-            rough_ui::fill_rounded_rect(
+            igui_ui::fill_rounded_rect(
                 ctx,
-                rough_ui::inset(rect, 5.0),
+                igui_ui::inset(rect, 5.0),
                 1.0,
                 theme.palette().on_accent,
             );

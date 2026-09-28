@@ -7,12 +7,12 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use rough_components::{
+use igui_components::{
     Card, Column, Component, Grid, ListState, Router, ScrollView, ScrollViewState, Text,
 };
-use rough_core::Edges;
-use rough_theme::{space, Theme, Tone};
-use rough_ui::{AlignContent, Track};
+use igui_core::Edges;
+use igui_theme::{space, Theme, Tone};
+use igui_ui::{AlignContent, Track};
 
 use crate::catalog::{self, Item};
 use crate::GalleryState;

@@ -1,0 +1,26 @@
+[package]
+name = "igui_backend_wgpu"
+version.workspace = true
+edition.workspace = true
+# `wgpu` 24 requires Rust 1.76, so this crate opts out of the workspace's 1.75.
+rust-version = "1.76"
+license.workspace = true
+
+[dependencies]
+igui_core.workspace = true
+igui_render.workspace = true
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+igui_font.workspace = true
+bytemuck = { version = "1", features = ["derive"] }
+pollster = "0.4"
+wgpu = "24"
+
+[dev-dependencies]
+igui_scene.workspace = true
+igui_bench.workspace = true
+font8x8 = "0.3"
+
+[[bench]]
+name = "wgpu"
+harness = false

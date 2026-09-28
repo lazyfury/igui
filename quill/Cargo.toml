@@ -9,41 +9,41 @@ license.workspace = true
 default = []
 # UI: scene + layout/paint/input + design system.
 ui = [
-    "dep:rough_core",
-    "dep:rough_render",
-    "dep:rough_scene",
-    "dep:rough_theme",
-    "dep:rough_ui",
-    "dep:rough_components",
-    # When `game` is also enabled, surface `rough_game::GameView` (weak dep: does
-    # not pull rough_game on by itself).
-    "rough_game?/ui",
+    "dep:igui_core",
+    "dep:igui_render",
+    "dep:igui_scene",
+    "dep:igui_theme",
+    "dep:igui_ui",
+    "dep:igui_components",
+    # When `game` is also enabled, surface `igui_game::GameView` (weak dep: does
+    # not pull igui_game on by itself).
+    "igui_game?/ui",
 ]
 # Animation, independent of `ui` and `game`.
-anim = ["dep:rough_anim", "dep:rough_core", "dep:rough_scene"]
-# Application runtime: the plugin-based `rough_app` builder (no platform).
-app = ["dep:rough_app", "dep:rough_core", "dep:rough_render"]
+anim = ["dep:igui_anim", "dep:igui_core", "dep:igui_scene"]
+# Application runtime: the plugin-based `igui_app` builder (no platform).
+app = ["dep:igui_app", "dep:igui_core", "dep:igui_render"]
 # Headless recording presenter for `--selfcheck`; no `winit`.
-headless = ["app", "dep:rough_headless", "dep:rough_backend_recording"]
+headless = ["app", "dep:igui_headless", "dep:igui_backend_recording"]
 # 2D game layer. Does not imply `ui`; `anim` stays independent.
 game = [
-    "dep:rough_game",
-    "dep:rough_assets",
-    "dep:rough_core",
-    "dep:rough_render",
-    "dep:rough_scene",
+    "dep:igui_game",
+    "dep:igui_assets",
+    "dep:igui_core",
+    "dep:igui_render",
+    "dep:igui_scene",
 ]
 
 [dependencies]
-rough_core = { workspace = true, optional = true }
-rough_render = { workspace = true, optional = true }
-rough_scene = { workspace = true, optional = true }
-rough_theme = { workspace = true, optional = true }
-rough_ui = { workspace = true, optional = true }
-rough_components = { workspace = true, optional = true }
-rough_anim = { workspace = true, optional = true }
-rough_game = { workspace = true, optional = true }
-rough_assets = { workspace = true, optional = true }
-rough_app = { workspace = true, optional = true }
-rough_headless = { workspace = true, optional = true }
-rough_backend_recording = { workspace = true, optional = true }
+igui_core = { workspace = true, optional = true }
+igui_render = { workspace = true, optional = true }
+igui_scene = { workspace = true, optional = true }
+igui_theme = { workspace = true, optional = true }
+igui_ui = { workspace = true, optional = true }
+igui_components = { workspace = true, optional = true }
+igui_anim = { workspace = true, optional = true }
+igui_game = { workspace = true, optional = true }
+igui_assets = { workspace = true, optional = true }
+igui_app = { workspace = true, optional = true }
+igui_headless = { workspace = true, optional = true }
+igui_backend_recording = { workspace = true, optional = true }

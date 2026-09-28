@@ -1,0 +1,16 @@
+[package]
+name = "igui_components"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+igui_core.workspace = true
+igui_scene.workspace = true
+igui_ui.workspace = true
+igui_render.workspace = true
+igui_theme.workspace = true
+
+[dev-dependencies]
+igui_backend_recording.workspace = true

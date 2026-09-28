@@ -30,9 +30,9 @@ viewport-responsive panel (resize the window).
 ## Create your first scene
 
 ```rust
-use rough_core::Vec2;
-use rough_scene::{SceneTree, Visual};
-use rough_core::{Color, Size};
+use igui_core::Vec2;
+use igui_scene::{SceneTree, Visual};
+use igui_core::{Color, Size};
 
 let mut tree = SceneTree::new();
 let root = tree.root();
@@ -48,7 +48,7 @@ tree.update(); // derive world transforms / visibility
 ## Paint it to a `DrawList`
 
 ```rust
-use rough_render::PaintContext;
+use igui_render::PaintContext;
 
 let mut ctx = PaintContext::new();
 tree.paint(&mut ctx);
@@ -65,11 +65,11 @@ Components compose into one node tree. Attach a component with
 passed to the constructors, never stored on the tree.
 
 ```rust
-use rough_components::base::Button;
-use rough_components::{Component, Flex, Label, Panel, VBox};
-use rough_core::{Size, ViewportSize};
-use rough_scene::SceneTree;
-use rough_theme::{default_theme, Mode, Theme};
+use igui_components::base::Button;
+use igui_components::{Component, Flex, Label, Panel, VBox};
+use igui_core::{Size, ViewportSize};
+use igui_scene::SceneTree;
+use igui_theme::{default_theme, Mode, Theme};
 
 let theme: &'static dyn Theme = default_theme(Mode::Dark);
 let mut tree = SceneTree::new();
@@ -90,23 +90,23 @@ tree.add_child(
     Panel::new().child(Label::new("Composed")).child(Button::new("Save")),
 );
 
-rough_ui::layout(&mut tree, ViewportSize::new(Size::new(800.0, 600.0)));
+igui_ui::layout(&mut tree, ViewportSize::new(Size::new(800.0, 600.0)));
 
 // Pointer/keyboard input (backend-neutral):
-rough_ui::route_input(
+igui_ui::route_input(
     &mut tree,
-    &rough_core::InputEvent::PointerDown {
-        position: rough_core::Vec2::new(100.0, 100.0),
-        button: rough_core::PointerButton::Left,
+    &igui_core::InputEvent::PointerDown {
+        position: igui_core::Vec2::new(100.0, 100.0),
+        button: igui_core::PointerButton::Left,
     },
 );
 
 // Paint into a DrawList:
-let mut ctx = rough_render::PaintContext::new();
-rough_ui::paint(&tree, &mut ctx);
+let mut ctx = igui_render::PaintContext::new();
+igui_ui::paint(&tree, &mut ctx);
 ```
 
-Themed components (`rough_components::Text`, `Card`, `Button`, `Checkbox`, …)
+Themed components (`igui_components::Text`, `Card`, `Button`, `Checkbox`, …)
 take the theme as their first argument: `Text::heading("Notes", theme)`,
 `Card::new(theme)`. Start with `docs/ui-guide.md` for the app-level guide (frame
 loop, hosting, conventions); `docs/components.md` is the widget/layout/input
@@ -117,7 +117,7 @@ reference. `examples/web_demo` is a runnable browser example.
 Outline every visible control in yellow with a `Name #id` label:
 
 ```rust
-use rough_debug_ui::DebugOverlay;
+use igui_debug_ui::DebugOverlay;
 
 let mut debug = DebugOverlay::new();
 
@@ -125,7 +125,7 @@ let mut debug = DebugOverlay::new();
 debug.paint(&tree, &mut ctx);
 ```
 
-`rough_ui::paint_debug` does the drawing; `DebugOverlay` just adds an
+`igui_ui::paint_debug` does the drawing; `DebugOverlay` just adds an
 open/closed toggle. See `docs/debug.md`.
 
 ## Inspect performance
@@ -133,8 +133,8 @@ open/closed toggle. See `docs/debug.md`.
 Measure the pipeline phases, aggregate them, and show a debug panel:
 
 ```rust
-use rough_profile::{inspect, FrameCounters, FrameStats, Profiler, StageTimes};
-use rough_debug_ui::DebugOverlay;
+use igui_profile::{inspect, FrameCounters, FrameStats, Profiler, StageTimes};
+use igui_debug_ui::DebugOverlay;
 
 let mut profiler = Profiler::new();
 let mut overlay = DebugOverlay::new();
@@ -154,6 +154,6 @@ overlay.update(&profiler, &report, viewport);
 overlay.paint(&mut ctx); // painted after your own UI
 ```
 
-`rough_profile` never reads the clock itself; the host feeds in milliseconds, so
+`igui_profile` never reads the clock itself; the host feeds in milliseconds, so
 metrics are deterministic and testable. See `docs/debug.md` for the full guide
 (phase wiring, thresholds, finding codes, overlay styling).

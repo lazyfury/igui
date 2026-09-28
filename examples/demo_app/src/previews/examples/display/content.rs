@@ -1,11 +1,11 @@
 //! Surface and content previews: cards, dividers, badges, code, terminal and
 //! empty states.
 
-use rough_components::{
+use igui_components::{
     Badge, Card, CodeBlock, Column, Component, Divider, EmptyState, Row, Terminal, Text,
 };
-use rough_core::Edges;
-use rough_theme::{space, Tone};
+use igui_core::Edges;
+use igui_theme::{space, Tone};
 
 use super::super::Ctx;
 

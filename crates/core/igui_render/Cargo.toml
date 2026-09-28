@@ -1,0 +1,9 @@
+[package]
+name = "igui_render"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+igui_core.workspace = true

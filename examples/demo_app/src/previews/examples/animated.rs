@@ -1,4 +1,4 @@
-//! Animation previews: `rough_anim` drives an external value that a control's
+//! Animation previews: `igui_anim` drives an external value that a control's
 //! foreground reads at paint time.
 //!
 //! The `Animator` itself lives in [`crate::DemoApp`]; these cards only clone the
@@ -7,10 +7,10 @@
 //! scheduling frames while it runs — that is exactly what
 //! [`crate::DemoApp::needs_frame`] reports.
 
-use rough_anim::Easing;
-use rough_components::{Card, Component, Panel};
-use rough_core::{Color, Rect, Size, Vec2};
-use rough_theme::SurfaceLevel;
+use igui_anim::Easing;
+use igui_components::{Card, Component, Panel};
+use igui_core::{Color, Rect, Size, Vec2};
+use igui_theme::SurfaceLevel;
 
 use super::Ctx;
 

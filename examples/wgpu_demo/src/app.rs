@@ -1,7 +1,7 @@
 //! The `winit` window runner for the wgpu demo (native only).
 //!
-//! The platform plumbing is now a set of [`rough_winit`] plugins assembled
-//! through [`rough_app::AppBuilder`]. This file is only the demo's own logic:
+//! The platform plumbing is now a set of [`igui_winit`] plugins assembled
+//! through [`igui_app::AppBuilder`]. This file is only the demo's own logic:
 //! it times the pipeline phases, drives the shared gallery and paints the
 //! debug / performance overlays.
 
@@ -9,18 +9,18 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::time::Instant;
 
-use rough_app::{
+use igui_app::{
     App, AppBuilder, AppConfig, AppLogic, EventContext, FrameContext, FrameObserver, InitContext,
     Plugin,
 };
-use rough_backend_wgpu::{FontConfig, FontMode};
-use rough_core::{EventResult, InputEvent, Key};
-use rough_debug_ui::{DebugOverlay, PerformanceOverlay};
-use rough_headless::{HeadlessPlugin, RecordingHandle};
-use rough_profile::{inspect, FrameCounters, FrameStats, InspectionReport, Profiler, StageTimes};
-use rough_render::{DrawList, PaintContext};
-use rough_ui::{focused_caret, TextMeasurer};
-use rough_winit::{
+use igui_backend_wgpu::{FontConfig, FontMode};
+use igui_core::{EventResult, InputEvent, Key};
+use igui_debug_ui::{DebugOverlay, PerformanceOverlay};
+use igui_headless::{HeadlessPlugin, RecordingHandle};
+use igui_profile::{inspect, FrameCounters, FrameStats, InspectionReport, Profiler, StageTimes};
+use igui_render::{DrawList, PaintContext};
+use igui_ui::{focused_caret, TextMeasurer};
+use igui_winit::{
     BackendTextMeasurer, ClipboardPlugin, GpuConfig, ImePlugin, KeyboardPlugin, PointerPlugin,
     SharedBackend, TextMeasurePlugin, TitlebarMode as WinitTitlebar, WgpuPlugin, WindowConfig,
     WinitPlugin, TITLEBAR_SAFE_AREA,
@@ -34,7 +34,7 @@ pub fn run(options: Options) {
     build_app(options, false).run();
 }
 
-/// Runs the shared gallery headlessly through `rough_headless` (no window) and
+/// Runs the shared gallery headlessly through `igui_headless` (no window) and
 /// reports what was drawn. Returns an error when nothing was rendered.
 pub fn selfcheck() -> Result<(), String> {
     let mut app = build_app(Options::default(), true);
@@ -305,7 +305,7 @@ impl AppLogic for DemoLogic {
         if let Some(measurer) = ctx.service::<Rc<dyn TextMeasurer>>() {
             self.demo.set_text_measurer(measurer.clone());
         }
-        if let Some(clipboard) = ctx.service::<Rc<RefCell<dyn rough_ui::Clipboard>>>() {
+        if let Some(clipboard) = ctx.service::<Rc<RefCell<dyn igui_ui::Clipboard>>>() {
             self.demo.set_clipboard(clipboard.clone());
         }
         if let Some(backend) = ctx.service::<SharedBackend>() {
@@ -363,11 +363,11 @@ impl AppLogic for DemoLogic {
         self.demo.needs_frame()
     }
 
-    fn cursor(&self) -> Option<rough_core::Cursor> {
+    fn cursor(&self) -> Option<igui_core::Cursor> {
         Some(self.demo.cursor())
     }
 
-    fn caret(&self) -> Option<rough_core::Rect> {
+    fn caret(&self) -> Option<igui_core::Rect> {
         focused_caret(self.demo.tree())
     }
 }

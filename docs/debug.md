@@ -4,8 +4,8 @@ quill provides two independent, backend-neutral debug tools:
 
 | Tool | Crate | Draws |
 |---|---|---|
-| Component debug drawing | `rough_ui` + `rough_debug_ui::DebugOverlay` | yellow border + `Name #id` per control |
-| Performance panel | `rough_profile` + `rough_debug_ui::PerformanceOverlay` | FPS, phase timings, counters, findings |
+| Component debug drawing | `igui_ui` + `igui_debug_ui::DebugOverlay` | yellow border + `Name #id` per control |
+| Performance panel | `igui_profile` + `igui_debug_ui::PerformanceOverlay` | FPS, phase timings, counters, findings |
 
 Both emit ordinary `DrawCommand`s, so any backend renders them, and both are
 verified with native `cargo test`.
@@ -20,24 +20,24 @@ in its top-left corner — the classic engine "debug bounds" view.
 ### Directly from the UI
 
 ```rust
-use rough_ui::DebugDrawOptions;
+use igui_ui::DebugDrawOptions;
 
-// after `rough_ui::paint(&tree, &mut ctx)`:
-rough_ui::paint_debug(&tree, &mut ctx, &DebugDrawOptions::default());
+// after `igui_ui::paint(&tree, &mut ctx)`:
+igui_ui::paint_debug(&tree, &mut ctx, &DebugDrawOptions::default());
 ```
 
 `DebugDrawOptions` controls the look:
 
 ```rust
-use rough_core::Color;
-use rough_ui::DebugDrawOptions;
+use igui_core::Color;
+use igui_ui::DebugDrawOptions;
 
 let options = DebugDrawOptions {
     border_color: Color::YELLOW,
     text_color: Color::YELLOW,
     width: 1.0,
     font_size: 11.0,
-    label_offset: rough_core::Vec2::new(2.0, 0.0), // from the control's top-left
+    label_offset: igui_core::Vec2::new(2.0, 0.0), // from the control's top-left
     show_names: true,
     show_ids: true,
 };
@@ -47,14 +47,14 @@ The label is `"{name} #{id}"`; disable `show_names` / `show_ids` to change it.
 
 ### With a togglable overlay
 
-`rough_debug_ui::DebugOverlay` wraps the above with an open/closed state:
+`igui_debug_ui::DebugOverlay` wraps the above with an open/closed state:
 
 ```rust
-use rough_debug_ui::DebugOverlay;
+use igui_debug_ui::DebugOverlay;
 
 let mut debug = DebugOverlay::new(); // visible by default
 
-// per frame, after `rough_ui::paint(&tree, &mut ctx)`:
+// per frame, after `igui_ui::paint(&tree, &mut ctx)`:
 debug.paint(&tree, &mut ctx);
 
 // toggle (e.g. an F3 key binding)
@@ -65,15 +65,15 @@ It owns no tree, so it draws over any tree you pass in.
 
 ---
 
-## 2. Performance inspection (`rough_profile`)
+## 2. Performance inspection (`igui_profile`)
 
-`rough_profile` never reads the clock itself. The host samples `Instant` per
+`igui_profile` never reads the clock itself. The host samples `Instant` per
 pipeline phase and feeds milliseconds in, which keeps the model deterministic
 and the tests exact.
 
 ```rust
 use std::time::Instant;
-use rough_profile::{inspect, FrameCounters, FrameStats, Profiler, StageTimes};
+use igui_profile::{inspect, FrameCounters, FrameStats, Profiler, StageTimes};
 
 let mut profiler = Profiler::new();
 
@@ -84,7 +84,7 @@ let t1 = Instant::now();
 demo.layout(viewport);
 let t2 = Instant::now();
 
-let mut ctx = rough_render::PaintContext::new();
+let mut ctx = igui_render::PaintContext::new();
 demo.paint(&mut ctx);
 let list = ctx.into_draw_list();
 let t3 = Instant::now();
@@ -147,7 +147,7 @@ if let Some(summary) = profiler.summary() {
 Thresholds:
 
 ```rust
-use rough_profile::{inspect_with, InspectionConfig};
+use igui_profile::{inspect_with, InspectionConfig};
 
 let config = InspectionConfig {
     max_draw_commands: 2048, // default
@@ -162,11 +162,11 @@ let report = inspect_with(&list, &stats, &config);
 ## 3. Performance panel (`PerformanceOverlay`)
 
 `PerformanceOverlay` renders a `Profiler` + `InspectionReport` as an ordinary
-`rough_ui` panel in a viewport corner. It owns its own `SceneTree` subtree, so it
+`igui_ui` panel in a viewport corner. It owns its own `SceneTree` subtree, so it
 does not disturb the application's layout or hit-testing.
 
 ```rust
-use rough_debug_ui::{Corner, OverlayConfig, PerformanceOverlay};
+use igui_debug_ui::{Corner, OverlayConfig, PerformanceOverlay};
 
 let mut perf = PerformanceOverlay::new();
 

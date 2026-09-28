@@ -1,9 +1,9 @@
 //! Text previews: the type scale, weights, overflow/ellipsis and word breaking.
 
-use rough_components::{Card, Column, Component, Grid, Label, Panel, Text};
-use rough_core::{Color, Edges};
-use rough_theme::{space, Tone};
-use rough_ui::{Track, WordBreak};
+use igui_components::{Card, Column, Component, Grid, Label, Panel, Text};
+use igui_core::{Color, Edges};
+use igui_theme::{space, Tone};
+use igui_ui::{Track, WordBreak};
 
 use super::super::Ctx;
 
@@ -29,9 +29,9 @@ pub(crate) fn weight(card: Card, ctx: &mut Ctx) -> Card {
     card.child(
         Column::new()
             .gap(space::XS)
-            .child(Text::new("Regular · 400", theme).weight(rough_core::FontWeight::NORMAL))
-            .child(Text::new("Medium · 500", theme).weight(rough_core::FontWeight::MEDIUM))
-            .child(Text::new("Bold · 700", theme).weight(rough_core::FontWeight::BOLD)),
+            .child(Text::new("Regular · 400", theme).weight(igui_core::FontWeight::NORMAL))
+            .child(Text::new("Medium · 500", theme).weight(igui_core::FontWeight::MEDIUM))
+            .child(Text::new("Bold · 700", theme).weight(igui_core::FontWeight::BOLD)),
     )
 }
 

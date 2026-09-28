@@ -29,7 +29,7 @@ endif()
 
 # The Rust core + the demo_app/wgpu FFI, built as static libraries by cargo.
 set(QUILL_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../..")
-set(QUILL_FFI_LIB "${QUILL_ROOT}/target/release/librough_ffi.a")
+set(QUILL_FFI_LIB "${QUILL_ROOT}/target/release/libigui_ffi.a")
 set(DEMOAPP_FFI_LIB "${QUILL_ROOT}/target/release/libdemoapp_ffi.a")
 set(WGPU_FFI_LIB "${QUILL_ROOT}/target/release/libwgpu_ffi.a")
 
@@ -45,14 +45,14 @@ add_executable(cpp_ffi
 
 target_include_directories(cpp_ffi PRIVATE
   "${CMAKE_CURRENT_SOURCE_DIR}/src"
-  "${QUILL_ROOT}/crates/ffi/rough_ffi/include"
+  "${QUILL_ROOT}/crates/ffi/igui_ffi/include"
   "${QUILL_ROOT}/examples/demoapp_ffi/include"
   "${QUILL_ROOT}/examples/wgpu_ffi/include")
 
-add_custom_target(rough_ffi_build
-  COMMAND cargo build --release -p rough_ffi
+add_custom_target(igui_ffi_build
+  COMMAND cargo build --release -p igui_ffi
   WORKING_DIRECTORY "${QUILL_ROOT}"
-  COMMENT "cargo build -p rough_ffi --release")
+  COMMENT "cargo build -p igui_ffi --release")
 add_custom_target(demoapp_ffi_build
   COMMAND cargo build --release -p demoapp_ffi
   WORKING_DIRECTORY "${QUILL_ROOT}"
@@ -61,7 +61,7 @@ add_custom_target(wgpu_ffi_build
   COMMAND cargo build --release -p wgpu_ffi
   WORKING_DIRECTORY "${QUILL_ROOT}"
   COMMENT "cargo build -p wgpu_ffi --release")
-add_dependencies(cpp_ffi rough_ffi_build demoapp_ffi_build wgpu_ffi_build)
+add_dependencies(cpp_ffi igui_ffi_build demoapp_ffi_build wgpu_ffi_build)
 
 # Each staticlib bundles its Rust deps, so `quill_*` resolves from any of them;
 # they are all listed for clarity.

@@ -1,9 +1,9 @@
 # Design system — theme & components
 
-`rough_theme` holds the design tokens; `rough_components` builds themed components on top
-of `rough_ui`. The core drawing crates are **locked** here: the theme and
-component layers do not change `rough_core`, `rough_scene`, `rough_render` or
-`rough_ui` (see the "Locked core" section below).
+`igui_theme` holds the design tokens; `igui_components` builds themed components on top
+of `igui_ui`. The core drawing crates are **locked** here: the theme and
+component layers do not change `igui_core`, `igui_scene`, `igui_render` or
+`igui_ui` (see the "Locked core" section below).
 
 ## Philosophy
 
@@ -18,10 +18,10 @@ monochrome + thin borders + subtle surfaces + precise spacing
 Accent colors are semantic only: success, warning, error, information, selection
 and focus.
 
-## Tokens — `rough_theme`
+## Tokens — `igui_theme`
 
 ```rust
-use rough_theme::{
+use igui_theme::{
     compact_theme, default_theme, ControlSize, Mode, Space, SurfaceLevel, Theme,
 };
 
@@ -99,21 +99,21 @@ pin its icon buttons to a fixed size). A custom theme (e.g.
 `image_editor::theme::editor_theme`) is just a `Theme` impl with a different
 density.
 
-## Components — `rough_components`
+## Components — `igui_components`
 
-The crate split is deliberate: `rough_ui` is the UI runtime **and** the styling
+The crate split is deliberate: `igui_ui` is the UI runtime **and** the styling
 primitives (`SurfaceStyle`, `fill_rounded_rect`/`inset`/`surface`, `Tone`,
 `SurfaceTone`, and the `surface_decor`/`dynamic_surface_decor`/
-`foreground_decor` factories), while `rough_components` contains **only component
-builders**. Components implement `rough_components::Component`, receive a
+`foreground_decor` factories), while `igui_components` contains **only component
+builders**. Components implement `igui_components::Component`, receive a
 `&'static dyn Theme`, and attach their chrome to their own node. Hosts build one
 tree and use a single paint/input pass:
 
 ```rust
-use rough_components::{Component, Flex};
-use rough_components::{Card, Checkbox, Text};
-use rough_scene::SceneTree;
-use rough_theme::{default_theme, space, Mode, Theme, Tone};
+use igui_components::{Component, Flex};
+use igui_components::{Card, Checkbox, Text};
+use igui_scene::SceneTree;
+use igui_theme::{default_theme, space, Mode, Theme, Tone};
 
 let theme = default_theme(Mode::Dark);
 let mut tree = SceneTree::new();
@@ -124,9 +124,9 @@ tree.add_child(root, Card::new(theme).gap(space::MD)
     .child(Text::small("Changes save automatically.", theme).tone(Tone::Muted))
     .child(Checkbox::new("Verbose output", theme)));
 
-rough_ui::layout(&mut tree, viewport);
-rough_ui::paint(&tree, &mut ctx);          // surfaces + content + marks, in tree order
-rough_ui::route_input(&mut tree, &event); // dispatches component clicks
+igui_ui::layout(&mut tree, viewport);
+igui_ui::paint(&tree, &mut ctx);          // surfaces + content + marks, in tree order
+igui_ui::route_input(&mut tree, &event); // dispatches component clicks
 ```
 
 The theme is a `&'static dyn Theme` passed to constructors; nothing reads it
@@ -134,9 +134,9 @@ from the tree, so switching light/dark is just building with a different theme.
 
 ### Paint passes
 
-Themed chrome is attached to a control as a `rough_ui::NodeDecor` (built by the
-`rough_ui` decorator helpers `surface_decor` / `dynamic_surface_decor` /
-`foreground_decor`), so a single `rough_ui::paint` runs it in tree order:
+Themed chrome is attached to a control as a `igui_ui::NodeDecor` (built by the
+`igui_ui` decorator helpers `surface_decor` / `dynamic_surface_decor` /
+`foreground_decor`), so a single `igui_ui::paint` runs it in tree order:
 
 1. every decorator's `paint_behind` — rounded surfaces/borders behind content,
 2. the control's own `Widget` content,
@@ -150,10 +150,10 @@ circles into rounded surfaces without double-blending translucent fills.
 
 ### Interactions
 
-Components register clicks with `rough_components::set_on_click(tree, node, ..)` or the
+Components register clicks with `igui_components::set_on_click(tree, node, ..)` or the
 `Component::on_click` builder; a hit on any
 descendant walks up to the nearest ancestor callback. Hover/pressed/focused
-state lives in the core and `rough_ui::state_for(tree, node)` inherits it from ancestors,
+state lives in the core and `igui_ui::state_for(tree, node)` inherits it from ancestors,
 which is what decorators read each frame. Checkbox/Switch share their state
 through `Rc<Cell<bool>>`.
 
@@ -188,7 +188,7 @@ set, so the demo is itself the token-swap proof.
 | `ScrollView` | clip + offset viewport for arbitrary content with a draggable scrollbar; `ScrollViewState` (`sync`/`scroll_by`/`scroll_to`/`invalidate`), wheel + thumb drag, hidden when the content fits. |
 | `Menu` / `MenuItem` | floating menu surface + rows (label, optional right-aligned shortcut, `tone`/`destructive`, `disabled`, `on_click`); `Menu::separator`/`min_width`; place with `Overlays::menu`. |
 
-`rough_components` containers take children, so a screen is one expression:
+`igui_components` containers take children, so a screen is one expression:
 
 ```rust
 tree.add_child(tree.root(), Card::new(theme).gap(12.0)
@@ -200,17 +200,17 @@ Every `Component` supports the same modifiers as a method: `grow`, `min_size`,
 `anchors`/`offsets`, `background`/`surface`/`dynamic_background`, `foreground`,
 `on_click`, `mouse_filter`, `child`, `ref_` and `with_ref`.
 
-Extend the library by implementing `rough_components::Component` (see
+Extend the library by implementing `igui_components::Component` (see
 `docs/components.md` for the full `spec`/`widget` walkthrough).
 
 ## Overlays
 
-`rough_components::Overlays` is a generic floating layer built on its own
+`igui_components::Overlays` is a generic floating layer built on its own
 `SceneTree`. It keeps the host pipeline explicit — the host lays out its UI,
 then the layer, and paints the layer last:
 
 ```rust
-rough_ui::layout(&mut tree, viewport);
+igui_ui::layout(&mut tree, viewport);
 overlays.layout(&tree, viewport); // resolve targets after layout
 // ... paint main UI ...
 overlays.paint(&mut ctx);         // scrim + floating content on top
@@ -240,13 +240,13 @@ layout stays incremental. Button clicks, Esc and click-outside push actions that
 
 ## Locked core
 
-`rough_core`, `rough_scene`, `rough_render` and `rough_ui` are treated as a frozen
+`igui_core`, `igui_scene`, `igui_render` and `igui_ui` are treated as a frozen
 foundation for the design system. The theme and component layers only *use* their
 public APIs:
 
-- `rough_components` composes `Panel`, `Label`, `Flex` and the layout setters.
-- No new variants were added to `rough_ui::Widget`.
-- Themed surfaces are painted by `rough_components` into the backend-neutral
+- `igui_components` composes `Panel`, `Label`, `Flex` and the layout setters.
+- No new variants were added to `igui_ui::Widget`.
+- Themed surfaces are painted by `igui_components` into the backend-neutral
   `DrawList`, so every backend renders them.
 
 If a future component truly requires a core change, do it as a separate,
@@ -254,34 +254,34 @@ backward-compatible addition and record it here.
 
 ### Recorded core additions
 
-- **`rough_ui::NodeDecor` / `InteractState` + `rough_ui::add_decor`** (Stage 22):
+- **`igui_ui::NodeDecor` / `InteractState` + `igui_ui::add_decor`** (Stage 22):
   the closed `Widget` enum cannot carry themed chrome, so components attach a
-  `NodeDecor` to a node instead. `rough_ui::paint` runs `paint_behind` / content /
-  `paint_front` per node and `rough_ui::state_for` resolves inherited hover/
-  pressed/focused. `rough_components::set_on_click` now accepts any control (not
+  `NodeDecor` to a node instead. `igui_ui::paint` runs `paint_behind` / content /
+  `paint_front` per node and `igui_ui::state_for` resolves inherited hover/
+  pressed/focused. `igui_components::set_on_click` now accepts any control (not
   just `Widget::Button`) and dispatches to the nearest ancestor callback, so
-  themed component roots own their clicks. `rough_components` no longer keeps a surface /
+  themed component roots own their clicks. `igui_components` no longer keeps a surface /
   foreground / interaction registry; its decorator helpers build `NodeDecor`
   values from the theme. This is additive: existing `Widget`/`ControlData`
   shapes are unchanged.
-- **`rough_ui` owns the styling primitives** (Stage 24; the theme was later
+- **`igui_ui` owns the styling primitives** (Stage 24; the theme was later
   reverted to a constructor argument in Stage 25): `SurfaceStyle`,
   `fill_rounded_rect`/`fill_rounded_rect_corners`/`inset`/`surface`, `Tone`,
   `SurfaceTone` and the `surface_decor`/`dynamic_surface_decor`/
-  `foreground_decor` factories moved from `draw_kit` into `rough_ui`.
-  `rough_components` (renamed from `draw_kit`) contains only component builders;
+  `foreground_decor` factories moved from `draw_kit` into `igui_ui`.
+  `igui_components` (renamed from `draw_kit`) contains only component builders;
   components receive the theme as a `&'static dyn Theme`.
-- **`rough_components::NodeRef` / `Ref<C>` + `Component::ref_` / `with_ref`**
+- **`igui_components::NodeRef` / `Ref<C>` + `Component::ref_` / `with_ref`**
   (Stage 25.x): a component is a pure spec with no identity until mount, so the
   declarative chain exposes node ids through callback refs. `NodeRef` is a clone
   slot filled at mount; `Component::ref_(&slot)` and `Component::with_ref(cb)`
   wrap a component in `Ref<C>`, which implements both `Component` and
-  `rough_scene::SceneChild`, so the slot is filled identically whether mounted via
+  `igui_scene::SceneChild`, so the slot is filled identically whether mounted via
   `SceneTree::add_child(parent, c.ref_(&slot))` or `parent.child(c.ref_(&slot))`.
   This is the Godot `Node*`-from-`new()` / React `ref` equivalent; it is additive
   and does not change `Widget`/`ControlData`/`Spec` shapes.
 - **`SceneTree::from_component` / `SceneChild::into_tree`** (Stage 25.x):
-  `rough_scene` gained a top-level constructor — `SceneTree::from_component(root)`
+  `igui_scene` gained a top-level constructor — `SceneTree::from_component(root)`
   mounts a `SceneChild` under the root of a fresh tree, and `SceneChild::into_tree()`
   is the chainable sugar. `SceneTree::add_child` stays as the low-level primitive.
   `SceneChild` is now explicitly `Sized` (it already took `self` by value). A whole
@@ -289,8 +289,8 @@ backward-compatible addition and record it here.
   `ResizeHandle::target` changed from an eager `NodeId` to a deferred `NodeRef`, so
   a divider can reference its sibling pane before mount (order-independent); only
   the demo called `.target`.
-- **`rough_ui::content_size`** (driven by `examples/deepseek_balance`):
-  `rough_ui::layout` pins every UI root to the viewport, so a view always fills the
+- **`igui_ui::content_size`** (driven by `examples/deepseek_balance`):
+  `igui_ui::layout` pins every UI root to the viewport, so a view always fills the
   surface it is handed and no resolved rectangle says how much room the content
   *wanted*. A host that sizes its window to its content — the menu-bar panel in
   `examples/deepseek_balance`, via `Window::request_inner_size` — needs exactly
@@ -300,10 +300,10 @@ backward-compatible addition and record it here.
   painting, no backend, no window, and the result includes each root's own
   padding. Additive — no `Widget`/`ControlData` shape changed; the measurement
   it caches is cleared by the next `layout`. It reads the tree's UI state, so it
-  is for trees built through `rough_ui` (a built view already has that state).
+  is for trees built through `igui_ui` (a built view already has that state).
 - **Clipping + wheel routing + `ScrollCallback`** (Stage 25.14, the `List`
   component): `DrawCommand::ClipRect` existed in the IR and in all three
-  backends but `rough_ui` never emitted it, so nothing could be clipped and no
+  backends but `igui_ui` never emitted it, so nothing could be clipped and no
   scrolling control was possible. `ControlData.clip` (opt-in) is now the only
   source of a clip: layout resolves it in the same pre-order pass that writes
   the rectangles back (`ControlData.clip_rect`, intersected with the nearest
@@ -314,7 +314,7 @@ backward-compatible addition and record it here.
   nothing and emits no clip commands. `InputEvent::Wheel { position, delta }`
   was a variant nothing consumed: `handle_input` now hit-tests it and routes it
   to the nearest ancestor with a `Control::scroll_callback`
-  (`rough_components::set_on_scroll` / `Component::on_scroll`, the wheel counterpart of
+  (`igui_components::set_on_scroll` / `Component::on_scroll`, the wheel counterpart of
   `on_click`/`on_drag`), returning `Handled` only when something took it.
   Additive: no `Widget` variant added, existing `ControlData` fields unchanged.
 - **Wrapping text min-width capped by the offered width** (driven by
@@ -345,7 +345,7 @@ backward-compatible addition and record it here.
   the old output.
 - **Font weight** (Stage 25.x): text had no weight knob — `DrawCommand::DrawText`,
   `Widget::Label`/`ButtonData`, and the theme all stopped at `font_size`.
-  `rough_core::FontWeight` (now numeric, 100–900; `NORMAL`/`BOLD`/`MEDIUM`/…)
+  `igui_core::FontWeight` (now numeric, 100–900; `NORMAL`/`BOLD`/`MEDIUM`/…)
   flows through the IR, the UI and the theme. `TextOptions` gains `weight` (so
   the paint-side text cache keys on it), `TextMeasurer` gains
   `advance_weighted` / `measure_line_weighted` / `measure_run_weighted` with
@@ -354,7 +354,7 @@ backward-compatible addition and record it here.
   nothing changes visually unless a theme or component asks for bold). `Text`
   and `Button` gain `.weight(..)` / `.bold()`; `Label` gains `.weight(..)`.
   Backend-facing: `PaintContext::draw_text_weighted`, Canvas passes the numeric
-  weight into the CSS font shorthand, and `rough_font::FontServer` resolves it to
+  weight into the CSS font shorthand, and `igui_font::FontServer` resolves it to
   the nearest face (shared atlas). Additive and backward compatible: `draw_text`
   still draws `Normal`, and all existing `TextOptions` constructors default to
   `Normal`. See [`docs/font.md`](font.md).
@@ -368,7 +368,7 @@ backward-compatible addition and record it here.
   replace it, so the sizes are the theme's, not the enum's. Layout line height
   already came from `TextMeasurer::line_height` for the resolved pixel size; the
   unused `TextSize::line_height()` and `Text::size_px()` were removed. `Text` and
-  `Button` gain a test that a custom theme scales their label, and `rough_theme`
+  `Button` gain a test that a custom theme scales their label, and `igui_theme`
   tests that a theme owns its type scale.
 - **Wrapping flex containers report the stacked cross size** (driven by
   `image_editor`'s new-document preset row): `measure_flex` computed a
@@ -387,10 +387,10 @@ backward-compatible addition and record it here.
   anchored `BelowStart` (left edges aligned; right-aligns near the right edge),
   and dismissed by Escape / click-outside like a popover. Additive: the existing
   `popover`/`confirm`/`tips`/`message` entries and the `Placement` variants are
-  unchanged. `Menu`/`MenuItem` themselves are plain `rough_components` themed
+  unchanged. `Menu`/`MenuItem` themselves are plain `igui_components` themed
   components — no `Widget`/`ControlData` shape changed.
 - **`Theme.density` (`Density`)** (driven by `image_editor`'s compact theme):
-  spacing and control metrics became a token instead of hardcoded `rough_theme`
+  spacing and control metrics became a token instead of hardcoded `igui_theme`
   consts, so a custom theme can swap them without a second code path. See
   §Density above for the token list, accessors and the `compact()` swap.
 - **`ResizeHandle::invert()`** (driven by `image_editor`'s resizable
@@ -404,14 +404,14 @@ backward-compatible addition and record it here.
   (sliders, colour pickers). `Control` gains an additive
   `pointer_callback: Option<Rc<RefCell<dyn FnMut(Rect, Vec2)>>>` fired on press
   and on every move while held, with the control's rect and the absolute pointer
-  position; `rough_components` exposes it as `Component::on_pointer` /
-  `set_pointer_callback`. `rough_ui::handle_input` routes the held pointer to the
+  position; `igui_components` exposes it as `Component::on_pointer` /
+  `set_pointer_callback`. `igui_ui::handle_input` routes the held pointer to the
   pressed control after drag capture. Additive: `Widget`/`ControlData` shapes
   are unchanged and existing `on_click`/`on_drag` callbacks are untouched.
 
-- **Refresh decoupling: `rough_ui::needs_layout` / `paint_generation` /
-  `UiPaintCache` / `paint_cached`, `rough_scene::SceneTree::needs_update`,
-  `rough_render::PaintContext::extend`** (Stage 27): a host that renders only on
+- **Refresh decoupling: `igui_ui::needs_layout` / `paint_generation` /
+  `UiPaintCache` / `paint_cached`, `igui_scene::SceneTree::needs_update`,
+  `igui_render::PaintContext::extend`** (Stage 27): a host that renders only on
   change had no cheap way to tell whether the UI changed, so an unchanged UI was
   re-walked and re-emitted every frame, which is what makes UI work throttle a
   game's frame rate. The root UI state gained a monotonic `paint_generation`,
@@ -452,7 +452,7 @@ backward-compatible addition and record it here.
   rejects zero sizes or short buffers. Raw-RGBA upload for the Canvas backend is
   deferred (it takes an `HtmlImageElement` today).
 
-- **`rough_scene` fixed step: `set_physics_process` / `physics_process`** (Stage
+- **`igui_scene` fixed step: `set_physics_process` / `physics_process`** (Stage
   29.1): nodes had only one variable-step `process(dt)` lifecycle. A node may now
   also install a fixed-step `physics_process(dt)` callback
   (`set_physics_process` / `clear_physics_process` / `has_physics_process`),
@@ -472,14 +472,14 @@ backward-compatible addition and record it here.
   rendered lists (`render_target` / `target_frame_count` / `target_commands`).
   Raw offscreen support for the Canvas backend is deferred.
 
-- **Editable text: `rough_core::{Modifiers, ImeEvent}` + `rough_ui::{TextEdit, text_edit}`
+- **Editable text: `igui_core::{Modifiers, ImeEvent}` + `igui_ui::{TextEdit, text_edit}`
   + focused-input routing** (Stage: text input): text was render-only —
   `InputEvent::TextInput` existed but nothing consumed it, there was no IME or
-  modifier event, and no way to send keys to a focused control. `rough_core`
+  modifier event, and no way to send keys to a focused control. `igui_core`
   gained `Modifiers` (delivered via the new `InputEvent::ModifiersChanged`) and
   `InputEvent::Ime(ImeEvent)` (`Enabled`/`Disabled`/`Preedit{text,cursor}`/
   `Commit`); `InputState` tracks the latest modifiers and clears them on
-  `release_all`. `rough_ui::text_edit::TextEdit` is a dependency-free editing
+  `release_all`. `igui_ui::text_edit::TextEdit` is a dependency-free editing
   state machine (text + caret + selection byte offsets + preedit, char-boundary
   and word movement, up/down across logical lines). `Control` gained
   `focusable`, `key_callback`, `text_callback`, `ime_callback` and
@@ -488,7 +488,7 @@ backward-compatible addition and record it here.
   `handle_input` dispatches keys/text/IME to the focused control's nearest
   ancestor with the matching callback, and `focused_caret` / `modifiers` /
   `request_paint` expose the caret rect (for IME placement), the modifier state
-  and a paint-only invalidation. `rough_components` exposes the callbacks as
+  and a paint-only invalidation. `igui_components` exposes the callbacks as
   `Component::on_key`/`on_text`/`on_ime`/`caret_rect`/`focusable` and a `bind`
   hook (so a component can capture the tree's `TextMeasurer`). `Control` also
   gains an **additive** `pointer_tree_callback` (`Component::on_pointer_tree`),
@@ -497,27 +497,27 @@ backward-compatible addition and record it here.
   external components are unaffected. `TextInput` was reworked from a passive label into
   an interactive editor with caret, selection, password masking and IME preedit;
   `TextArea` (multi-line, wrapping, caret-following scroll) was added. Neither
-  reads `rough_theme` values except through tokens; no `Widget` variant was added.
+  reads `igui_theme` values except through tokens; no `Widget` variant was added.
   Selection and clipboard followed: the tree-aware pointer callback now carries a
   `PointerPhase` (`Down`/`Move`/`Up`/`DoubleClick`) so a field can drag-select,
-  `rough_core` gained `InputEvent::DoubleClick` (host-detected, word selection),
-  and `rough_ui` gained a `Clipboard` trait (`set_clipboard` / `clipboard`,
+  `igui_core` gained `InputEvent::DoubleClick` (host-detected, word selection),
+  and `igui_ui` gained a `Clipboard` trait (`set_clipboard` / `clipboard`,
   `MemoryClipboard`) installed by the host for copy / cut / paste. Additive except
   the brand-new `PointerTreeCallback` / `Component::on_pointer_tree` signature
   (no external users).
 
-- **`rough_app` + `rough_winit` plugins: an assembled, non-core host layer**
-  (Stage 31): the platform was one `rough_winit::Host` that bundled window,
+- **`igui_app` + `igui_winit` plugins: an assembled, non-core host layer**
+  (Stage 31): the platform was one `igui_winit::Host` that bundled window,
   surface, wgpu, input, IME, clipboard and frame clock, so the platform was not
   swappable and every host copied its own `ApplicationHandler`. Now the
-  **non-core** `rough_app` crate (no `winit` / `wgpu`) owns the runtime — `App` /
+  **non-core** `igui_app` crate (no `winit` / `wgpu`) owns the runtime — `App` /
   `AppBuilder` / `Plugin` / `AppLogic` / `ServiceMap` / `Runner` and a neutral
-  `Presenter` — and `rough_winit` provides the plugins: `WinitPlugin`,
+  `Presenter` — and `igui_winit` provides the plugins: `WinitPlugin`,
   `WgpuPlugin`, `PointerPlugin`, `KeyboardPlugin`, `ImePlugin`,
   `TextMeasurePlugin`, `ClipboardPlugin` (with `WindowConfig`, `GpuConfig`,
   `TitlebarMode` and the shared `SharedWindow` / `SharedWindowState` /
-  `SharedBackend` services; raw mappings stay in `rough_winit::input`).
-  `rough_headless` records frames for a winit-free `--selfcheck`. `Host` /
+  `SharedBackend` services; raw mappings stay in `igui_winit::input`).
+  `igui_headless` records frames for a winit-free `--selfcheck`. `Host` /
   `HostOptions` / `RenderOutcome` are removed. `examples/wgpu_demo` is the
   reference migration; the core crates never depend on any of it.
 
