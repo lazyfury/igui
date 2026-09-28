@@ -186,6 +186,27 @@ mod tests {
     }
 
     #[test]
+    fn autofocus_takes_the_keyboard_on_mount() {
+        let theme = default_theme(Mode::Dark);
+        let mut tree = SceneTree::new();
+        let input = TextInput::new(theme).min_width(200.0).autofocus(true);
+        let shared = input.shared();
+        let id = mount(&mut tree, input);
+        assert_eq!(igui_ui::focused(&tree), Some(id), "autofocus 挂载即聚焦");
+        // No click needed: the focused field owns the keyboard at once.
+        igui_ui::handle_input(&mut tree, &InputEvent::TextInput { text: "hi".into() });
+        assert_eq!(shared.borrow().text(), "hi");
+    }
+
+    #[test]
+    fn without_autofocus_nothing_is_focused() {
+        let theme = default_theme(Mode::Dark);
+        let mut tree = SceneTree::new();
+        mount(&mut tree, TextInput::new(theme).min_width(200.0));
+        assert_eq!(igui_ui::focused(&tree), None);
+    }
+
+    #[test]
     fn typing_inserts_and_backspace_deletes() {
         let theme = default_theme(Mode::Dark);
         let mut tree = SceneTree::new();

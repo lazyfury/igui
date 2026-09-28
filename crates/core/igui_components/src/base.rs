@@ -75,6 +75,8 @@ pub struct Spec {
     pub cursor_provider: Option<Box<dyn Fn() -> Cursor>>,
     /// Whether the control accepts focused key / text / IME input.
     pub focusable: bool,
+    /// Whether the control takes keyboard focus as soon as it is mounted.
+    pub focus_on_mount: bool,
     pub on_key: Option<KeyFn>,
     pub on_text: Option<TextFn>,
     pub on_ime: Option<ImeFn>,
@@ -96,6 +98,7 @@ impl Default for Spec {
             on_scroll: None,
             cursor_provider: None,
             focusable: false,
+            focus_on_mount: false,
             on_key: None,
             on_text: None,
             on_ime: None,
@@ -327,6 +330,17 @@ pub trait Component: Sized {
         self
     }
 
+    /// Takes keyboard focus as soon as the node is mounted.
+    ///
+    /// The focus is written into the mounting tree's `GuiState`, so it works for
+    /// the window tree and for an overlay's own tree alike (both mount through
+    /// [`apply_spec`]). A deeper [`autofocus`](Self::autofocus) child wins,
+    /// because focus is applied before the children are built.
+    fn autofocus(mut self, autofocus: bool) -> Self {
+        self.spec().focus_on_mount = autofocus;
+        self
+    }
+
     /// Runs `callback` when a wheel event lands on this node or one of its
     /// descendants, with the scroll delta in logical pixels.
     ///
@@ -472,6 +486,11 @@ pub fn apply_spec(tree: &mut SceneTree, id: NodeId, spec: Spec) {
     }
     if let Some(provider) = spec.caret_provider {
         igui_ui::set_caret_provider(tree, id, provider);
+    }
+    if spec.focus_on_mount {
+        // Mount-time focus (a text field opened in a dialog). Applied before the
+        // children so a deeper autofocus child wins.
+        igui_ui::gui_state_mut(tree).focused = Some(id);
     }
     for child in spec.children {
         child(tree, id);
