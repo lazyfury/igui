@@ -437,6 +437,7 @@ The suite is a contract, not a diary. Before adding or keeping a test:
 | Design tokens, theme, component library | `docs/design-system.md` |
 | Roadmap / remaining primitives & components | `docs/plan.md` |
 | Godot-style unified scene migration (Stage 25+) | `docs/godot-migration.md` |
+| Release notes: breaking changes, new capabilities, rename migration | `release.md` |
 | Profiler + debug overlays | `docs/debug.md` |
 | Benchmarks & regression baselines | `docs/benchmarking.md` |
 | Test layers, no-screenshot rule | `docs/testing.md` |

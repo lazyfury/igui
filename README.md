@@ -153,6 +153,9 @@ Two documents are the entry point; read them before scanning crates:
 - [`docs/ui-guide.md`](docs/ui-guide.md) — the practical "build an app UI" guide:
   frame loop, widgets, hosting, conventions, and an agent cheat sheet.
 
+When upgrading across releases, read [`release.md`](release.md): the breaking
+changes, the new capabilities, and the rename / ABI migration steps.
+
 Keep the workspace gate green:
 
 ```bash
