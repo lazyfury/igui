@@ -27,7 +27,6 @@ fn click(app: &mut DemoApp, position: Vec2) {
     });
 }
 
-#[test]
 /// The gallery installs a host clipboard for its text fields.
 #[test]
 fn the_demo_installs_a_host_clipboard() {
