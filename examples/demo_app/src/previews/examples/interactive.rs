@@ -9,7 +9,7 @@ use std::rc::Rc;
 
 use draw_components::{
     apply_spec, Button, Card, Checkbox, Column, Component, List, ListColumn, Menu, MenuItem,
-    NodeRef, Panel, ResizeHandle, Router, Row, ScrollView, Spec, Switch, Text,
+    NodeRef, Panel, ResizeHandle, Router, Row, ScrollView, Spec, Switch, Text, TextArea, TextInput,
 };
 use draw_core::{NodeId, Size};
 use draw_scene::{SceneChild, SceneTree};
@@ -90,6 +90,35 @@ pub(crate) fn resize(card: Card, ctx: &mut Ctx) -> Card {
                     .min_size(0.0, 120.0)
                     .grow(1.0),
             ),
+    )
+}
+
+pub(crate) fn text_input(card: Card, ctx: &mut Ctx) -> Card {
+    let theme = ctx.theme;
+    card.child(
+        Column::new()
+            .gap(space::SM)
+            .child(
+                TextInput::new(theme)
+                    .placeholder("Search…")
+                    .min_width(220.0),
+            )
+            .child(
+                TextInput::new(theme)
+                    .value("secret")
+                    .masked(true)
+                    .min_width(220.0),
+            ),
+    )
+}
+
+pub(crate) fn text_area(card: Card, ctx: &mut Ctx) -> Card {
+    let theme = ctx.theme;
+    card.child(
+        TextArea::new(theme)
+            .placeholder("Write a note…")
+            .rows(3)
+            .min_width(220.0),
     )
 }
 

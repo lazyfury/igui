@@ -5,7 +5,9 @@
 //! `_input -> world -> GUI -> _unhandled_input` order hosts run through
 //! [`route_input`].
 
-use draw_core::{Cursor, EventResult, InputEvent, Key, NodeId, PointerButton, Rect, Vec2};
+use draw_core::{
+    Cursor, EventResult, InputEvent, Key, Modifiers, NodeId, PointerButton, Rect, Vec2,
+};
 use draw_scene::SceneTree;
 
 use crate::control::{control_visible, Control, MouseFilter};
@@ -98,17 +100,25 @@ pub fn handle_input(tree: &mut SceneTree, event: &InputEvent) -> EventResult {
                 }
                 return EventResult::Handled;
             }
-            // Absolute-position pointer callback (sliders / pickers): keep
-            // feeding the control that was pressed, even outside its rect.
+            // Absolute-position pointer callback (sliders / pickers / text
+            // fields): keep feeding the control that was pressed, even outside
+            // its rect. The tree-aware variant wins when both are registered.
             if let Some(pressed) = crate::gui_state_of(tree).and_then(|state| state.pressed) {
+                let rect = tree
+                    .data::<Control>(pressed)
+                    .map(|control| control.data.rect)
+                    .unwrap_or(Rect::ZERO);
+                if let Some(callback) = tree
+                    .data::<Control>(pressed)
+                    .and_then(|control| control.pointer_tree_callback.clone())
+                {
+                    (callback.borrow_mut())(tree, rect, *position);
+                    return EventResult::Handled;
+                }
                 if let Some(callback) = tree
                     .data::<Control>(pressed)
                     .and_then(|control| control.pointer_callback.clone())
                 {
-                    let rect = tree
-                        .data::<Control>(pressed)
-                        .map(|control| control.data.rect)
-                        .unwrap_or(Rect::ZERO);
                     (callback.borrow_mut())(rect, *position);
                     return EventResult::Handled;
                 }
@@ -151,14 +161,19 @@ pub fn handle_input(tree: &mut SceneTree, event: &InputEvent) -> EventResult {
             crate::gui_state_mut(tree).focused = hit;
             if let Some(id) = hit {
                 crate::gui_state_mut(tree).pressed = Some(id);
+                let rect = tree
+                    .data::<Control>(id)
+                    .map(|control| control.data.rect)
+                    .unwrap_or(Rect::ZERO);
                 if let Some(callback) = tree
+                    .data::<Control>(id)
+                    .and_then(|control| control.pointer_tree_callback.clone())
+                {
+                    (callback.borrow_mut())(tree, rect, *position);
+                } else if let Some(callback) = tree
                     .data::<Control>(id)
                     .and_then(|control| control.pointer_callback.clone())
                 {
-                    let rect = tree
-                        .data::<Control>(id)
-                        .map(|control| control.data.rect)
-                        .unwrap_or(Rect::ZERO);
                     (callback.borrow_mut())(rect, *position);
                 }
                 if let Some(control) = tree.data_mut::<Control>(id) {
@@ -240,22 +255,76 @@ pub fn handle_input(tree: &mut SceneTree, event: &InputEvent) -> EventResult {
             (callback.borrow_mut())(*delta);
             EventResult::Handled
         }
-        InputEvent::KeyDown { key } if matches!(*key, Key::Enter | Key::Space) => {
-            let focused = crate::gui_state_of(tree).and_then(|state| state.focused);
-            match focused {
-                Some(focused)
-                    if tree
-                        .data::<Control>(focused)
-                        .is_some_and(|control| control.widget.is_button()) =>
-                {
-                    activate(tree, focused);
-                    EventResult::Handled
-                }
-                _ => EventResult::Ignored,
+        InputEvent::ModifiersChanged(modifiers) => {
+            // State update only: do not consume, so app-level handlers can
+            // still observe the change.
+            crate::gui_state_mut(tree).modifiers = *modifiers;
+            EventResult::Ignored
+        }
+        InputEvent::KeyDown { key } => {
+            // A focused text control owns the key first.
+            if let Some(callback) = focused_ancestor(tree, |control| control.key_callback.clone()) {
+                let modifiers =
+                    crate::gui_state_of(tree).map_or(Modifiers::NONE, |state| state.modifiers);
+                return (callback.borrow_mut())(tree, *key, true, modifiers);
             }
+            // Otherwise Enter/Space activate a focused button.
+            if matches!(*key, Key::Enter | Key::Space) {
+                let focused = crate::gui_state_of(tree).and_then(|state| state.focused);
+                match focused {
+                    Some(focused)
+                        if tree
+                            .data::<Control>(focused)
+                            .is_some_and(|control| control.widget.is_button()) =>
+                    {
+                        activate(tree, focused);
+                        EventResult::Handled
+                    }
+                    _ => EventResult::Ignored,
+                }
+            } else {
+                EventResult::Ignored
+            }
+        }
+        InputEvent::KeyUp { key } => {
+            if let Some(callback) = focused_ancestor(tree, |control| control.key_callback.clone()) {
+                let modifiers =
+                    crate::gui_state_of(tree).map_or(Modifiers::NONE, |state| state.modifiers);
+                return (callback.borrow_mut())(tree, *key, false, modifiers);
+            }
+            EventResult::Ignored
+        }
+        InputEvent::TextInput { text } => {
+            if let Some(callback) = focused_ancestor(tree, |control| control.text_callback.clone())
+            {
+                (callback.borrow_mut())(tree, text);
+                return EventResult::Handled;
+            }
+            EventResult::Ignored
+        }
+        InputEvent::Ime(ime) => {
+            if let Some(callback) = focused_ancestor(tree, |control| control.ime_callback.clone()) {
+                (callback.borrow_mut())(tree, ime);
+                return EventResult::Handled;
+            }
+            EventResult::Ignored
         }
         _ => EventResult::Ignored,
     }
+}
+
+/// Clones the callback closest to the focused control (walking up its
+/// ancestors, including itself). Cloning the `Rc` releases the tree borrow
+/// before the callback is invoked with `&mut SceneTree`.
+fn focused_ancestor<T>(tree: &SceneTree, pick: impl Fn(&Control) -> Option<T>) -> Option<T> {
+    let mut current = focused(tree);
+    while let Some(id) = current {
+        if let Some(found) = tree.data::<Control>(id).and_then(&pick) {
+            return Some(found);
+        }
+        current = tree.parent(id);
+    }
+    None
 }
 
 /// Runs the full routing order (`_input` -> world -> GUI -> `_unhandled_input`).
@@ -415,6 +484,32 @@ pub fn hovered_is_button(tree: &SceneTree) -> bool {
 /// The focused node, from the viewport GUI state.
 pub fn focused(tree: &SceneTree) -> Option<NodeId> {
     crate::gui_state_of(tree).and_then(|state| state.focused)
+}
+
+/// The held keyboard modifiers, tracked from
+/// [`InputEvent::ModifiersChanged`](draw_core::InputEvent::ModifiersChanged).
+pub fn modifiers(tree: &SceneTree) -> Modifiers {
+    crate::gui_state_of(tree).map_or(Modifiers::NONE, |state| state.modifiers)
+}
+
+/// The caret rectangle of the focused control, in viewport coordinates.
+///
+/// A host uses this to place the platform IME candidate window
+/// (`Window::set_ime_cursor_area`). `None` when nothing focused reports a
+/// caret.
+pub fn focused_caret(tree: &SceneTree) -> Option<Rect> {
+    let mut current = focused(tree);
+    while let Some(id) = current {
+        if let Some(control) = tree.data::<Control>(id) {
+            if let Some(provider) = &control.caret_provider {
+                if let Some(rect) = provider() {
+                    return Some(rect);
+                }
+            }
+        }
+        current = tree.parent(id);
+    }
+    None
 }
 
 /// Whether `id` or any ancestor has a click callback.

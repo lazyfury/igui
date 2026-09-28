@@ -134,6 +134,16 @@ quill         -> feature-gated re-exports only:
                            draw_scene)
                  (application facade; disabled crates are not compiled; `game`
                   does not imply `ui`, `anim` is independent of both. No logic.)
+quill_winit   -> draw_core, draw_render, draw_scene, draw_ui,
+                 draw_backend_wgpu, winit
+                 (**non-core** shared window host: window/surface/backend
+                  lifecycle, `DrawList` presentation with surface-loss
+                  recovery, platform input translation including committed
+                  text and IME, IME candidate-window placement from
+                  `draw_ui::focused_caret`, and a `FrameClock`. The
+                  application is deliberately not abstracted — each host keeps
+                  its own `ApplicationHandler`. Never a dependency of a
+                  `draw_*` core crate.)
 demo_app      -> draw_core, draw_render, draw_scene, draw_ui, draw_components,
                  draw_theme, draw_anim   (no backend; the Animation gallery page
                  drives a draw_anim tween and reports `needs_frame`)
@@ -141,7 +151,10 @@ web_demo      -> draw_core, draw_scene, demo_app, draw_wasm
 multi_tree    -> draw_core, draw_render, draw_scene, draw_ui, draw_components,
                  draw_theme, draw_backend_recording  (headless, no window host)
 wgpu_demo     -> draw_core, draw_render, draw_scene, draw_ui, demo_app,
-                 draw_backend_wgpu, draw_profile, draw_debug_ui, winit
+                 quill_winit, draw_backend_wgpu, draw_profile, draw_debug_ui,
+                 winit
+                 (the reference `quill_winit` host; the gallery now exercises
+                  `TextInput`/`TextArea`, so it also drives IME and text input)
 game_demo     -> draw_core, draw_render, draw_scene, draw_ui, draw_theme,
                  draw_components, draw_anim, draw_assets, draw_game (feature
                  `ui`), draw_backend_wgpu, draw_backend_recording, winit
@@ -192,12 +205,13 @@ scene. This does not weaken backend replaceability.
 
 Browser APIs only in `draw_backend_canvas`, `draw_wasm`, and the WASM example
 (`examples/web_demo`).
-`winit` only in the window hosts: `examples/wgpu_demo` and the standalone,
-non-member `examples/deepseek_balance` and `examples/file_browser` tools (their
-UI is built from `draw_theme` / `draw_components` / `draw_ui`; blocking work —
-the network call, the directory scan — runs on a worker thread and comes back
-through a winit `EventLoopProxy`). `wgpu` only in
-`draw_backend_wgpu` (plus its tests/bench) and those window hosts. Font parsing
+`winit` only in `quill_winit` (the shared, non-core window host layer) and the
+window hosts that use it: `examples/wgpu_demo` today, and the standalone,
+non-member `examples/deepseek_balance` and `examples/file_browser` tools once
+migrated (their UI is built from `draw_theme` / `draw_components` / `draw_ui`;
+blocking work — the network call, the directory scan — runs on a worker thread
+and comes back through a winit `EventLoopProxy`). `wgpu` only in
+`draw_backend_wgpu` (plus its tests/bench), `quill_winit`, and those window hosts. Font parsing
 (`ab_glyph`), text shaping (`rustybuzz`, `unicode-bidi`) and system-font
 discovery live only in `draw_font` (which `draw_backend_wgpu` consumes); the
 core stays text-free.
@@ -261,14 +275,20 @@ line per stage, with what each landed) is `docs/architecture.md` →
 "Implementation stages"; the Godot-style migration's phase plan and per-substage
 notes are `docs/godot-migration.md`.
 
-- **Current status:** Stage 30 (`examples/game_demo`: top-down collect game in a
-  `GameView` + HUD, window host + `--selfcheck`) accepted. Previously: Stage 29
+- **Current status:** Editable text input accepted: `draw_core::{Modifiers,
+  ImeEvent}`, `draw_ui::{TextEdit, focused-input routing, focused_caret}`,
+  interactive `TextInput` + new `TextArea`, and the non-core `quill_winit`
+  shared window host (reference migration in `examples/wgpu_demo`). Previously:
+  Stage 30 (`examples/game_demo`: top-down collect game in a `GameView` + HUD,
+  window host + `--selfcheck`) accepted; before that Stage 29
   (`GameView`/sub-viewport + fixed timestep), Stage 28 (`draw_game` 2D game
   layer), Stage 27 (refresh decoupling), Stage 26 (`draw_anim` + `quill` facade
   skeleton), Stage 25 (Godot-style unified scene), `draw_font`, `Theme` trait.
 - **Next (future stages):** Stage 31 — remaining `quill` facade backend features
   (`wgpu`/`canvas`/`wasm`/`profile`/`debug`/`recording`/`bench`). Phase 8
-  observability remains.
+  observability remains. Remaining host migrations to `quill_winit`
+  (`file_browser`, `deepseek_balance`, `game_demo`, and the sibling
+  `image_editor` / `archiver` / `classic-game-box` checkouts) are follow-ups.
 - **Current stage:** none — next up Stage 31 (`quill` facade backend features).
 
 On acceptance of a whole user task, the agent writes the durable summary into

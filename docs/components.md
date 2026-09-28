@@ -292,6 +292,78 @@ anything with a click/drag callback. The cursor *value* is backend-neutral; only
 the final application is platform code: hosts map it onto winit `CursorIcon`
 or the CSS `cursor` property (`draw_wasm::App::cursor`).
 
+## Text fields
+
+`TextInput` (single line) and `TextArea` (multi-line, wrapping) are the first
+**interactive** components: they own their text, caret, selection and IME preedit
+and capture the keyboard while focused. The caller reads (and may write) the
+live state through [`shared`]` -> Rc<RefCell<TextEdit>>`:
+
+```rust
+use draw_components::{TextArea, TextInput};
+
+let search = TextInput::new(theme).placeholder("Search…").min_width(220.0);
+let query = search.shared();
+tree.add_child(root, search);
+
+let note = TextArea::new(theme).rows(4).value("line 1\nline 2");
+let body = note.shared();
+tree.add_child(root, note);
+
+// after the host routed input:
+let text = query.borrow().text().to_string();
+```
+
+`TextEdit` (in `draw_ui::text_edit`) is a dependency-free editing state machine:
+text, caret and selection as **byte offsets on `char` boundaries**, and an IME
+preedit. It supports insert / newline / space / tab, backspace / forward delete,
+selection replacement, `select_all`, char- and word-wise movement
+(`move_left(select, word)`), home / end and up / down across logical lines, plus
+`set_preedit` / `commit_text`. The component turns those offsets into pixels with
+the tree's `TextMeasurer`, so the caret lines up exactly with the drawn glyphs.
+The measurer is resolved **per paint** from `draw_ui::text_measurer_handle`
+(captured at mount), so a host that installs real font metrics after building the
+tree still gets an aligned caret. Space and Tab arrive as `InputEvent::TextInput`
+(hosts derive their text from the named key; `quill_winit` does this for winit),
+while printable keys are consumed by the focused field so a host shortcut cannot
+also fire while typing.
+
+### Focus and routing
+
+The UI router delivers keys, committed text and IME to the **focused** control's
+nearest ancestor carrying the matching callback:
+
+- `Component::on_key(|tree, key, pressed, modifiers| -> EventResult)`;
+- `Component::on_text(|tree, &str)` (typing and IME commit);
+- `Component::on_ime(|tree, &ImeEvent)` (`Enabled` / `Disabled` /
+  `Preedit { text, cursor }` / `Commit`);
+- `Component::caret_rect(|| Option<Rect>)`, the caret rectangle for IME
+  candidate-window placement;
+- `Component::focusable(true)`.
+
+A click focuses the control under the pointer; `draw_ui::focused_caret(&tree)`
+returns the focused control's caret rect and `draw_ui::request_paint(&mut tree)`
+invalidates the paint cache after a paint-only edit. Key events are separate from
+committed text: a host emits `InputEvent::KeyDown` for named keys and
+`InputEvent::TextInput` for typed/committed characters, and
+`InputEvent::ModifiersChanged` whenever the platform modifier state changes
+(`Shift` extends the selection, `Ctrl`/`Cmd`/`Alt` moves by word, `Ctrl`/`Cmd+A`
+selects all).
+
+> **Note.** `InputEvent::KeyDown`/`KeyUp` are unchanged; the modifier state
+> now arrives through the new `InputEvent::ModifiersChanged`, and the text
+> field uses a new tree-aware `Component::on_pointer_tree` (the original
+> `on_pointer` is unchanged). `TextInput` no longer mounts a `value_ref` label —
+> read `shared()` instead.
+
+### Host wiring
+
+A native host needs three things (all provided by `quill_winit`, see
+`docs/ui-guide.md`): forward `WindowEvent::Ime` as `InputEvent::Ime`, forward
+`ModifiersChanged` and committed text, and each frame call
+`Host::sync_ime(tree)` so the IME window follows the caret. In the WASM host the
+canvas runner forwards `compositionstart/update/end` as the same events.
+
 ## Scroll & virtualized lists
 
 Two pieces make scrolling possible in the core, and `List` builds on both.

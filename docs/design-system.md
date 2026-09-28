@@ -472,6 +472,46 @@ backward-compatible addition and record it here.
   rendered lists (`render_target` / `target_frame_count` / `target_commands`).
   Raw offscreen support for the Canvas backend is deferred.
 
+- **Editable text: `draw_core::{Modifiers, ImeEvent}` + `draw_ui::{TextEdit, text_edit}`
+  + focused-input routing** (Stage: text input): text was render-only —
+  `InputEvent::TextInput` existed but nothing consumed it, there was no IME or
+  modifier event, and no way to send keys to a focused control. `draw_core`
+  gained `Modifiers` (delivered via the new `InputEvent::ModifiersChanged`) and
+  `InputEvent::Ime(ImeEvent)` (`Enabled`/`Disabled`/`Preedit{text,cursor}`/
+  `Commit`); `InputState` tracks the latest modifiers and clears them on
+  `release_all`. `draw_ui::text_edit::TextEdit` is a dependency-free editing
+  state machine (text + caret + selection byte offsets + preedit, char-boundary
+  and word movement, up/down across logical lines). `Control` gained
+  `focusable`, `key_callback`, `text_callback`, `ime_callback` and
+  `caret_provider` (setters `set_key_callback` / `set_text_callback` /
+  `set_ime_callback` / `set_caret_provider`); `GuiState` gained `modifiers`;
+  `handle_input` dispatches keys/text/IME to the focused control's nearest
+  ancestor with the matching callback, and `focused_caret` / `modifiers` /
+  `request_paint` expose the caret rect (for IME placement), the modifier state
+  and a paint-only invalidation. `draw_components` exposes the callbacks as
+  `Component::on_key`/`on_text`/`on_ime`/`caret_rect`/`focusable` and a `bind`
+  hook (so a component can capture the tree's `TextMeasurer`). `Control` also
+  gains an **additive** `pointer_tree_callback` (`Component::on_pointer_tree`),
+  the tree-aware counterpart of `pointer_callback`, so a text field can place
+  its caret and repaint; `pointer_callback` keeps its original signature, so
+  external components are unaffected. `TextInput` was reworked from a passive label into
+  an interactive editor with caret, selection, password masking and IME preedit;
+  `TextArea` (multi-line, wrapping, caret-following scroll) was added. Neither
+  reads `draw_theme` values except through tokens; no `Widget` variant was added.
+
+- **`quill_winit`: a shared, non-core winit + wgpu host layer** (Stage: text
+  input): every window host copied window / surface / backend / swap-chain
+  setup, resize and scale handling, input mapping (`map_key`, `pointer_button`,
+  the wheel sign convention), cursor mapping and the frame render. `quill_winit`
+  is a new **non-core** crate (it is explicitly allowed `winit` / `wgpu`) that
+  owns all of it: `Host` (`resumed` / `handle_resize` / `handle_scale_factor` /
+  `translate` / `render` / `apply_cursor` / `set_ime_cursor_area` / `sync_ime`),
+  `HostOptions`, `TitlebarMode`, `RenderOutcome`, `FrameClock`, and the raw
+  mappings in `quill_winit::input`. The *application* is deliberately not
+  abstracted: each host keeps its own `ApplicationHandler`, view and loop.
+  `examples/wgpu_demo` is the reference migration; the core crates never depend
+  on it.
+
 ## Deferred
 
 Rounded rectangles are now first-class `DrawCommand`s (`FillRoundedRect` /

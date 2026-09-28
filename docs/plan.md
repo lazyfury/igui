@@ -45,7 +45,7 @@ audited by `draw_profile`'s inspector, or it is not "done".
 | `Checkbox`, `Switch` | done | shared `Rc<Cell<_>>` state |
 | `Radio` / `RadioGroup` | next | same interaction layer as `Checkbox` |
 | `Tabs` | next | active indicator, keyboard focus |
-| `Input` / `TextArea` | next | placeholder, caret, selection, focus ring; needs core text editing or a component-owned editor |
+| `Input` / `TextArea` | done | interactive editors: caret, selection (char/word/line), password masking, IME preedit; `TextEdit` state in `draw_ui::text_edit`; `docs/components.md` §Text fields |
 | `Select` / `Dropdown` | next | menu surface + selected state |
 | `Tooltip` | done | `Overlays::tips`, anchored and hover-tracked |
 | `List` | done | virtualized: mounts the viewport's rows (+1 buffer) and recycles them; rows come from a `RowSource`; wheel + click + selection; `docs/components.md` |

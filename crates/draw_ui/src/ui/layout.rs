@@ -249,9 +249,11 @@ impl Ui {
                 self.measure_grid(tree, cache, id, style, &children, available)
             }
             Some(widget) => {
-                let measurer: &dyn TextMeasurer = root_state(tree)
-                    .map(|state| state.text_measurer.as_ref())
-                    .unwrap_or(&crate::control::DEFAULT_MEASURER);
+                let measurer_guard = root_state(tree).map(|state| state.text_measurer.borrow());
+                let measurer: &dyn TextMeasurer = match measurer_guard.as_ref() {
+                    Some(handle) => handle.as_ref(),
+                    None => &crate::control::DEFAULT_MEASURER,
+                };
                 widget.measure_with(available, measurer)
             }
             None => ContentSize::ZERO,

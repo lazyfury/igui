@@ -18,7 +18,9 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use draw_core::{Color, Cursor, Edges, NodeId, Rect, Size, Vec2};
+use draw_core::{
+    Color, Cursor, Edges, EventResult, ImeEvent, Key, Modifiers, NodeId, Rect, Size, Vec2,
+};
 use draw_render::PaintContext;
 use draw_scene::SceneTree;
 use draw_ui::layout::{FlexDirection, FlexStyle, GridStyle, SizeBasis, Track};
@@ -39,6 +41,18 @@ pub type ForegroundFn = Box<dyn Fn(&mut PaintContext, Rect, InteractState)>;
 /// A drag callback: the tree, the drag phase and the pointer delta.
 pub type DragFn = Box<dyn FnMut(&mut SceneTree, DragPhase, Vec2)>;
 
+/// A key callback: the tree, the key, pressed/released, and the modifiers.
+pub type KeyFn = Box<dyn FnMut(&mut SceneTree, Key, bool, Modifiers) -> EventResult>;
+
+/// A committed-text callback (typing / IME commit).
+pub type TextFn = Box<dyn FnMut(&mut SceneTree, &str)>;
+
+/// An IME composition callback.
+pub type ImeFn = Box<dyn FnMut(&mut SceneTree, &ImeEvent)>;
+
+/// A caret-rectangle provider (for platform IME window placement).
+pub type CaretFn = Box<dyn Fn() -> Option<Rect>>;
+
 /// The common node state every component carries.
 ///
 /// Layout fields mirror [`ControlData`]; the rest are the decorators, click
@@ -54,8 +68,17 @@ pub struct Spec {
     /// Absolute-position pointer callback: press + move while held, with the
     /// control's rect and the pointer position (sliders / pickers).
     pub on_pointer: Option<Box<dyn FnMut(Rect, Vec2)>>,
+    /// Tree-aware absolute-position pointer callback (text fields: place the
+    /// caret and repaint). Dispatched before [`Spec::on_pointer`].
+    pub on_pointer_tree: Option<Box<dyn FnMut(&mut SceneTree, Rect, Vec2)>>,
     pub on_scroll: Option<Box<dyn FnMut(Vec2)>>,
     pub cursor_provider: Option<Box<dyn Fn() -> Cursor>>,
+    /// Whether the control accepts focused key / text / IME input.
+    pub focusable: bool,
+    pub on_key: Option<KeyFn>,
+    pub on_text: Option<TextFn>,
+    pub on_ime: Option<ImeFn>,
+    pub caret_provider: Option<CaretFn>,
     pub children: Vec<ChildFn>,
 }
 
@@ -69,8 +92,14 @@ impl Default for Spec {
             on_secondary: None,
             on_drag: None,
             on_pointer: None,
+            on_pointer_tree: None,
             on_scroll: None,
             cursor_provider: None,
+            focusable: false,
+            on_key: None,
+            on_text: None,
+            on_ime: None,
+            caret_provider: None,
             children: Vec::new(),
         }
     }
@@ -127,6 +156,12 @@ pub trait Component: Sized {
     /// The visual widget for the primary node.
     fn widget(&self) -> Widget;
 
+    /// Runs before [`prepare`](Component::prepare) with the mounting tree, so a
+    /// component can capture tree-scoped services (e.g. the tree's
+    /// [`TextMeasurer`](draw_ui::TextMeasurer)) into the decorators and
+    /// callbacks it is about to build. The default does nothing.
+    fn bind(&mut self, _tree: &mut SceneTree) {}
+
     /// Finalizes the spec from the component's fields (surface styles, child
     /// closures) after every builder method has run.
     ///
@@ -140,6 +175,7 @@ pub trait Component: Sized {
     /// node, installs the widget and applies the spec (layout, decorators,
     /// click callback, children).
     fn build(mut self, tree: &mut SceneTree, parent: NodeId) -> NodeId {
+        self.bind(tree);
         self.prepare();
         let spec = std::mem::take(self.spec());
         let id = tree.add_control(parent, self.name());
@@ -243,6 +279,51 @@ pub trait Component: Sized {
     /// its own rectangle (sliders, colour pickers).
     fn on_pointer(mut self, callback: impl FnMut(Rect, Vec2) + 'static) -> Self {
         self.spec().on_pointer = Some(Box::new(callback));
+        self
+    }
+
+    /// Like [`on_pointer`](Component::on_pointer), but the callback also
+    /// receives the tree, so it can mark the UI for repaint after the edit
+    /// (text fields placing their caret).
+    fn on_pointer_tree(
+        mut self,
+        callback: impl FnMut(&mut SceneTree, Rect, Vec2) + 'static,
+    ) -> Self {
+        self.spec().on_pointer_tree = Some(Box::new(callback));
+        self
+    }
+
+    /// Sends keys to this component while it is focused.
+    fn on_key(
+        mut self,
+        callback: impl FnMut(&mut SceneTree, Key, bool, Modifiers) -> EventResult + 'static,
+    ) -> Self {
+        self.spec().on_key = Some(Box::new(callback));
+        self
+    }
+
+    /// Sends committed text (typing / IME commit) to this component while it is
+    /// focused.
+    fn on_text(mut self, callback: impl FnMut(&mut SceneTree, &str) + 'static) -> Self {
+        self.spec().on_text = Some(Box::new(callback));
+        self
+    }
+
+    /// Sends IME composition events to this component while it is focused.
+    fn on_ime(mut self, callback: impl FnMut(&mut SceneTree, &ImeEvent) + 'static) -> Self {
+        self.spec().on_ime = Some(Box::new(callback));
+        self
+    }
+
+    /// Reports the caret rectangle so a host can place the platform IME window.
+    fn caret_rect(mut self, provider: impl Fn() -> Option<Rect> + 'static) -> Self {
+        self.spec().caret_provider = Some(Box::new(provider));
+        self
+    }
+
+    /// Lets this component receive focused key / text / IME input.
+    fn focusable(mut self, focusable: bool) -> Self {
+        self.spec().focusable = focusable;
         self
     }
 
@@ -366,11 +447,31 @@ pub fn apply_spec(tree: &mut SceneTree, id: NodeId, spec: Spec) {
     if let Some(callback) = spec.on_pointer {
         set_pointer_callback(tree, id, callback);
     }
+    if let Some(callback) = spec.on_pointer_tree {
+        draw_ui::set_pointer_tree_callback(tree, id, callback);
+    }
     if let Some(callback) = spec.on_scroll {
         set_on_scroll(tree, id, callback);
     }
     if let Some(provider) = spec.cursor_provider {
         set_cursor_provider(tree, id, provider);
+    }
+    if spec.focusable {
+        if let Some(control) = tree.data_mut::<Control>(id) {
+            control.focusable = true;
+        }
+    }
+    if let Some(callback) = spec.on_key {
+        draw_ui::set_key_callback(tree, id, callback);
+    }
+    if let Some(callback) = spec.on_text {
+        draw_ui::set_text_callback(tree, id, callback);
+    }
+    if let Some(callback) = spec.on_ime {
+        draw_ui::set_ime_callback(tree, id, callback);
+    }
+    if let Some(provider) = spec.caret_provider {
+        draw_ui::set_caret_provider(tree, id, provider);
     }
     for child in spec.children {
         child(tree, id);

@@ -59,13 +59,14 @@ mod router;
 
 pub use base::{
     apply_spec, control_mut, set_cursor_provider, set_on_click, set_on_drag, set_on_scroll,
-    set_on_secondary, set_pointer_callback, set_text, set_text_color, update_control, ChildFn,
-    Column, Component, Flex, Grid, HBox, Label, Panel, Row, Spec, VBox,
+    set_on_secondary, set_pointer_callback, set_text, set_text_color, update_control, CaretFn,
+    ChildFn, Column, Component, Flex, Grid, HBox, ImeFn, KeyFn, Label, Panel, Row, Spec, TextFn,
+    VBox,
 };
 pub use components::{
     set_button_text, set_disabled, Badge, Button, ButtonVariant, Card, CheckState, Checkbox,
     CodeBlock, Divider, EmptyState, Icon, List, ListColumn, ListLead, ListState, Menu, MenuItem,
-    ResizeHandle, RowSource, ScrollView, ScrollViewState, Select, Switch, Terminal, Text,
+    ResizeHandle, RowSource, ScrollView, ScrollViewState, Select, Switch, Terminal, Text, TextArea,
     TextInput, MENU_MIN_WIDTH,
 };
 pub use glyph::{paint_glyph, Glyph, GLYPH_VIEWBOX};

@@ -75,6 +75,8 @@ pub(super) const EXAMPLES: &[&[ExampleFn]] = &[
         interactive::checkbox,
         interactive::switch,
         interactive::resize,
+        interactive::text_input,
+        interactive::text_area,
     ],
     // Data
     &[

@@ -45,6 +45,16 @@ impl Ui {
         Ui
     }
 
+    /// Marks the painted UI as changed without forcing a layout pass.
+    ///
+    /// Use after a control mutated paint-only state (a caret moved, a text
+    /// selection changed) so a host's cached `DrawList` is invalidated. Layout
+    /// inputs (rectangles, text that drives intrinsic size) still go through
+    /// [`mark_dirty`](Ui::mark_dirty) / [`invalidate_layout`](Ui::invalidate_layout).
+    pub fn request_paint(&self, tree: &mut SceneTree) {
+        bump_paint_generation(tree);
+    }
+
     /// Number of times the full measure/arrange pass has run.
     pub fn layout_count(&self, tree: &SceneTree) -> u64 {
         root_state(tree).map_or(0, |state| state.layout.borrow().count)
@@ -65,7 +75,7 @@ impl Ui {
     pub fn set_text_measurer(&mut self, tree: &mut SceneTree, measurer: Rc<dyn TextMeasurer>) {
         {
             let state = root_state_mut(tree);
-            state.text_measurer = measurer;
+            *state.text_measurer.borrow_mut() = measurer;
             state.layout.borrow_mut().text.clear();
         }
         self.mark_all_dirty(tree);

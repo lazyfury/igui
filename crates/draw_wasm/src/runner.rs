@@ -6,7 +6,9 @@ use wasm_bindgen::JsCast;
 use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, PointerEvent, WheelEvent, Window};
 
 use draw_backend_canvas::Canvas2dBackend;
-use draw_core::{Cursor, EventResult, InputEvent, Key, PointerButton, Size, Vec2, ViewportSize};
+use draw_core::{
+    Cursor, EventResult, InputEvent, Key, Modifiers, PointerButton, Size, Vec2, ViewportSize,
+};
 use draw_render::{PaintContext, RenderBackend};
 
 use crate::wheel::wheel_pixels;
@@ -209,9 +211,32 @@ fn attach_keyboard_listeners<A: App + 'static>(window: &Window, app: &Rc<RefCell
     let down = {
         let app = app.clone();
         Closure::<dyn FnMut(web_sys::KeyboardEvent)>::new(move |event: web_sys::KeyboardEvent| {
-            app.borrow_mut().event(&InputEvent::KeyDown {
+            let mut app = app.borrow_mut();
+            app.event(&InputEvent::ModifiersChanged(modifiers_from_event(&event)));
+            app.event(&InputEvent::KeyDown {
                 key: key_from_event(&event),
             });
+            // Browsers deliver typed text on `keydown`; a single printable
+            // character (outside a Ctrl/Cmd chord) is committed text. IME
+            // composition needs a focused DOM input, which this canvas host
+            // does not have (yet).
+            if !(event.ctrl_key() || event.meta_key()) {
+                let key_text = event.key();
+                if key_text == "Tab" {
+                    app.event(&InputEvent::TextInput { text: "\t".into() });
+                } else {
+                    let single = {
+                        let mut chars = key_text.chars();
+                        match (chars.next(), chars.next()) {
+                            (Some(ch), None) => Some(ch),
+                            _ => None,
+                        }
+                    };
+                    if single.is_some_and(|ch| !ch.is_control()) {
+                        app.event(&InputEvent::TextInput { text: key_text });
+                    }
+                }
+            }
         })
     };
     let up = {
@@ -241,6 +266,15 @@ fn wheel_position(canvas: &HtmlCanvasElement, event: &WheelEvent) -> Vec2 {
     let x = event.client_x() as f64 - rect.left();
     let y = event.client_y() as f64 - rect.top();
     Vec2::new(x as f32, y as f32)
+}
+
+fn modifiers_from_event(event: &web_sys::KeyboardEvent) -> Modifiers {
+    Modifiers {
+        shift: event.shift_key(),
+        ctrl: event.ctrl_key(),
+        alt: event.alt_key(),
+        meta: event.meta_key(),
+    }
 }
 
 fn pointer_button(button: i16) -> PointerButton {

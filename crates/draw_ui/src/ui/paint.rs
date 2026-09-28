@@ -17,9 +17,11 @@ impl Ui {
         let mut cache_ref = root.map(|state| state.layout.borrow_mut());
         let cache: &mut crate::control::LayoutCache =
             cache_ref.as_deref_mut().unwrap_or(&mut fallback);
-        let measurer: &dyn TextMeasurer = root
-            .map(|state| state.text_measurer.as_ref())
-            .unwrap_or(&crate::control::DEFAULT_MEASURER);
+        let measurer_guard = root.map(|state| state.text_measurer.borrow());
+        let measurer: &dyn TextMeasurer = match measurer_guard.as_ref() {
+            Some(handle) => handle.as_ref(),
+            None => &crate::control::DEFAULT_MEASURER,
+        };
         // Every control draws under the clip its layout resolved. Emitting that
         // clip at the boundaries of a region (rather than once per control)
         // keeps a scrolling list at one `Save`/`ClipRect` pair for all of its

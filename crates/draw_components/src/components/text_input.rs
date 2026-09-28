@@ -1,29 +1,38 @@
-//! Themed text fields.
+//! Themed single-line text fields.
 //!
-//! The stack has no global focus / text-routing yet, so a [`TextInput`] renders
-//! the field and shows a value the caller owns: mount the [`NodeRef`] passed to
-//! [`TextInput::value_ref`] and write the buffer with
-//! [`set_text`](draw_ui::set_text) each frame. Keyboard capture stays with the
-//! caller — the same model the host's password prompt already uses. With
-//! [`masked`](TextInput::masked) the field shows one dot per character, and an
-//! empty value falls back to the placeholder.
+//! [`TextInput`] is an interactive editor, not a passive label: it owns a
+//! [`TextEdit`] (text, caret, selection, IME preedit), captures the keyboard
+//! while focused, and draws its own caret and selection. The caller shares the
+//! state with [`TextInput::shared`] to read the value, or sets the initial
+//! value with [`TextInput::value`].
+//!
+//! ```ignore
+//! let field = TextInput::new(theme).placeholder("Search");
+//! let value = field.shared();
+//! tree.add_child(root, field);
+//! // after routing input: value.borrow().text()
+//! ```
 
-use crate::base::{Component, Label, Spec};
-use crate::NodeRef;
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use draw_core::Edges;
-use draw_theme::{radius, ControlSize, SurfaceLevel, TextSize, Theme, Tone};
-use draw_ui::{Align, Justify, SurfaceStyle, TextOptions, Widget};
+use draw_theme::{radius, ControlSize, SurfaceLevel, Theme};
+use draw_ui::{Align, FlexStyle, Justify, SurfaceStyle, TextEdit, TextMeasurer, Widget};
 
-/// A compact single-line text field.
+use crate::base::{Component, Spec};
+use crate::components::text_field::{self, FieldState};
+
+/// A compact, editable single-line text field.
 pub struct TextInput {
     spec: Spec,
     theme: &'static dyn Theme,
-    value: String,
+    field: FieldState,
     placeholder: String,
     masked: bool,
     size: ControlSize,
     min_width: f32,
-    value_ref: Option<NodeRef>,
+    measurer: Option<Rc<RefCell<Rc<dyn TextMeasurer>>>>,
 }
 
 impl TextInput {
@@ -31,26 +40,25 @@ impl TextInput {
         Self {
             spec: Spec::leaf(),
             theme,
-            value: String::new(),
+            field: FieldState::new("", false),
             placeholder: String::new(),
             masked: false,
             size: theme.default_control(),
             min_width: 0.0,
-            value_ref: None,
+            measurer: None,
         }
     }
 
-    /// The initial value (update it later through [`value_ref`](Self::value_ref)).
-    pub fn value(mut self, value: impl Into<String>) -> Self {
-        self.value = value.into();
+    /// The initial value.
+    pub fn value(self, value: impl Into<String>) -> Self {
+        self.field.edit.borrow_mut().set_text(value);
         self
     }
 
-    /// Mounts the field's text node into `slot`, so the caller can rewrite the
-    /// shown value each frame.
-    pub fn value_ref(mut self, slot: &NodeRef) -> Self {
-        self.value_ref = Some(slot.clone());
-        self
+    /// Shares the field's live state with the caller (read `text()` after
+    /// routing input; write through it to change the value).
+    pub fn shared(&self) -> Rc<RefCell<TextEdit>> {
+        self.field.edit.clone()
     }
 
     /// Text shown, muted, while the value is empty.
@@ -71,7 +79,7 @@ impl TextInput {
         self
     }
 
-    /// Forces the regular control height (overriding the theme default).
+    /// Overrides the theme's default control size.
     pub fn size(mut self, size: ControlSize) -> Self {
         self.size = size;
         self
@@ -89,12 +97,18 @@ impl Component for TextInput {
 
     fn widget(&self) -> Widget {
         Widget::Flex(
-            draw_ui::FlexStyle::row()
+            FlexStyle::row()
                 .align(Align::Center)
                 .justify(Justify::Start)
                 .gap(0.0)
-                .padding(Edges::symmetric(self.theme.control_padding_x(), 0.0)),
+                .padding(Edges::ZERO),
         )
+    }
+
+    fn bind(&mut self, tree: &mut draw_scene::SceneTree) {
+        if self.measurer.is_none() {
+            self.measurer = Some(draw_ui::text_measurer_handle(tree));
+        }
     }
 
     fn prepare(&mut self) {
@@ -105,30 +119,25 @@ impl Component for TextInput {
         if self.min_width > 0.0 {
             self.spec.data.min_size.width = self.min_width;
         }
-
         self.spec.background = Some(Box::new(move |_| {
             let palette = theme.palette();
             SurfaceStyle::new(theme.surface(SurfaceLevel::Base))
                 .border(palette.border)
                 .radius(radius::SM)
         }));
-
-        let empty = self.value.is_empty();
-        let (text, tone) = if empty && !self.placeholder.is_empty() {
-            (self.placeholder.clone(), Tone::Muted)
-        } else if self.masked {
-            ("•".repeat(self.value.chars().count()), Tone::Default)
-        } else {
-            (self.value.clone(), Tone::Default)
-        };
-        let label = Label::new(text)
-            .font_size(theme.font_size(TextSize::Small))
-            .color(tone.color(theme))
-            .text_options(TextOptions::no_wrap());
-        match self.value_ref.clone() {
-            Some(slot) => self.spec.child(label.ref_(&slot)),
-            None => self.spec.child(label),
-        }
+        let measurer = self
+            .measurer
+            .clone()
+            .unwrap_or_else(|| Rc::new(RefCell::new(Rc::new(draw_ui::ApproxTextMeasurer))));
+        text_field::wire(
+            &mut self.spec,
+            theme,
+            measurer,
+            self.field.clone(),
+            self.masked,
+            false,
+            self.placeholder.clone(),
+        );
     }
 }
 
@@ -137,11 +146,11 @@ crate::impl_scene_child!(TextInput);
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{set_text, Flex};
-    use draw_core::{Size, ViewportSize};
+    use crate::Flex;
+    use draw_core::{Edges, ImeEvent, InputEvent, Key, Modifiers, Size, ViewportSize};
     use draw_scene::SceneTree;
     use draw_theme::{default_theme, Mode};
-    use draw_ui::{Control, MouseFilter, Widget};
+    use draw_ui::{MouseFilter, Widget};
 
     fn mount(tree: &mut SceneTree, input: TextInput) -> draw_core::NodeId {
         let page = tree.add_child(
@@ -155,49 +164,114 @@ mod tests {
         tree.children(page).unwrap()[0]
     }
 
-    /// The text of the field's label child.
-    fn label_text(tree: &SceneTree, input: draw_core::NodeId) -> String {
-        let child = tree.children(input).unwrap()[0];
-        node_text(tree, child)
-    }
-
-    fn node_text(tree: &SceneTree, id: draw_core::NodeId) -> String {
-        match tree.data::<Control>(id).map(|c| &c.widget) {
-            Some(Widget::Label { text, .. }) => text.clone(),
-            _ => panic!("not a label"),
-        }
-    }
-
-    #[test]
-    fn a_masked_field_hides_the_characters() {
-        let theme = default_theme(Mode::Dark);
-        let mut tree = SceneTree::new();
-        let id = mount(
-            &mut tree,
-            TextInput::new(theme).value("hunter2").masked(true),
+    /// Lays out and clicks the field so it has focus.
+    fn focus(tree: &mut SceneTree, id: draw_core::NodeId) {
+        draw_ui::layout(tree, ViewportSize::new(Size::new(400.0, 300.0)));
+        let center = tree
+            .data::<draw_ui::Control>(id)
+            .unwrap()
+            .data
+            .rect
+            .center();
+        draw_ui::handle_input(
+            tree,
+            &InputEvent::PointerDown {
+                position: center,
+                button: draw_core::PointerButton::Left,
+            },
         );
-        draw_ui::layout(&mut tree, ViewportSize::new(Size::new(400.0, 300.0)));
-        assert_eq!(label_text(&tree, id), "•••••••");
     }
 
     #[test]
-    fn an_empty_field_shows_its_placeholder() {
+    fn typing_inserts_and_backspace_deletes() {
         let theme = default_theme(Mode::Dark);
         let mut tree = SceneTree::new();
-        let id = mount(&mut tree, TextInput::new(theme).placeholder("密码"));
-        draw_ui::layout(&mut tree, ViewportSize::new(Size::new(400.0, 300.0)));
-        assert_eq!(label_text(&tree, id), "密码");
+        let input = TextInput::new(theme).min_width(200.0);
+        let shared = input.shared();
+        let id = mount(&mut tree, input);
+        focus(&mut tree, id);
+        draw_ui::handle_input(&mut tree, &InputEvent::TextInput { text: "hi".into() });
+        assert_eq!(shared.borrow().text(), "hi");
+        draw_ui::handle_input(
+            &mut tree,
+            &InputEvent::KeyDown {
+                key: Key::Backspace,
+            },
+        );
+        assert_eq!(shared.borrow().text(), "h");
     }
 
     #[test]
-    fn the_value_ref_receives_the_text_node() {
+    fn space_and_tab_are_inserted() {
         let theme = default_theme(Mode::Dark);
-        let slot = NodeRef::default();
         let mut tree = SceneTree::new();
-        mount(&mut tree, TextInput::new(theme).value_ref(&slot));
-        draw_ui::layout(&mut tree, ViewportSize::new(Size::new(400.0, 300.0)));
-        let label = slot.get().expect("value node mounted");
-        set_text(&mut tree, label, "typed");
-        assert_eq!(node_text(&tree, label), "typed");
+        let input = TextInput::new(theme).min_width(200.0);
+        let shared = input.shared();
+        let id = mount(&mut tree, input);
+        focus(&mut tree, id);
+        // Hosts derive Space/Tab text from the named key; the field inserts it.
+        draw_ui::handle_input(&mut tree, &InputEvent::TextInput { text: " ".into() });
+        draw_ui::handle_input(&mut tree, &InputEvent::TextInput { text: "\t".into() });
+        assert_eq!(shared.borrow().text(), " \t");
+    }
+
+    #[test]
+    fn ime_preedit_is_transient_until_committed() {
+        let theme = default_theme(Mode::Dark);
+        let mut tree = SceneTree::new();
+        let input = TextInput::new(theme).min_width(200.0);
+        let shared = input.shared();
+        let id = mount(&mut tree, input);
+        focus(&mut tree, id);
+        draw_ui::handle_input(
+            &mut tree,
+            &InputEvent::Ime(ImeEvent::Preedit {
+                text: "ni".into(),
+                cursor: None,
+            }),
+        );
+        assert_eq!(shared.borrow().text(), "");
+        assert!(shared.borrow().has_preedit());
+        draw_ui::handle_input(&mut tree, &InputEvent::Ime(ImeEvent::Commit("你".into())));
+        assert_eq!(shared.borrow().text(), "你");
+        assert!(!shared.borrow().has_preedit());
+    }
+
+    #[test]
+    fn shift_arrow_extends_a_selection() {
+        let theme = default_theme(Mode::Dark);
+        let mut tree = SceneTree::new();
+        let input = TextInput::new(theme).value("abc").min_width(200.0);
+        let shared = input.shared();
+        let id = mount(&mut tree, input);
+        focus(&mut tree, id);
+        draw_ui::handle_input(&mut tree, &InputEvent::ModifiersChanged(Modifiers::SHIFT));
+        draw_ui::handle_input(
+            &mut tree,
+            &InputEvent::KeyDown {
+                key: Key::ArrowLeft,
+            },
+        );
+        assert_eq!(shared.borrow().selection(), Some((2, 3)));
+    }
+
+    #[test]
+    fn a_masked_field_keeps_the_real_text() {
+        let theme = default_theme(Mode::Dark);
+        let input = TextInput::new(theme).value("hunter2").masked(true);
+        assert_eq!(input.shared().borrow().text(), "hunter2");
+    }
+
+    /// The field is a leaf control with a caret provider, not a label.
+    #[test]
+    fn the_field_is_interactive() {
+        let theme = default_theme(Mode::Dark);
+        let mut tree = SceneTree::new();
+        let id = mount(&mut tree, TextInput::new(theme));
+        let control = tree.data::<draw_ui::Control>(id).unwrap();
+        assert!(control.focusable);
+        assert!(control.caret_provider.is_some());
+        assert!(control.key_callback.is_some());
+        assert!(matches!(control.widget, Widget::Flex(_)));
     }
 }

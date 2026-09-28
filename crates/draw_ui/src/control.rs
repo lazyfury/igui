@@ -2,7 +2,9 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use draw_core::{Cursor, Edges, NodeId, Rect, Size, Vec2, ViewportSize};
+use draw_core::{
+    Cursor, Edges, EventResult, ImeEvent, Key, Modifiers, NodeId, Rect, Size, Vec2, ViewportSize,
+};
 use draw_scene::SceneTree;
 
 use crate::decor::DecorRef;
@@ -140,6 +142,15 @@ pub type DragCallback = Rc<RefCell<dyn FnMut(&mut SceneTree, DragPhase, Vec2)>>;
 /// pointer onto its own rectangle. Fires on press and on every move while held.
 pub type PointerCallback = Rc<RefCell<dyn FnMut(Rect, Vec2)>>;
 
+/// Like [`PointerCallback`] but receives the owning tree, so the control can
+/// mark itself for repaint ([`draw_ui::request_paint`](crate::request_paint))
+/// after the pointer edit (a text field placing its caret).
+///
+/// Additive: [`Control::pointer_callback`] keeps its original signature, so
+/// existing components are unaffected. The router dispatches this one first
+/// when a control registered both.
+pub type PointerTreeCallback = Rc<RefCell<dyn FnMut(&mut SceneTree, Rect, Vec2)>>;
+
 /// A callback invoked on a secondary (right) click, with the pointer position in
 /// viewport coordinates — enough to anchor a context menu at the cursor.
 pub type SecondaryCallback = Rc<RefCell<dyn FnMut(Vec2)>>;
@@ -155,6 +166,27 @@ pub type CursorProvider = Rc<dyn Fn() -> Cursor>;
 /// The nearest ancestor carrying one owns the event: a list scrolls its own
 /// rows and stops there, and a wheel over anything else stays `Ignored`.
 pub type ScrollCallback = Rc<RefCell<dyn FnMut(Vec2)>>;
+
+/// A key callback for a focused text control: the owning tree, the key,
+/// whether it was pressed (`true`) or released (`false`), and the held
+/// modifiers. Returns whether the control consumed the event.
+///
+/// The UI router walks up from the focused control to the nearest ancestor
+/// carrying one, so a field root owns the keys even when a child label was
+/// clicked.
+pub type KeyCallback = Rc<RefCell<dyn FnMut(&mut SceneTree, Key, bool, Modifiers) -> EventResult>>;
+
+/// A committed-text callback (keyboard typing or an IME commit): the owning
+/// tree and the text to insert.
+pub type TextCallback = Rc<RefCell<dyn FnMut(&mut SceneTree, &str)>>;
+
+/// An IME composition callback: the owning tree and the platform event.
+pub type ImeCallback = Rc<RefCell<dyn FnMut(&mut SceneTree, &ImeEvent)>>;
+
+/// Reports where a focused control's caret currently is, in viewport
+/// coordinates, so a host can place the platform IME candidate window
+/// (`set_ime_cursor_area`). `None` when the control has no visible caret.
+pub type CaretProvider = Rc<dyn Fn() -> Option<Rect>>;
 
 /// Resolves the clip rectangle a control draws its subtree under.
 ///
@@ -186,6 +218,8 @@ pub struct Control {
     pub drag_callback: Option<DragCallback>,
     /// Absolute-position pointer callback (press + move while held).
     pub pointer_callback: Option<PointerCallback>,
+    /// Absolute-position pointer callback that also receives the tree.
+    pub pointer_tree_callback: Option<PointerTreeCallback>,
     /// Secondary (right) click callback: the pointer position, so a caller can
     /// open a context menu at the cursor.
     pub secondary_callback: Option<SecondaryCallback>,
@@ -194,6 +228,20 @@ pub struct Control {
     /// Dynamic cursor, resolved each frame while hovered; overrides
     /// [`ControlData::cursor`] when it returns a non-default value.
     pub cursor_provider: Option<CursorProvider>,
+    /// Whether this control (or a descendant) receives committed text and IME
+    /// events when focused. Purely informational for hosts; routing only needs
+    /// the callbacks below.
+    pub focusable: bool,
+    /// Key callback, dispatched while this control is focused (or is an
+    /// ancestor of the focused control).
+    pub key_callback: Option<KeyCallback>,
+    /// Committed-text callback, dispatched to the focused control's nearest
+    /// ancestor carrying one.
+    pub text_callback: Option<TextCallback>,
+    /// IME composition callback, dispatched like [`Control::text_callback`].
+    pub ime_callback: Option<ImeCallback>,
+    /// Caret rectangle provider for platform IME candidate-window placement.
+    pub caret_provider: Option<CaretProvider>,
     /// Themed chrome attached by components (surfaces, foregrounds).
     pub decorations: Vec<DecorRef>,
     /// Set when this control's layout inputs changed; cleared as it is arranged.
@@ -208,9 +256,15 @@ impl Control {
             callback: None,
             drag_callback: None,
             pointer_callback: None,
+            pointer_tree_callback: None,
             secondary_callback: None,
             scroll_callback: None,
             cursor_provider: None,
+            focusable: false,
+            key_callback: None,
+            text_callback: None,
+            ime_callback: None,
+            caret_provider: None,
             decorations: Vec::new(),
             layout_dirty: true,
         }
@@ -230,6 +284,10 @@ pub struct GuiState {
     pub dragging: Option<draw_core::NodeId>,
     /// Last pointer position observed while dragging (logical pixels).
     pub drag_last: Vec2,
+    /// Held keyboard modifiers, kept here so the router can consult them while
+    /// dispatching clicks and keys (the host owns the authoritative
+    /// `draw_core::InputState`).
+    pub modifiers: Modifiers,
 }
 
 /// Reads the UI runtime bundle from a node's extension slot.
@@ -294,7 +352,10 @@ pub(crate) struct LayoutCache {
 /// single owner of UI state. The theme is not stored here: it is a plain value
 /// passed to component builders by the application.
 pub(crate) struct UiRootState {
-    pub(crate) text_measurer: Rc<dyn TextMeasurer>,
+    /// The current measurer, behind a shared handle so a component that captured
+    /// it at mount sees a later [`set_text_measurer`](crate::set_text_measurer)
+    /// (the host installs the real font metrics *after* the tree is built).
+    pub(crate) text_measurer: Rc<RefCell<Rc<dyn TextMeasurer>>>,
     pub(crate) gui: GuiState,
     pub(crate) layout: RefCell<LayoutCache>,
     /// Bumped on every change that can alter the painted UI. Hosts compare it
@@ -306,7 +367,7 @@ pub(crate) struct UiRootState {
 impl Default for UiRootState {
     fn default() -> Self {
         Self {
-            text_measurer: Rc::new(ApproxTextMeasurer),
+            text_measurer: Rc::new(RefCell::new(Rc::new(ApproxTextMeasurer))),
             gui: GuiState::default(),
             layout: RefCell::new(LayoutCache::default()),
             paint_generation: 0,
@@ -352,9 +413,118 @@ pub(crate) fn bump_paint_generation(tree: &mut SceneTree) {
     state.paint_generation = state.paint_generation.wrapping_add(1);
 }
 
+/// Registers a key callback on `id` (see [`KeyCallback`]).
+pub fn set_key_callback<F>(tree: &mut SceneTree, id: NodeId, callback: F) -> bool
+where
+    F: FnMut(&mut SceneTree, Key, bool, Modifiers) -> EventResult + 'static,
+{
+    match control_mut(tree, id) {
+        Some(control) => {
+            control.key_callback = Some(Rc::new(RefCell::new(callback)));
+            true
+        }
+        None => false,
+    }
+}
+
+/// Registers a committed-text callback on `id` (see [`TextCallback`]).
+pub fn set_text_callback<F>(tree: &mut SceneTree, id: NodeId, callback: F) -> bool
+where
+    F: FnMut(&mut SceneTree, &str) + 'static,
+{
+    match control_mut(tree, id) {
+        Some(control) => {
+            control.text_callback = Some(Rc::new(RefCell::new(callback)));
+            true
+        }
+        None => false,
+    }
+}
+
+/// Registers an IME callback on `id` (see [`ImeCallback`]).
+pub fn set_ime_callback<F>(tree: &mut SceneTree, id: NodeId, callback: F) -> bool
+where
+    F: FnMut(&mut SceneTree, &ImeEvent) + 'static,
+{
+    match control_mut(tree, id) {
+        Some(control) => {
+            control.ime_callback = Some(Rc::new(RefCell::new(callback)));
+            true
+        }
+        None => false,
+    }
+}
+
+/// Registers a tree-aware pointer callback on `id` (see
+/// [`PointerTreeCallback`]).
+pub fn set_pointer_tree_callback<F>(tree: &mut SceneTree, id: NodeId, callback: F) -> bool
+where
+    F: FnMut(&mut SceneTree, Rect, Vec2) + 'static,
+{
+    match control_mut(tree, id) {
+        Some(control) => {
+            control.pointer_tree_callback = Some(Rc::new(RefCell::new(callback)));
+            true
+        }
+        None => false,
+    }
+}
+
+/// Registers a caret-rectangle provider on `id` (see [`CaretProvider`]).
+pub fn set_caret_provider<F>(tree: &mut SceneTree, id: NodeId, provider: F) -> bool
+where
+    F: Fn() -> Option<Rect> + 'static,
+{
+    match control_mut(tree, id) {
+        Some(control) => {
+            control.caret_provider = Some(Rc::new(provider));
+            true
+        }
+        None => false,
+    }
+}
+
+/// The tree's text measurer (the real one once a host installed it, the
+/// approximate default otherwise).
+pub fn text_measurer(tree: &SceneTree) -> Rc<dyn TextMeasurer> {
+    root_state(tree)
+        .map(|state| state.text_measurer.borrow().clone())
+        .unwrap_or_else(|| Rc::new(ApproxTextMeasurer))
+}
+
+/// The tree's measurer as a stable shared handle.
+///
+/// A component captures this at mount and resolves `borrow().clone()` when it
+/// paints, so a host that installs the real font metrics after the tree was
+/// built (the usual order) still gets correct caret geometry.
+///
+/// Creates the root UI state on first use.
+pub fn text_measurer_handle(tree: &mut SceneTree) -> Rc<RefCell<Rc<dyn TextMeasurer>>> {
+    root_state_mut(tree).text_measurer.clone()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A component that captured the measurer at mount must see a host's later
+    /// `set_text_measurer` (the real font metrics are installed after the tree
+    /// is built), otherwise a text caret measures with the approximate default
+    /// while the glyphs are drawn with the real font.
+    #[test]
+    fn the_measurer_handle_sees_later_updates() {
+        let mut tree = SceneTree::new();
+        let handle = text_measurer_handle(&mut tree);
+        let before = handle.borrow().clone();
+        let custom: Rc<dyn TextMeasurer> = Rc::new(crate::FixedWidthTextMeasurer {
+            advance_ratio: 0.5,
+            ..Default::default()
+        });
+        crate::set_text_measurer(&mut tree, custom.clone());
+        let after = handle.borrow().clone();
+        assert!(Rc::ptr_eq(&after, &custom));
+        assert!(!Rc::ptr_eq(&before, &after));
+    }
 
     #[test]
     fn fill_parent_resolves_to_parent() {

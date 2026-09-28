@@ -34,21 +34,25 @@ mod decor;
 mod input;
 pub mod layout;
 mod paint;
+pub mod text_edit;
 mod ui;
 mod widget;
 
 pub use cache::{paint_cached, PaintStatus, UiPaintCache};
 pub use control::{
-    ClickCallback, Control, ControlData, CursorProvider, DragCallback, DragPhase, GuiState,
-    MouseFilter, PointerCallback, ScrollCallback, SecondaryCallback,
+    set_caret_provider, set_ime_callback, set_key_callback, set_pointer_tree_callback,
+    set_text_callback, text_measurer, text_measurer_handle, CaretProvider, ClickCallback, Control,
+    ControlData, CursorProvider, DragCallback, DragPhase, GuiState, ImeCallback, KeyCallback,
+    MouseFilter, PointerCallback, PointerTreeCallback, ScrollCallback, SecondaryCallback,
+    TextCallback,
 };
 pub use debug::DebugDrawOptions;
 pub use decor::{
     dynamic_surface_decor, foreground_decor, surface_decor, DecorRef, InteractState, NodeDecor,
 };
 pub use input::{
-    focused, handle_input, hit_test, hovered, hovered_cursor, hovered_is_button, is_interactive,
-    route_input,
+    focused, focused_caret, handle_input, hit_test, hovered, hovered_cursor, hovered_is_button,
+    is_interactive, modifiers, route_input,
 };
 pub use layout::{
     Align, AlignContent, ApproxTextMeasurer, ContentSize, FixedWidthTextMeasurer, FlexDirection,
@@ -56,6 +60,7 @@ pub use layout::{
     TextOptions, Track, WordBreak,
 };
 pub use paint::{fill_rounded_rect, fill_rounded_rect_corners, inset, surface, SurfaceStyle};
+pub use text_edit::{Preedit, TextEdit};
 pub use widget::{estimate_text_size, BoxLayout, ButtonData, ButtonState, Widget};
 
 use std::rc::Rc;
@@ -77,6 +82,15 @@ pub fn set_text_measurer(tree: &mut SceneTree, measurer: Rc<dyn TextMeasurer>) {
 /// Forces the next [`layout()`] call to recompute the whole tree.
 pub fn invalidate_layout(tree: &mut SceneTree) {
     Ui.invalidate_layout(tree)
+}
+
+/// Marks the painted UI as changed without forcing a layout pass.
+///
+/// A component that mutated paint-only state (a caret, a selection) calls this
+/// so a host's cached `DrawList` is invalidated. Use [`mark_dirty`] instead when
+/// rectangles or intrinsic sizes may have changed.
+pub fn request_paint(tree: &mut SceneTree) {
+    Ui.request_paint(tree)
 }
 
 /// Number of times the full measure/arrange pass has run.

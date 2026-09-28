@@ -10,6 +10,63 @@ pub enum PointerButton {
     Middle,
 }
 
+/// Keyboard modifier state, delivered alongside key events.
+///
+/// Modifiers are not part of [`Key`] (a key is the logical key, not the
+/// chord); a host reports them with [`InputEvent::ModifiersChanged`] and the
+/// UI layer queries [`InputState::modifiers`] while handling a later event.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct Modifiers {
+    pub shift: bool,
+    pub ctrl: bool,
+    pub alt: bool,
+    pub meta: bool,
+}
+
+impl Modifiers {
+    /// No modifier held.
+    pub const NONE: Modifiers = Modifiers {
+        shift: false,
+        ctrl: false,
+        alt: false,
+        meta: false,
+    };
+    /// Shift held (selection, text selection extension).
+    pub const SHIFT: Modifiers = Modifiers {
+        shift: true,
+        ctrl: false,
+        alt: false,
+        meta: false,
+    };
+
+    /// Whether every modifier is released.
+    pub fn is_empty(self) -> bool {
+        !self.shift && !self.ctrl && !self.alt && !self.meta
+    }
+}
+
+/// An input-method editor (IME) event.
+///
+/// These are the backend-neutral form of the platform composition events: a
+/// host forwards `compositionstart/update/end` (web) or `WindowEvent::Ime`
+/// (winit) as [`InputEvent::Ime`]. The UI layer routes them to the focused
+/// control, which owns its preedit buffer.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ImeEvent {
+    /// The IME became active (a composition may follow).
+    Enabled,
+    /// The IME went away; any preedit should be discarded.
+    Disabled,
+    /// In-progress composition text and an optional cursor selection range
+    /// within it, as `(start, end)` **byte** offsets.
+    Preedit {
+        text: String,
+        cursor: Option<(usize, usize)>,
+    },
+    /// Committed text: the preedit is replaced by this text.
+    Commit(String),
+}
+
 /// A minimal keyboard key model (no full keymap / text shaping in MVP).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Key {
@@ -77,6 +134,12 @@ pub enum InputEvent {
     TextInput {
         text: String,
     },
+    /// The keyboard modifier state changed. Hosts emit this whenever the
+    /// platform reports a modifier change; the UI layer stores it so later key
+    /// and pointer events can consult [`InputState::modifiers`].
+    ModifiersChanged(Modifiers),
+    /// An input-method (IME) composition event.
+    Ime(ImeEvent),
 }
 
 impl InputEvent {
@@ -116,6 +179,7 @@ pub struct InputState {
     pointer: Vec2,
     buttons: HashSet<PointerButton>,
     keys: HashSet<Key>,
+    modifiers: Modifiers,
 }
 
 impl InputState {
@@ -136,10 +200,17 @@ impl InputState {
         self.keys.contains(&key)
     }
 
+    /// The held keyboard modifiers (updated by
+    /// [`InputEvent::ModifiersChanged`]).
+    pub fn modifiers(&self) -> Modifiers {
+        self.modifiers
+    }
+
     /// Clears all held state (e.g. when the window loses focus).
     pub fn release_all(&mut self) {
         self.buttons.clear();
         self.keys.clear();
+        self.modifiers = Modifiers::NONE;
     }
 
     /// Updates the held state from an event. Call before routing the event, so
@@ -163,7 +234,10 @@ impl InputState {
             InputEvent::KeyUp { key } => {
                 self.keys.remove(key);
             }
-            InputEvent::PointerLeave | InputEvent::TextInput { .. } => {}
+            InputEvent::ModifiersChanged(modifiers) => {
+                self.modifiers = *modifiers;
+            }
+            InputEvent::PointerLeave | InputEvent::TextInput { .. } | InputEvent::Ime(_) => {}
         }
     }
 }
@@ -249,5 +323,33 @@ mod tests {
                 assert_ne!(key, other);
             }
         }
+    }
+
+    #[test]
+    fn modifiers_track_the_latest_change() {
+        let mut state = InputState::new();
+        assert!(state.modifiers().is_empty());
+        state.apply(&InputEvent::ModifiersChanged(Modifiers::SHIFT));
+        assert!(state.modifiers().shift);
+        state.apply(&InputEvent::ModifiersChanged(Modifiers::NONE));
+        assert!(state.modifiers().is_empty());
+        // Losing focus releases the modifiers too.
+        state.apply(&InputEvent::ModifiersChanged(Modifiers::SHIFT));
+        state.release_all();
+        assert!(state.modifiers().is_empty());
+    }
+
+    #[test]
+    fn ime_events_do_not_disturb_held_state() {
+        let mut state = InputState::new();
+        state.apply(&InputEvent::KeyDown {
+            key: Key::Character('n'),
+        });
+        state.apply(&InputEvent::Ime(ImeEvent::Preedit {
+            text: "ni".into(),
+            cursor: None,
+        }));
+        state.apply(&InputEvent::Ime(ImeEvent::Commit("你".into())));
+        assert!(state.is_key_down(Key::Character('n')));
     }
 }

@@ -213,6 +213,16 @@ pub const ITEMS: &[&[Item]] = &[
             blurb: "Drag to resize a target pane.",
             snippet: "ResizeHandle::vertical(theme).target(pane)",
         },
+        Item {
+            name: "TextInput",
+            blurb: "Editable single-line field with caret and IME.",
+            snippet: "TextInput::new(theme).placeholder(\"Search\")",
+        },
+        Item {
+            name: "TextArea",
+            blurb: "Multi-line editor with wrapping and scrolling.",
+            snippet: "TextArea::new(theme).rows(3)",
+        },
     ],
     // Data
     &[

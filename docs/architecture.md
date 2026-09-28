@@ -177,6 +177,17 @@ logical size plus the world -> screen `canvas_transform`.)
   drives the same pipeline headlessly through `draw_backend_recording`. Render
   targets share the texture id space, so their ids are kept disjoint from uploaded
   textures (the wgpu backend rejects a collision).
+- Editable text input + shared host [done]: `draw_core` gained `Modifiers`
+  (`InputEvent::ModifiersChanged`) and `InputEvent::Ime(ImeEvent)`; `draw_ui`
+  gained the dependency-free `TextEdit` state machine, focused key/text/IME
+  routing via `Control` callbacks, `focused_caret` / `modifiers` /
+  `request_paint`; `draw_components::TextInput` became an interactive editor and
+  `TextArea` was added. The non-core `quill_winit` crate now owns the shared
+  `winit` + `wgpu` window/surface/backend lifecycle, input translation (including
+  IME), `DrawList` presentation and IME candidate-window placement;
+  `examples/wgpu_demo` is the reference migration and the gallery exercises both
+  fields. Backends needed no new `DrawCommand`. See `docs/components.md` §Text
+  fields and `docs/design-system.md` §Recorded core additions.
 
 ## Debugging & performance inspection
 

@@ -96,7 +96,12 @@ Input and interaction:
   Views handle their own shortcuts first (e.g. `R`/`Esc`) and return
   `EventResult::Handled`.
 - `InputEvent::{PointerDown, PointerUp, PointerMove, PointerLeave, Wheel,
-  KeyDown, KeyUp, TextInput}` (`draw_core`). Hosts map platform events to these.
+  KeyDown, KeyUp, TextInput, ModifiersChanged, Ime}` (`draw_core`). Hosts map
+  platform events to these. `TextInput` is committed text, `Ime(ImeEvent)` is an
+  input-method composition, and `ModifiersChanged(Modifiers)` carries the held
+  Shift/Ctrl/Alt/Cmd state that a later key or click consults. For an editable
+  field, `docs/components.md` §Text fields describes the `on_key`/`on_text`/
+  `on_ime` callbacks and `draw_ui::focused_caret`.
 - Cursor: `draw_ui::hovered_cursor(&tree) -> Cursor`; map it in the host
   (`deepseek_balance/src/host.rs`). Per-control provider: `.dynamic_cursor(..)`.
 - Drag/resize: `.on_drag(..)` with `DragPhase::{Start, Move, End}` plus delta.
@@ -138,7 +143,17 @@ if let Some(id) = title.get() {
 
 ## 6. Hosting (winit + wgpu)
 
-`examples/wgpu_demo` is the canonical host (`src/app.rs`). Checklist:
+The platform plumbing is now shared in the **non-core** `quill_winit` crate:
+`Host` (window / surface / backend / swap-chain, `render(&DrawList)` with
+surface-loss recovery, `handle_resize` / `handle_scale_factor`,
+`translate(&WindowEvent) -> Vec<InputEvent>` including `ModifiersChanged`,
+committed text and IME, `apply_cursor`, `set_ime_cursor_area` / `sync_ime`) plus
+`HostOptions`, `TitlebarMode`, `FrameClock` and the raw mappings in
+`quill_winit::input` (`map_key`, `pointer_button`, `wheel_pixels`, `modifiers`).
+The *application* stays per-host. `examples/wgpu_demo` is the reference
+migration (`src/app.rs`).
+
+What a host still writes (checklist; steps 2–5 and 9–10 are `Host`'s job):
 
 1. Create the `EventLoop`, set `ControlFlow::Wait` (repaint only on change).
 2. In `ApplicationHandler::resumed`, create the `Window`.

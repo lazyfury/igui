@@ -10,6 +10,8 @@ mod scroll;
 mod select;
 mod surfaces;
 mod text;
+mod text_area;
+mod text_field;
 mod text_input;
 
 pub use button::{set_button_text, set_disabled, Button, ButtonVariant};
@@ -22,4 +24,5 @@ pub use scroll::{ScrollView, ScrollViewState};
 pub use select::Select;
 pub use surfaces::{Badge, Card, CodeBlock, Divider, EmptyState, Terminal};
 pub use text::Text;
+pub use text_area::TextArea;
 pub use text_input::TextInput;

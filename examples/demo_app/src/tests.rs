@@ -3,7 +3,7 @@
 use crate::*;
 use draw_backend_recording::RecordingBackend;
 use draw_core::{Color, PointerButton};
-use draw_render::{DrawCommand, RenderBackend};
+use draw_render::{DrawCommand, PaintContext, RenderBackend};
 
 fn laid_out() -> DemoApp {
     let viewport = ViewportSize::new(Size::new(1200.0, 760.0));
@@ -22,6 +22,49 @@ fn click(app: &mut DemoApp, position: Vec2) {
         position,
         button: PointerButton::Left,
     });
+}
+
+#[test]
+/// The gallery's live text fields are interactive end to end: a click focuses
+/// one and a typed character reaches its committed text (and the `DrawList`).
+#[test]
+fn a_gallery_text_field_accepts_typed_input() {
+    let mut app = laid_out();
+    let controls = catalog::GROUPS
+        .iter()
+        .position(|group| group.name == "Controls")
+        .expect("Controls group");
+    app.show_group(controls);
+    app.update(app.viewport(), 0.016);
+    app.layout(app.viewport());
+
+    // The first field with a text callback is the unmasked `TextInput` card.
+    let field = app
+        .tree()
+        .iter()
+        .find(|id| {
+            app.tree()
+                .data::<draw_ui::Control>(*id)
+                .is_some_and(|control| control.text_callback.is_some())
+        })
+        .expect("a text field is mounted");
+    let center = draw_ui::control(app.tree(), field)
+        .expect("field laid out")
+        .rect
+        .center();
+    click(&mut app, center);
+    app.event(&InputEvent::TextInput { text: "hi".into() });
+
+    let mut ctx = PaintContext::new();
+    app.paint(&mut ctx);
+    let list = ctx.into_draw_list();
+    assert!(
+        list.iter().any(|command| matches!(
+            command,
+            DrawCommand::DrawText { text, .. } if text == "hi"
+        )),
+        "the typed text is painted"
+    );
 }
 
 #[test]
