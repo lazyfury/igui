@@ -227,7 +227,7 @@ offscreen render + readback path. Both bench crates sit beside the pipeline
 ## Backend replaceability
 
 Same `Scene` + `UI` + `DrawList` must run on any backend without changing
-Scene/UI code. Backend-specific code lives only in `cobbled_backend_*`,
+Scene/UI code. Backend-specific code lives only in `igui_backend_*`,
 `igui_wasm`, and the examples.
 
 Validated by three independent renderers consuming the same IR:

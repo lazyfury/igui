@@ -593,9 +593,7 @@ impl Overlays {
                 .map(|control| control.rect.size)
                 .unwrap_or(Size::ZERO);
             let anchor = match entry.anchor {
-                Anchor::Target(id) => {
-                    igui_ui::control(host_tree, id).map(|control| control.rect)
-                }
+                Anchor::Target(id) => igui_ui::control(host_tree, id).map(|control| control.rect),
                 Anchor::Point(point) => Some(Rect::from_min_size(point, Size::ZERO)),
                 Anchor::ViewportSize => None,
             };
@@ -685,8 +683,7 @@ impl Overlays {
         let consumed = match pointer {
             Some(position) => {
                 modal
-                    || (igui_ui::hit_test(&self.tree, position).is_some()
-                        && ui_result.is_handled())
+                    || (igui_ui::hit_test(&self.tree, position).is_some() && ui_result.is_handled())
             }
             None => modal || ui_result.is_handled(),
         };

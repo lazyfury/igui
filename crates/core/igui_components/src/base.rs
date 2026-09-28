@@ -70,8 +70,7 @@ pub struct Spec {
     pub on_pointer: Option<Box<dyn FnMut(Rect, Vec2)>>,
     /// Tree-aware absolute-position pointer callback (text fields: place the
     /// caret and repaint). Dispatched before [`Spec::on_pointer`].
-    pub on_pointer_tree:
-        Option<Box<dyn FnMut(&mut SceneTree, igui_ui::PointerPhase, Rect, Vec2)>>,
+    pub on_pointer_tree: Option<Box<dyn FnMut(&mut SceneTree, igui_ui::PointerPhase, Rect, Vec2)>>,
     pub on_scroll: Option<Box<dyn FnMut(Vec2)>>,
     pub cursor_provider: Option<Box<dyn Fn() -> Cursor>>,
     /// Whether the control accepts focused key / text / IME input.

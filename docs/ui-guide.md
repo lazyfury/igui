@@ -8,8 +8,8 @@ the conventions the demos follow. It is derived from `examples/demo_app`,
   [agent cheat sheet](#10-agent-cheat-sheet--where-to-look).
 - **Reference by API name?** `docs/components.md` (widgets, layout, input,
   extension) and `docs/design-system.md` (tokens, themed components).
-- There is **no `quill` facade crate yet** (planned, Stage 25 Phase 9): depend on
-  the individual `cobbled_*` crates.
+- The **`quill` facade** (`quill/`) re-exports the individual `igui_*` crates
+  behind opt-in features (names are not flattened: import from `igui_*`).
 
 ## 1. The frame loop
 
@@ -262,6 +262,6 @@ Read this section before scanning the repo; then open only the file you need.
 - The five calls that answer most questions: `into_tree`, `layout`, `paint`,
   `route_input`, `set_text` — plus `theme.palette()`/`theme.surface(..)` for
   colours.
-- Don't: invent a `quill::{Button, ..}` import (no facade), hard-code hex, store
-  app state in the tree, read/write the tree from inside a callback without a
-  shared cell, or call `tree.add_child` for static layout.
+- Don't: invent a `quill::{Button, ..}` import (names are not flattened),
+  hard-code hex, store app state in the tree, read/write the tree from inside a
+  callback without a shared cell, or call `tree.add_child` for static layout.

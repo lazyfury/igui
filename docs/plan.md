@@ -91,7 +91,7 @@ themed library. Remaining polish, in priority order:
 3. **Keys + reconciliation** — if a host rebuilds a subtree per frame, add a
    reconciler that diffs by type/key, reusing the existing dirty tracking /
    partial relayout.
-4. **`view!` macro (optional sugar)** — a `cobbled_macros` proc-macro expanding to
+4. **`view!` macro (optional sugar)** — an `igui_macros` proc-macro expanding to
    the builder calls, e.g. `view! { Card(gap = 12.0) { Text("Hi") } }`.
 5. **Runtime mutation helpers** — keep `update_control` / `set_text` /
    `set_on_click` for hosts that animate one node; construction stays

@@ -1013,9 +1013,7 @@ mod tests {
             "the first mounted row overhangs the viewport: {row_rect:?}"
         );
         assert_eq!(
-            igui_ui::control(&fixture.tree, top_row)
-                .unwrap()
-                .clip_rect,
+            igui_ui::control(&fixture.tree, top_row).unwrap().clip_rect,
             Some(container),
             "and it is clipped to the container, not to itself"
         );

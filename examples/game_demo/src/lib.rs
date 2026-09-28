@@ -216,11 +216,7 @@ impl Game {
         }
 
         if let Some(label) = self.score_label {
-            igui_components::set_text(
-                &mut self.ui,
-                label,
-                format!("Score: {}", self.score.get()),
-            );
+            igui_components::set_text(&mut self.ui, label, format!("Score: {}", self.score.get()));
         }
         Ok(())
     }

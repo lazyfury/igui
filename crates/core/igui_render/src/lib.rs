@@ -23,8 +23,8 @@ mod target;
 mod texture;
 
 pub use backend::RenderBackend;
-pub use igui_core::FontWeight;
 pub use command::{CornerRadii, DrawCommand, Paint, TextAlign};
+pub use igui_core::FontWeight;
 pub use list::{DrawList, PaintContext};
 pub use target::RenderTargetId;
 pub use texture::TextureId;

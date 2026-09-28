@@ -98,7 +98,7 @@ mod tests {
     /// A unique scratch directory for one test.
     fn scratch(label: &str) -> PathBuf {
         let unique = format!(
-            "draw_svg_{label}_{}_{}",
+            "igui_svg_{label}_{}_{}",
             std::process::id(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)

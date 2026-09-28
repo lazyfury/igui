@@ -4,9 +4,7 @@ use std::fmt;
 use web_sys::{CanvasRenderingContext2d, HtmlImageElement};
 
 use igui_core::{Color, FontWeight, Transform2D, ViewportSize};
-use igui_render::{
-    CornerRadii, DrawCommand, DrawList, Paint, RenderBackend, TextAlign, TextureId,
-};
+use igui_render::{CornerRadii, DrawCommand, DrawList, Paint, RenderBackend, TextAlign, TextureId};
 
 /// The Canvas font spec used for `DrawText` at `font_size` logical pixels and
 /// `weight`.

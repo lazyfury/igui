@@ -23,11 +23,11 @@
 //! [`demoapp_new`] and be released with [`demoapp_free`]. The list returned by
 //! [`demoapp_paint`] is freed with `quill_draw_list_free` from `igui_ffi`.
 
+use demo_app::DemoApp;
 use igui_core::{Size, ViewportSize};
 use igui_ffi::{wrap_draw_list, QuillDrawList};
 use igui_render::PaintContext;
 use igui_theme::Mode;
-use demo_app::DemoApp;
 
 /// An opaque, Rust-owned `DemoApp` plus the viewport the host last set.
 pub struct DemoAppHandle {

@@ -552,7 +552,7 @@ igui_core ──┬─ igui_render ──┬─ igui_scene ── igui_ui ──
             │                │                          └─ igui_debug_ui
             ├─ igui_theme ───┘
             ├─ igui_profile
-            └─ cobbled_backend_{canvas,recording,wgpu}
+            └─ igui_backend_{canvas,recording,wgpu}
 
 igui_game -> igui_scene (+ optional igui_ui)   [Phase 6]
 quill     -> re-exports, feature-gated                    [Phase 9]

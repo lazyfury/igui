@@ -4,11 +4,11 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Instant;
 
+use game_demo::Game;
 use igui_backend_wgpu::{wgpu, FontConfig, FontMetrics, FontMode, WgpuBackend};
 use igui_core::{FontWeight, InputEvent, Key, Size, ViewportSize};
 use igui_render::{PaintContext, RenderBackend};
 use igui_ui::TextMeasurer;
-use game_demo::Game;
 use winit::application::ApplicationHandler;
 use winit::dpi::LogicalSize;
 use winit::event::{ElementState, WindowEvent};

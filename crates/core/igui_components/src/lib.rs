@@ -178,21 +178,12 @@ mod tests {
     #[test]
     fn flex_grow_distributes_leftover() {
         let (mut tree, root) = host();
-        let row = tree.add_child(
-            root,
-            Flex::row().gap(0.0).padding(igui_core::Edges::ZERO),
-        );
+        let row = tree.add_child(root, Flex::row().gap(0.0).padding(igui_core::Edges::ZERO));
         let a = tree.add_child(row, Panel::new().basis(SizeBasis::Px(100.0)).shrink(0.0));
         let b = tree.add_child(row, Panel::new().basis(SizeBasis::Px(100.0)).grow(1.0));
         igui_ui::layout(&mut tree, viewport(300.0, 100.0));
-        assert_eq!(
-            igui_ui::control(&tree, a).unwrap().rect.size.width,
-            100.0
-        );
-        assert_eq!(
-            igui_ui::control(&tree, b).unwrap().rect.size.width,
-            200.0
-        );
+        assert_eq!(igui_ui::control(&tree, a).unwrap().rect.size.width, 100.0);
+        assert_eq!(igui_ui::control(&tree, b).unwrap().rect.size.width, 200.0);
     }
 
     #[test]

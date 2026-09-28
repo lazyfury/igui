@@ -68,10 +68,10 @@ Input -> SceneTree -> Update -> Layout -> Paint -> DrawList -> RenderBackend -> 
 ## Dependency direction
 
 ```
-igui_core            (no cobbled_* deps)
-igui_theme   -> igui_core
+igui_core        (no igui_* deps)
+igui_theme    -> igui_core
 igui_scene    -> igui_core, igui_render
-igui_ui         -> igui_core, igui_scene, igui_render
+igui_ui       -> igui_core, igui_scene, igui_render
 igui_components -> igui_core, igui_scene, igui_render, igui_ui, igui_theme
 igui_render   -> igui_core
 igui_ffi      -> igui_core, igui_render
@@ -108,9 +108,9 @@ igui_assets   -> igui_core
                   dependency.)
 igui_profile  -> igui_core, igui_render
 igui_debug_ui -> igui_core, igui_scene, igui_render, igui_ui, igui_components, igui_profile
-cobbled_backend_* -> igui_render, igui_core
+igui_backend_* -> igui_render, igui_core
 igui_wasm     -> igui_render, igui_backend_canvas, igui_core, igui_ui
-igui_bench    (std only, no cobbled_* deps)
+igui_bench       (std only, no igui_* deps)
 igui_bench_suite -> igui_bench, igui_core, igui_render, igui_scene, igui_ui, igui_components
 igui_anim     -> igui_core, igui_scene
                  (backend-neutral, time-driven tweens/easing; drives node
@@ -137,13 +137,13 @@ quill         -> feature-gated re-exports only:
                            `app`)
                  (application facade; disabled crates are not compiled; `game`
                   does not imply `ui`, `anim` is independent of both. No logic.)
-igui_app     -> igui_core, igui_render
+igui_app      -> igui_core, igui_render
                  (**non-core** plugin runtime: `App` / `AppBuilder` /
                   `Plugin` / `AppLogic` / `ServiceMap` / `Runner`, a neutral
                   `Presenter` and ordered input/paint layers. No `winit` /
                   `wgpu` / DOM — a platform plugin installs a `Runner` and a
                   `Presenter`.)
-igui_winit   -> igui_app, igui_core, igui_render, igui_ui,
+igui_winit    -> igui_app, igui_core, igui_render, igui_ui,
                  igui_backend_wgpu, winit
                  (**non-core** platform plugins for `igui_app`:
                   `WinitPlugin` (event loop + window), `WgpuPlugin`
@@ -151,13 +151,13 @@ igui_winit   -> igui_app, igui_core, igui_render, igui_ui,
                   `KeyboardPlugin` / `ImePlugin` (native → `InputEvent`),
                   `TextMeasurePlugin`, `ClipboardPlugin`; raw mappings stay in
                   `igui_winit::input`. Replaces the old `Host`. Never a
-                  dependency of a `cobbled_*` core crate.)
+                  dependency of a `igui_*` core crate.)
 igui_headless -> igui_app, igui_backend_recording
                  (**non-core** recording `Presenter` for a winit-free
                   `--selfcheck`; no `winit`.)
 demo_app      -> igui_core, igui_render, igui_scene, igui_ui, igui_components,
                  igui_theme, igui_anim   (no backend; the Animation gallery page
-                 drives a igui_anim tween and reports `needs_frame`)
+                 drives an igui_anim tween and reports `needs_frame`)
 web_demo      -> igui_core, igui_scene, demo_app, igui_wasm
 multi_tree    -> igui_core, igui_render, igui_scene, igui_ui, igui_components,
                  igui_theme, igui_backend_recording  (headless, no window host)
@@ -180,7 +180,7 @@ deepseek_balance -> igui_core, igui_render, igui_scene, igui_theme, igui_ui,
                  time + currency helpers, std-only)
                  (standalone tool: own workspace, NOT a workspace member,
                   so it stays out of `cargo check --workspace`)
-file_browser   -> igui_core, igui_render, igui_scene, igui_theme, igui_ui,
+file_browser  -> igui_core, igui_render, igui_scene, igui_theme, igui_ui,
                  igui_components, igui_backend_wgpu, igui_backend_recording,
                  igui_profile, winit
                  (standalone demo: own workspace, NOT a workspace member;
@@ -210,7 +210,7 @@ Planned (future stages, see `docs/godot-migration.md`):
 Crates are grouped by role under `crates/`: `core/` (backend-neutral),
 `platform/<backend>/` (concrete backends), `ffi/`, `debug/`, `bench/`,
 `window/` (window hosts) and `app/` (runtimes). Internal crates carry the
-**`cobbled_` prefix**; the public **facade is `quill`** (`quill/` at the repo
+**`igui_` prefix**; the public **facade is `quill`** (`quill/` at the repo
 root). `examples/` keep their own names and are not grouped.
 
 The core crates stay fine-grained on purpose; applications use the `quill`
@@ -336,6 +336,9 @@ Then emit the report and stop for approval.
 
 ## Recurring decisions (do not undo)
 
+- Naming is settled: internal crates carry the `igui_` prefix (directory basename
+  == package name); the public facade is `quill` (`quill/`). Do not rename the
+  prefix again. The C ABI keeps the `quill_*` symbol prefix (`quill.h`).
 - Stage 8: the second backend is `igui_backend_recording`. A native macOS Core
   Graphics backend + `macos_demo` was implemented and **removed by request**; do
   not reintroduce it without an explicit ask. (Background: `docs/architecture.md`.)
