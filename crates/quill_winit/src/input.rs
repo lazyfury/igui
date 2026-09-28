@@ -7,10 +7,11 @@
 
 use std::time::{Duration, Instant};
 
-use draw_core::{Key, Modifiers, PointerButton, Vec2};
+use draw_core::{Cursor, Key, Modifiers, PointerButton, Vec2};
 use winit::dpi::PhysicalPosition;
 use winit::event::{MouseButton, MouseScrollDelta};
 use winit::keyboard::{Key as WinitKey, ModifiersState, NamedKey};
+use winit::window::CursorIcon;
 
 /// One wheel notch scrolls this many logical pixels (about three text lines).
 pub const WHEEL_LINE_HEIGHT: f32 = 48.0;
@@ -141,6 +142,19 @@ pub fn committed_text(logical_key: &WinitKey, text: Option<&str>) -> Option<Stri
 pub fn to_logical(position: PhysicalPosition<f64>, scale: f64) -> Vec2 {
     let scale = if scale > 0.0 { scale as f32 } else { 1.0 };
     Vec2::new(position.x as f32 / scale, position.y as f32 / scale)
+}
+
+/// Maps a core [`Cursor`] to the platform cursor icon.
+pub fn cursor_icon(cursor: Cursor) -> CursorIcon {
+    match cursor {
+        Cursor::Default => CursorIcon::Default,
+        Cursor::Pointer => CursorIcon::Pointer,
+        Cursor::Text => CursorIcon::Text,
+        Cursor::ColResize => CursorIcon::ColResize,
+        Cursor::RowResize => CursorIcon::RowResize,
+        Cursor::Grab => CursorIcon::Grab,
+        Cursor::Grabbing => CursorIcon::Grabbing,
+    }
 }
 
 #[cfg(test)]

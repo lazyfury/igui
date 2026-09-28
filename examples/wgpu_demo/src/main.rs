@@ -36,6 +36,13 @@ fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     match cli::parse(args) {
         Ok(cli::Command::Run(options)) => app::run(options),
+        Ok(cli::Command::SelfCheck) => match app::selfcheck() {
+            Ok(()) => {}
+            Err(message) => {
+                eprintln!("wgpu_demo selfcheck failed: {message}");
+                std::process::exit(1);
+            }
+        },
         Ok(cli::Command::Help) => print!("{}", cli::HELP),
         Ok(cli::Command::Version) => println!("wgpu_demo {}", env!("CARGO_PKG_VERSION")),
         Err(message) => {

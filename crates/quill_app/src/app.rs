@@ -29,7 +29,7 @@ use draw_render::PaintContext;
 
 use crate::logic::{AppLogic, EventContext, FrameContext, InitContext};
 use crate::platform::{
-    InputLayer, LifecycleObserver, PaintLayer, PlatformContext, PlatformEvent, PlatformObserver,
+    FrameObserver, InputLayer, LifecycleObserver, PaintLayer, PlatformEvent, PlatformObserver,
     Presenter, Runner,
 };
 use crate::plugin::Plugin;
@@ -100,6 +100,7 @@ pub struct AppBuilder {
     lifecycle_observers: Vec<Box<dyn LifecycleObserver>>,
     input_layers: Vec<Box<dyn InputLayer>>,
     paint_layers: Vec<Box<dyn PaintLayer>>,
+    frame_observers: Vec<Box<dyn FrameObserver>>,
 }
 
 impl AppBuilder {
@@ -115,6 +116,7 @@ impl AppBuilder {
             lifecycle_observers: Vec::new(),
             input_layers: Vec::new(),
             paint_layers: Vec::new(),
+            frame_observers: Vec::new(),
         }
     }
 
@@ -149,6 +151,7 @@ impl AppBuilder {
             lifecycle_observers: self.lifecycle_observers,
             input_layers: self.input_layers,
             paint_layers: self.paint_layers,
+            frame_observers: self.frame_observers,
             clock,
         }
     }
@@ -211,6 +214,11 @@ impl AppBuilder {
         self.paint_layers.push(Box::new(layer));
         self
     }
+
+    pub fn add_frame_observer(&mut self, observer: impl FrameObserver) -> &mut Self {
+        self.frame_observers.push(Box::new(observer));
+        self
+    }
 }
 
 /// The application runtime: services, logic, layers, presenter and the frame
@@ -225,6 +233,7 @@ pub struct App {
     lifecycle_observers: Vec<Box<dyn LifecycleObserver>>,
     input_layers: Vec<Box<dyn InputLayer>>,
     paint_layers: Vec<Box<dyn PaintLayer>>,
+    frame_observers: Vec<Box<dyn FrameObserver>>,
     clock: FrameClock,
 }
 
@@ -306,11 +315,14 @@ impl App {
         }
     }
 
-    /// Advances the platform, creates any windows, then initializes the app.
-    pub fn resumed(&mut self, mut context: PlatformContext<'_>) {
+    /// Advances the platform and initializes the app.
+    ///
+    /// A platform runner has already published anything it created (e.g. an
+    /// `Arc<Window>`) into [`services`](App::services) before calling this.
+    pub fn resumed(&mut self) {
         let mut observers = std::mem::take(&mut self.lifecycle_observers);
         for observer in &mut observers {
-            observer.resumed(context.reborrow(), self);
+            observer.resumed(self);
         }
         self.lifecycle_observers = observers;
 
@@ -386,5 +398,11 @@ impl App {
         if let Some(presenter) = self.presenter.as_mut() {
             let _ = presenter.present(&list);
         }
+
+        let mut observers = std::mem::take(&mut self.frame_observers);
+        for observer in &mut observers {
+            observer.after_frame(self, &list);
+        }
+        self.frame_observers = observers;
     }
 }

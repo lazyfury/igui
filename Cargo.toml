@@ -23,6 +23,7 @@ members = [
     "crates/draw_game",
     "crates/quill_winit",
     "crates/quill_app",
+    "crates/quill_headless",
     "quill",
     "examples/web_demo",
     "examples/demo_app",
@@ -63,6 +64,7 @@ draw_assets = { path = "crates/draw_assets" }
 draw_game = { path = "crates/draw_game" }
 quill_winit = { path = "crates/quill_winit" }
 quill_app = { path = "crates/quill_app" }
+quill_headless = { path = "crates/quill_headless" }
 demo_app = { path = "examples/demo_app" }
 
 [profile.release]

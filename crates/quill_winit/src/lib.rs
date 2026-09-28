@@ -1,29 +1,62 @@
-//! Shared `winit` + `wgpu` window hosting for quill applications.
+//! Shared `winit` + `wgpu` platform plugins for the `quill_app` runtime.
 //!
 //! This is **not** a core crate: it depends on `winit` and the `wgpu` backend,
-//! and it never belongs in a backend-neutral layer. It exists so the window
-//! hosts (`examples/wgpu_demo`, `examples/file_browser`,
-//! `examples/game_demo`, the standalone `deepseek_balance`, and the sibling
-//! `image_editor` / `archiver` / `classic-game-box` checkouts) stop copying the
-//! same platform code:
+//! and it never belongs in a backend-neutral layer. It provides the platform
+//! plugins that used to be one monolithic `Host`:
 //!
-//! - [`Host`] owns window / surface / backend / swap-chain lifecycle and
-//!   presents a `DrawList`, with surface-loss recovery;
-//! - [`Host::translate`] maps platform events to backend-neutral
-//!   [`InputEvent`](draw_core::InputEvent)s, including committed text and IME
-//!   composition;
-//! - [`Host::sync_ime`] places the IME candidate window at the focused control's
-//!   caret (from `draw_ui::focused_caret`);
-//! - [`input`] exposes the raw mappings for a host that keeps its own loop;
-//! - [`FrameClock`] provides the capped frame delta.
+//! - [`WinitPlugin`] — event loop, window creation and lifecycle (no `wgpu`);
+//! - [`WgpuPlugin`] — surface, backend, swap chain and a
+//!   [`Presenter`](quill_app::Presenter);
+//! - [`PointerPlugin`] / [`KeyboardPlugin`] / [`ImePlugin`] — native event →
+//!   backend-neutral [`InputEvent`](draw_core::InputEvent) translation;
+//! - [`TextMeasurePlugin`] — the backend's font metrics as a
+//!   [`TextMeasurer`](draw_ui::TextMeasurer);
+//! - [`ClipboardPlugin`] — the system clipboard.
 //!
-//! The *application* is intentionally not abstracted: each host keeps its own
-//! `ApplicationHandler`, view model and draw loop. See [`Host`] for a full
-//! example skeleton.
+//! Minimal assembly:
+//!
+//! ```no_run
+//! # use quill_winit::{WinitPlugin, WgpuPlugin, PointerPlugin, KeyboardPlugin};
+//! # use quill_winit::{ImePlugin, TextMeasurePlugin, ClipboardPlugin, WindowConfig};
+//! # struct MyApp;
+//! # impl quill_app::AppLogic for MyApp {}
+//! quill_app::App::new(quill_app::AppConfig::default())
+//!     .plugin(WinitPlugin::new(WindowConfig { ime: true, ..Default::default() }))
+//!     .plugin(WgpuPlugin::default())
+//!     .plugin(PointerPlugin)
+//!     .plugin(KeyboardPlugin)
+//!     .plugin(ImePlugin)
+//!     .plugin(TextMeasurePlugin)
+//!     .plugin(ClipboardPlugin)
+//!     .logic(MyApp)
+//!     .build()
+//!     .run();
+//! ```
+//!
+//! Each plugin reads the shared services the earlier ones publish
+//! ([`SharedWindow`], [`SharedWindowState`], [`SharedBackend`]); register
+//! `WinitPlugin` first, then `WgpuPlugin`, then the input / text plugins.
+//!
+//! [`input`] keeps the pure mappings so a host that keeps its own loop can
+//! reuse them.
 
 pub mod clipboard;
-pub mod host;
+pub mod ime;
 pub mod input;
+pub mod keyboard;
+pub mod pointer;
+pub mod text_measure;
+pub mod wgpu;
+pub mod window;
+pub mod winit_plugin;
 
-pub use clipboard::SystemClipboard;
-pub use host::{FrameClock, Host, HostOptions, RenderOutcome, TitlebarMode, TITLEBAR_SAFE_AREA};
+pub use clipboard::{ClipboardPlugin, SystemClipboard};
+pub use ime::ImePlugin;
+pub use keyboard::KeyboardPlugin;
+pub use pointer::PointerPlugin;
+pub use text_measure::{BackendTextMeasurer, TextMeasurePlugin};
+pub use wgpu::{GpuConfig, SharedBackend, WgpuPlugin};
+pub use window::{
+    SharedWindow, SharedWindowState, TitlebarMode, WindowConfig, WindowState, TITLEBAR_SAFE_AREA,
+};
+pub use winit_plugin::WinitPlugin;

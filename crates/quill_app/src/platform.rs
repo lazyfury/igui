@@ -2,9 +2,9 @@
 //! to a native platform.
 //!
 //! `quill_app` never names a windowing or GPU type. A platform plugin (e.g.
-//! `quill_winit`) drives the runtime through the opaque [`PlatformEvent`] /
-//! [`PlatformContext`] bridge and installs a [`Presenter`] that turns the app's
-//! `DrawList` into pixels.
+//! `quill_winit`) drives the runtime through the opaque [`PlatformEvent`]
+//! bridge and installs a [`Presenter`] that turns the app's `DrawList` into
+//! pixels.
 
 use std::any::Any;
 
@@ -37,6 +37,12 @@ pub trait Presenter {
 /// The platform plugin constructs it around a native event type (e.g. a
 /// `winit::event::WindowEvent`); a platform observer downcasts it back to the
 /// type it expects. The runtime never knows the type.
+///
+/// The borrowed platform loop (winit's `ActiveEventLoop`) is deliberately **not**
+/// carried through this type: a borrowed loop is not `Any + 'static`. A platform
+/// runner publishes what it created (e.g. an `Arc<Window>`) into the
+/// [`ServiceMap`](crate::ServiceMap) before calling
+/// [`App::resumed`](crate::App::resumed), and lifecycle observers read it back.
 #[derive(Clone, Copy)]
 pub struct PlatformEvent<'a> {
     event: &'a (dyn Any + 'static),
@@ -59,36 +65,6 @@ impl std::fmt::Debug for PlatformEvent<'_> {
     }
 }
 
-/// An opaque native platform context (e.g. winit's `ActiveEventLoop`), passed
-/// to lifecycle observers that need to create the window.
-pub struct PlatformContext<'a> {
-    context: &'a mut (dyn Any + 'static),
-}
-
-impl<'a> PlatformContext<'a> {
-    pub fn new<T: Any>(context: &'a mut T) -> Self {
-        Self { context }
-    }
-
-    /// A short-lived reborrow so several observers can be visited in turn.
-    pub fn reborrow(&mut self) -> PlatformContext<'_> {
-        PlatformContext {
-            context: &mut *self.context,
-        }
-    }
-
-    /// The native context, if it is of type `T`.
-    pub fn downcast_mut<T: Any>(&mut self) -> Option<&mut T> {
-        self.context.downcast_mut::<T>()
-    }
-}
-
-impl std::fmt::Debug for PlatformContext<'_> {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter.write_str("PlatformContext(..)")
-    }
-}
-
 /// Observes native events and turns them into core [`InputEvent`]s.
 pub trait PlatformObserver: 'static {
     /// Appends any core input events this platform event produces.
@@ -97,12 +73,12 @@ pub trait PlatformObserver: 'static {
 
 /// Observes platform lifecycle: window creation on first resume, and teardown.
 ///
-/// A lifecycle observer runs outside the plugin registry, so it is handed the
-/// [`App`](crate::App) and may install a [`Presenter`] or a service once the
-/// window / surface actually exist.
+/// A lifecycle observer is handed the [`App`](crate::App) and may read the
+/// window/service a platform runner published, then install a [`Presenter`] or
+/// a service.
 pub trait LifecycleObserver: 'static {
-    /// The platform is ready; create the window / surface here.
-    fn resumed(&mut self, _context: PlatformContext<'_>, _app: &mut crate::app::App) {}
+    /// The platform is ready; create the surface / backend here.
+    fn resumed(&mut self, _app: &mut crate::app::App) {}
 
     /// The platform is going away.
     fn suspended(&mut self, _app: &mut crate::app::App) {}
@@ -123,6 +99,16 @@ pub trait PaintLayer: 'static {
         ctx: &crate::logic::FrameContext<'_>,
         paint: &mut draw_render::PaintContext,
     );
+}
+
+/// Runs after each frame is presented, with the frame's `DrawList`.
+///
+/// Platform plugins use it for work that needs the frame's result without being
+/// part of painting — placing the IME candidate window at the app's current
+/// caret ([`App::caret`](crate::App::caret)), or recording/inspecting the frame
+/// that was just presented.
+pub trait FrameObserver: 'static {
+    fn after_frame(&mut self, app: &crate::app::App, list: &DrawList);
 }
 
 /// The platform driver installed by a platform plugin.

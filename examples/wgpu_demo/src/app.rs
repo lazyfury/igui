@@ -1,121 +1,229 @@
 //! The `winit` window runner for the wgpu demo (native only).
 //!
-//! The platform plumbing (window / surface / backend / swap chain, input
-//! translation, IME) lives in [`quill_winit::Host`]; this file is only the
-//! demo's own application loop: it times the pipeline phases, drives the shared
-//! gallery and paints the debug / performance overlays.
+//! The platform plumbing is now a set of [`quill_winit`] plugins assembled
+//! through [`quill_app::AppBuilder`]. This file is only the demo's own logic:
+//! it times the pipeline phases, drives the shared gallery and paints the
+//! debug / performance overlays.
 
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::time::Instant;
 
 use draw_backend_wgpu::{FontConfig, FontMode};
-use draw_core::{InputEvent, Key};
+use draw_core::{EventResult, InputEvent, Key};
 use draw_debug_ui::{DebugOverlay, PerformanceOverlay};
 use draw_profile::{inspect, FrameCounters, FrameStats, InspectionReport, Profiler, StageTimes};
-use draw_render::PaintContext;
-use quill_winit::{FrameClock, Host, HostOptions, TitlebarMode, TITLEBAR_SAFE_AREA};
-use winit::application::ApplicationHandler;
-use winit::event::WindowEvent;
-use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
-use winit::window::WindowId;
+use draw_render::{DrawList, PaintContext};
+use draw_ui::{focused_caret, TextMeasurer};
+use quill_app::{
+    App, AppBuilder, AppConfig, AppLogic, EventContext, FrameContext, FrameObserver, InitContext,
+    Plugin,
+};
+use quill_headless::{HeadlessPlugin, RecordingHandle};
+use quill_winit::{
+    BackendTextMeasurer, ClipboardPlugin, GpuConfig, ImePlugin, KeyboardPlugin, PointerPlugin,
+    SharedBackend, TextMeasurePlugin, TitlebarMode as WinitTitlebar, WgpuPlugin, WindowConfig,
+    WinitPlugin, TITLEBAR_SAFE_AREA,
+};
 
-use crate::cli::Options;
+use crate::cli::{Options, TitlebarMode};
 use crate::demo::Demo;
 
 /// Runs the demo until the window is closed.
 pub fn run(options: Options) {
-    let event_loop = EventLoop::new().expect("create event loop");
-    // Event-driven: the app is static, so render only when something changes
-    // (input, resize, overlay toggle). `Poll` would burn CPU redrawing an
-    // unchanged frame as fast as possible.
-    event_loop.set_control_flow(ControlFlow::Wait);
-    let mut app = App::new(options);
-    event_loop.run_app(&mut app).expect("run event loop");
+    build_app(options, false).run();
 }
 
-/// Owns the shared host and the demo state.
-struct App {
-    host: Host,
-    clock: FrameClock,
-    demo: Demo,
-    /// Current text font mode (toggle with `f`).
-    font_mode: FontMode,
-    /// Frame timings / counters for the debug overlay.
+/// Runs the shared gallery headlessly through `quill_headless` (no window) and
+/// reports what was drawn. Returns an error when nothing was rendered.
+pub fn selfcheck() -> Result<(), String> {
+    let mut app = build_app(Options::default(), true);
+    let recording = app
+        .services()
+        .get::<RecordingHandle>()
+        .ok_or("no recording handle (HeadlessPlugin missing)")?
+        .0
+        .clone();
+
+    app.run_headless(3);
+
+    let recording = recording.borrow();
+    let frames = recording.frame_count();
+    if frames != 3 {
+        return Err(format!("expected 3 frames, recorded {frames}"));
+    }
+    let commands = recording
+        .last_frame()
+        .map(|frame| frame.command_count())
+        .unwrap_or(0);
+    if commands == 0 {
+        return Err("headless frame drew no commands".into());
+    }
+    println!("wgpu_demo selfcheck: {frames} frames, {commands} commands in the last frame");
+    Ok(())
+}
+
+fn build_app(options: Options, headless: bool) -> App {
+    let profile = Rc::new(RefCell::new(ProfileState::new(options)));
+    let font_mode = if options.pixel_font {
+        FontMode::Pixel
+    } else {
+        FontMode::System
+    };
+    let logic = DemoLogic::new(options, profile.clone(), font_mode);
+
+    let builder = App::new(AppConfig {
+        title: "quill — Notes".into(),
+        size: (1200.0, 780.0),
+        ..Default::default()
+    });
+
+    let builder = if headless {
+        builder.plugin(HeadlessPlugin::new(1200.0, 780.0))
+    } else {
+        let titlebar = match options.titlebar {
+            TitlebarMode::Native => WinitTitlebar::Native,
+            TitlebarMode::Hidden => WinitTitlebar::Hidden,
+            TitlebarMode::Transparent => WinitTitlebar::Transparent,
+        };
+        builder
+            .plugin(WinitPlugin::new(WindowConfig {
+                title: "quill — Notes".into(),
+                size: (1200.0, 780.0),
+                titlebar,
+                // The gallery has a text field; enable the platform IME.
+                ime: true,
+            }))
+            .plugin(WgpuPlugin::new(GpuConfig {
+                font: FontConfig {
+                    mode: font_mode,
+                    device_pixel_rasterization: true,
+                    ..Default::default()
+                },
+                ..Default::default()
+            }))
+            .plugin(PointerPlugin)
+            .plugin(KeyboardPlugin)
+            .plugin(ImePlugin)
+            .plugin(TextMeasurePlugin)
+            .plugin(ClipboardPlugin)
+    };
+
+    builder
+        .plugin(ProfilePlugin {
+            profile: profile.clone(),
+        })
+        .logic(logic)
+        .build()
+}
+
+/// Frame timings / counters and the last inspection, shared between the demo
+/// logic (which paints the panel) and the [`ProfileObserver`].
+struct ProfileState {
     profiler: Profiler,
-    /// Findings from inspecting the previous frame's `DrawList`.
     report: InspectionReport,
+    frame_start: Instant,
+    update_ms: f32,
+    layout_ms: f32,
+    paint_ms: f32,
+    paint_done: Instant,
+    control_count: usize,
+    perf_open: bool,
+}
+
+impl ProfileState {
+    fn new(options: Options) -> Self {
+        let mut profiler = Profiler::new();
+        profiler.set_enabled(options.profiler);
+        Self {
+            profiler,
+            report: InspectionReport::new(),
+            frame_start: Instant::now(),
+            update_ms: 0.0,
+            layout_ms: 0.0,
+            paint_ms: 0.0,
+            paint_done: Instant::now(),
+            control_count: 0,
+            perf_open: false,
+        }
+    }
+}
+
+/// Records one frame's stats (and audits the `DrawList` when the panel is open)
+/// after it is presented.
+struct ProfileObserver {
+    profile: Rc<RefCell<ProfileState>>,
+}
+
+impl Plugin for ProfilePlugin {
+    fn name(&self) -> &'static str {
+        "wgpu-demo-profile"
+    }
+
+    fn build(&self, app: &mut AppBuilder) {
+        app.add_frame_observer(ProfileObserver {
+            profile: self.profile.clone(),
+        });
+    }
+}
+
+struct ProfilePlugin {
+    profile: Rc<RefCell<ProfileState>>,
+}
+
+impl FrameObserver for ProfileObserver {
+    fn after_frame(&mut self, _app: &App, list: &DrawList) {
+        let mut profile = self.profile.borrow_mut();
+        let now = Instant::now();
+        let render_ms = millis(now - profile.paint_done);
+        let stats = FrameStats {
+            index: profile.profiler.next_index(),
+            frame_ms: millis(now - profile.frame_start),
+            stages: StageTimes::new(
+                profile.update_ms,
+                profile.layout_ms,
+                profile.paint_ms,
+                render_ms,
+            ),
+            counters: FrameCounters::new(0, profile.control_count, list.len(), 1),
+        };
+        profile.profiler.record(stats);
+        if profile.perf_open {
+            profile.report = inspect(list, &stats);
+        }
+    }
+}
+
+/// The demo's own `AppLogic`: the shared gallery plus the debug / performance
+/// overlays and the frame timing.
+struct DemoLogic {
+    demo: Demo,
     /// Component debug drawing (yellow bounds + `name#id`), toggled with F3 / ` / d.
     debug: DebugOverlay,
     /// Performance panel, toggled with F4 / p.
     perf: PerformanceOverlay,
-    /// Native window frame (title bar) mode chosen on the command line.
+    /// Current text font mode (toggle with `f`), and the backend to change it.
+    font_mode: FontMode,
+    backend: Option<SharedBackend>,
     titlebar: TitlebarMode,
+    profile: Rc<RefCell<ProfileState>>,
 }
 
-impl App {
-    fn new(options: Options) -> Self {
-        // Profiler and overlay start in the state requested on the command line;
-        // both remain runtime-switchable (overlay: backtick key).
-        let mut profiler = Profiler::new();
-        profiler.set_enabled(options.profiler);
+impl DemoLogic {
+    fn new(options: Options, profile: Rc<RefCell<ProfileState>>, font_mode: FontMode) -> Self {
         let mut debug = DebugOverlay::new();
         debug.set_open(options.debug_ui);
         let mut perf = PerformanceOverlay::new();
         perf.set_open(options.performance);
-
-        let font_mode = if options.pixel_font {
-            FontMode::Pixel
-        } else {
-            FontMode::System
-        };
-        let titlebar = match options.titlebar {
-            crate::cli::TitlebarMode::Native => TitlebarMode::Native,
-            crate::cli::TitlebarMode::Hidden => TitlebarMode::Hidden,
-            crate::cli::TitlebarMode::Transparent => TitlebarMode::Transparent,
-        };
-        let host = Host::new(HostOptions {
-            title: "quill — Notes".into(),
-            size: (1200.0, 780.0),
-            titlebar,
-            font: FontConfig {
-                mode: font_mode,
-                device_pixel_rasterization: true,
-                ..Default::default()
-            },
-            // The gallery has a text field; enable the platform IME.
-            ime: true,
-            ..Default::default()
-        });
-
         Self {
-            host,
-            clock: FrameClock::new(),
             demo: Demo::new(),
-            font_mode,
-            profiler,
-            report: InspectionReport::new(),
             debug,
             perf,
-            titlebar,
+            font_mode,
+            backend: None,
+            titlebar: options.titlebar,
+            profile,
         }
-    }
-
-    /// Creates the window, surface, backend and swap chain on first resume.
-    fn init(&mut self, event_loop: &ActiveEventLoop) {
-        if !self.host.resumed(event_loop) {
-            return;
-        }
-        let metrics = self.host.backend().map(|backend| backend.text_metrics());
-        if let Some(metrics) = metrics {
-            self.demo.set_text_metrics(metrics);
-        }
-        self.demo.set_clipboard(self.host.clipboard());
-
-        // With a transparent macOS title bar the content fills the title-bar
-        // area, so reserve a top safe area on the sidebar for the traffic lights.
-        if self.titlebar == TitlebarMode::Transparent {
-            self.demo.set_titlebar_inset(TITLEBAR_SAFE_AREA);
-        }
-        self.host.request_redraw();
     }
 
     /// Switches between the system font and the built-in pixel font.
@@ -124,40 +232,40 @@ impl App {
             FontMode::System => FontMode::Pixel,
             FontMode::Pixel => FontMode::System,
         };
+        let Some(backend) = self.backend.clone() else {
+            return;
+        };
         let config = FontConfig {
             mode: self.font_mode,
             device_pixel_rasterization: true,
             ..Default::default()
         };
-        let metrics = match self.host.backend_mut() {
-            Some(backend) => {
-                if let Err(error) = backend.set_font_config(config) {
-                    eprintln!("font switch failed: {error}");
-                }
-                Some(backend.text_metrics())
+        let metrics = {
+            let mut backend = backend.borrow_mut();
+            if let Err(error) = backend.set_font_config(config) {
+                eprintln!("font switch failed: {error}");
             }
-            None => None,
+            backend.text_metrics()
         };
-        if let Some(metrics) = metrics {
-            self.demo.set_text_metrics(metrics);
-        }
+        self.demo
+            .set_text_measurer(Rc::new(BackendTextMeasurer::new(metrics)));
     }
 
-    fn feed(&mut self, event: &InputEvent) {
+    fn feed(&mut self, event: &InputEvent) -> EventResult {
         // Debug/profiler function keys always win.
         if let InputEvent::KeyDown { key } = event {
             match key {
                 Key::F3 => {
                     self.debug.toggle();
-                    return;
+                    return EventResult::Handled;
                 }
                 Key::F4 => {
                     self.perf.toggle();
-                    return;
+                    return EventResult::Handled;
                 }
                 Key::F5 => {
-                    self.profiler.toggle();
-                    return;
+                    self.profile.borrow_mut().profiler.toggle();
+                    return EventResult::Handled;
                 }
                 _ => {}
             }
@@ -165,12 +273,12 @@ impl App {
         // The performance panel sits on top: consume input over its panel,
         // pass the rest on to the app UI.
         if self.perf.handle_input(event).is_handled() {
-            return;
+            return EventResult::Handled;
         }
         // The app/UI first: a focused text field consumes typed characters, so
         // the letter toggles below must not fire while typing.
         if self.demo.event(event).is_handled() {
-            return;
+            return EventResult::Handled;
         }
         // Host-only convenience toggles for keys the UI did not take.
         if let InputEvent::KeyDown { key } = event {
@@ -182,105 +290,85 @@ impl App {
                     self.perf.toggle();
                 }
                 Key::Character('o') => {
-                    self.profiler.toggle();
+                    self.profile.borrow_mut().profiler.toggle();
                 }
                 Key::Character('f') => self.toggle_font(),
                 _ => {}
             }
         }
-    }
-
-    fn render(&mut self) {
-        let viewport = self.host.viewport();
-        self.host.apply_cursor(self.demo.cursor());
-
-        // -- timed pipeline phases ----------------------------------------
-        let frame_start = Instant::now();
-        let dt = self.clock.tick();
-
-        self.demo.update(viewport, dt);
-        let update_done = Instant::now();
-
-        self.demo.layout(viewport);
-        let layout_done = Instant::now();
-
-        let mut ctx = PaintContext::new();
-        self.demo.paint(&mut ctx);
-        // 1) component debug bounds, drawn on top of the app UI.
-        self.debug.paint(self.demo.tree(), &mut ctx);
-        // 2) performance panel, drawn last so it stays readable.
-        self.perf.update(&self.profiler, &self.report, viewport);
-        self.perf.paint(&mut ctx);
-        let list = ctx.into_draw_list();
-        let paint_done = Instant::now();
-
-        self.host.render(&list);
-        let render_done = Instant::now();
-
-        // Keep the IME candidate window on the focused field's caret.
-        self.host.sync_ime(self.demo.tree());
-
-        // -- record + inspect the frame -----------------------------------
-        let stats = FrameStats {
-            index: self.profiler.next_index(),
-            frame_ms: millis(render_done - frame_start),
-            stages: StageTimes::new(
-                millis(update_done - frame_start),
-                millis(layout_done - update_done),
-                millis(paint_done - layout_done),
-                millis(render_done - paint_done),
-            ),
-            counters: FrameCounters::new(0, self.demo.control_count(), list.len(), 1),
-        };
-        self.profiler.record(stats);
-        // Only audit when the performance panel can actually show it.
-        if self.perf.is_open() {
-            self.report = inspect(&list, &stats);
-        }
+        EventResult::Ignored
     }
 }
 
-impl ApplicationHandler for App {
-    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        self.init(event_loop);
+impl AppLogic for DemoLogic {
+    fn init(&mut self, ctx: &InitContext<'_>) {
+        if let Some(measurer) = ctx.service::<Rc<dyn TextMeasurer>>() {
+            self.demo.set_text_measurer(measurer.clone());
+        }
+        if let Some(clipboard) = ctx.service::<Rc<RefCell<dyn draw_ui::Clipboard>>>() {
+            self.demo.set_clipboard(clipboard.clone());
+        }
+        if let Some(backend) = ctx.service::<SharedBackend>() {
+            self.backend = Some(backend.clone());
+        }
+        // With a transparent macOS title bar the content fills the title-bar
+        // area, so reserve a top safe area on the sidebar for the traffic lights.
+        if self.titlebar == TitlebarMode::Transparent {
+            self.demo.set_titlebar_inset(TITLEBAR_SAFE_AREA);
+        }
     }
 
-    fn window_event(
-        &mut self,
-        event_loop: &ActiveEventLoop,
-        _window_id: WindowId,
-        event: WindowEvent,
-    ) {
-        // A redraw is already the render itself; do not request another.
-        if matches!(event, WindowEvent::RedrawRequested) {
-            self.render();
-            // Animation / transient overlays need more frames. `PresentMode::Fifo`
-            // paces this at the display refresh, so it is not a busy loop, and
-            // the loop sleeps again as soon as `needs_frame` turns false.
-            if self.demo.needs_frame() {
-                self.host.request_redraw();
-            }
-            return;
-        }
+    fn event(&mut self, _ctx: &EventContext<'_>, event: &InputEvent) -> EventResult {
+        self.feed(event)
+    }
 
-        match &event {
-            WindowEvent::CloseRequested => {
-                event_loop.exit();
-                return;
-            }
-            WindowEvent::Resized(size) => self.host.handle_resize(size.width, size.height),
-            WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
-                self.host.handle_scale_factor(*scale_factor)
-            }
-            _ => {
-                for input in self.host.translate(&event) {
-                    self.feed(&input);
-                }
-            }
-        }
+    fn update(&mut self, ctx: &FrameContext<'_>) {
+        let start = Instant::now();
+        self.profile.borrow_mut().frame_start = start;
+        self.demo.update(ctx.viewport(), ctx.delta());
+        self.profile.borrow_mut().update_ms = millis(Instant::now() - start);
+    }
 
-        // Any handled event may have changed the UI; schedule exactly one frame.
-        self.host.request_redraw();
+    fn layout(&mut self, ctx: &FrameContext<'_>) {
+        let start = Instant::now();
+        self.demo.layout(ctx.viewport());
+        self.profile.borrow_mut().layout_ms = millis(Instant::now() - start);
+    }
+
+    fn paint(&mut self, ctx: &FrameContext<'_>, paint: &mut PaintContext) {
+        let start = Instant::now();
+        let viewport = ctx.viewport();
+
+        self.demo.paint(paint);
+        // 1) component debug bounds, drawn on top of the app UI.
+        self.debug.paint(self.demo.tree(), paint);
+        // 2) performance panel, drawn last so it stays readable.
+        {
+            let profile = self.profile.clone();
+            let profile = profile.borrow();
+            self.perf
+                .update(&profile.profiler, &profile.report, viewport);
+        }
+        self.perf.paint(paint);
+
+        let now = Instant::now();
+        let mut profile = self.profile.borrow_mut();
+        profile.paint_ms = millis(now - start);
+        profile.paint_done = now;
+        profile.control_count = self.demo.control_count();
+        profile.perf_open = self.perf.is_open();
+    }
+
+    fn needs_frame(&self) -> bool {
+        self.demo.needs_frame()
+    }
+
+    fn cursor(&self) -> Option<draw_core::Cursor> {
+        Some(self.demo.cursor())
+    }
+
+    fn caret(&self) -> Option<draw_core::Rect> {
+        focused_caret(self.demo.tree())
     }
 }
 
@@ -293,10 +381,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn a_frame_clock_never_reports_a_huge_delta() {
-        let mut clock = FrameClock::new();
-        // The first tick is tiny; the cap is what matters after a pause.
-        let dt = clock.tick();
-        assert!(dt <= 0.1);
+    fn a_selfcheck_frame_draws_the_gallery() {
+        // The headless path never opens a window.
+        assert!(selfcheck().is_ok());
     }
 }

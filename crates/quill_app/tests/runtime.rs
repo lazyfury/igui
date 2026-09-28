@@ -8,8 +8,8 @@ use std::rc::Rc;
 use draw_core::{EventResult, InputEvent, Key, Size, Vec2, ViewportSize};
 use draw_render::{DrawList, Paint, PaintContext};
 use quill_app::{
-    App, AppBuilder, AppConfig, AppLogic, EventContext, FrameContext, InitContext, InputLayer,
-    LifecycleObserver, PlatformContext, PlatformEvent, PlatformObserver, Plugin, PresentOutcome,
+    App, AppBuilder, AppConfig, AppLogic, EventContext, FrameContext, FrameObserver, InitContext,
+    InputLayer, LifecycleObserver, PlatformEvent, PlatformObserver, Plugin, PresentOutcome,
     Presenter,
 };
 
@@ -55,7 +55,7 @@ struct LifecycleLog {
 }
 
 impl LifecycleObserver for LifecycleLog {
-    fn resumed(&mut self, _context: PlatformContext<'_>, _app: &mut App) {
+    fn resumed(&mut self, _app: &mut App) {
         self.log.borrow_mut().push("resumed".into());
     }
     fn suspended(&mut self, _app: &mut App) {
@@ -198,8 +198,7 @@ fn resumed_runs_lifecycle_then_init() {
         })
         .build();
 
-    let mut native = 0u32;
-    app.resumed(PlatformContext::new(&mut native));
+    app.resumed();
     assert_eq!(&*log.borrow(), &["resumed", "init"]);
 
     app.suspended();
@@ -290,4 +289,84 @@ fn needs_frame_comes_from_the_logic() {
         })
         .build();
     assert!(busy.needs_frame());
+}
+
+/// A platform runner publishes what it created (e.g. a window) into the app's
+/// services; a lifecycle observer reads it back on resume.
+struct ServiceReader {
+    seen: Rc<Cell<bool>>,
+}
+
+impl LifecycleObserver for ServiceReader {
+    fn resumed(&mut self, app: &mut App) {
+        self.seen
+            .set(app.services().get::<u32>().copied() == Some(42));
+    }
+}
+
+struct ServiceReaderPlugin {
+    seen: Rc<Cell<bool>>,
+}
+
+impl Plugin for ServiceReaderPlugin {
+    fn name(&self) -> &'static str {
+        "service-reader"
+    }
+    fn build(&self, app: &mut AppBuilder) {
+        app.add_lifecycle_observer(ServiceReader {
+            seen: self.seen.clone(),
+        });
+    }
+}
+
+#[test]
+fn a_published_service_is_visible_to_lifecycle_observers() {
+    let seen = Rc::new(Cell::new(false));
+    let mut app = App::new(AppConfig::default())
+        .plugin(ServiceReaderPlugin { seen: seen.clone() })
+        .build();
+    app.services_mut().insert(42u32);
+    app.resumed();
+    assert!(seen.get());
+}
+
+struct FrameLog {
+    log: Log,
+}
+
+impl FrameObserver for FrameLog {
+    fn after_frame(&mut self, app: &App, _list: &DrawList) {
+        let width = app.viewport().logical_size().width as u32;
+        self.log.borrow_mut().push(format!("after:{width}"));
+    }
+}
+
+struct FrameLogPlugin {
+    log: Log,
+}
+
+impl Plugin for FrameLogPlugin {
+    fn name(&self) -> &'static str {
+        "frame-log"
+    }
+    fn build(&self, app: &mut AppBuilder) {
+        app.add_frame_observer(FrameLog {
+            log: self.log.clone(),
+        });
+    }
+}
+
+#[test]
+fn frame_observers_run_after_present() {
+    let log = log();
+    let mut app = App::new(AppConfig::default())
+        .plugin(FrameLogPlugin { log: log.clone() })
+        .build();
+    app.set_presenter(FakePresenter {
+        presented: Rc::new(Cell::new(0)),
+        last_len: Rc::new(Cell::new(0)),
+    });
+
+    app.frame();
+    assert_eq!(&*log.borrow(), &["after:800"]);
 }

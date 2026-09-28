@@ -5,8 +5,26 @@
 //! the process instead of dropping the operation.
 
 use std::cell::RefCell;
+use std::rc::Rc;
 
 use draw_ui::{Clipboard, MemoryClipboard};
+use quill_app::{AppBuilder, Plugin};
+
+/// Installs a [`Clipboard`] service (the system clipboard with a fallback) so a
+/// UI can copy / cut / paste.
+#[derive(Default)]
+pub struct ClipboardPlugin;
+
+impl Plugin for ClipboardPlugin {
+    fn name(&self) -> &'static str {
+        "clipboard"
+    }
+
+    fn build(&self, app: &mut AppBuilder) {
+        let clipboard: Rc<RefCell<dyn Clipboard>> = Rc::new(RefCell::new(SystemClipboard::new()));
+        app.insert_service(clipboard);
+    }
+}
 
 /// A [`Clipboard`] backed by the OS clipboard when available.
 pub struct SystemClipboard {

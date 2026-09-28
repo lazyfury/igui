@@ -42,7 +42,7 @@ pub mod service;
 pub use app::{App, AppBuilder, AppConfig, FrameClock};
 pub use logic::{AppLogic, EventContext, EventResult, FrameContext, InitContext};
 pub use platform::{
-    InputLayer, LifecycleObserver, PaintLayer, PlatformContext, PlatformEvent, PlatformObserver,
+    FrameObserver, InputLayer, LifecycleObserver, PaintLayer, PlatformEvent, PlatformObserver,
     PresentOutcome, Presenter, Runner,
 };
 pub use plugin::Plugin;

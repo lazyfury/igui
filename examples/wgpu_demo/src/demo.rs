@@ -1,51 +1,18 @@
-//! The wgpu demo: the shared [`demo_app::DemoApp`] plus text metrics from the
-//! wgpu backend's loaded font.
+//! The wgpu demo: the shared [`demo_app::DemoApp`] plus a text measurer injected
+//! by [`quill_winit::TextMeasurePlugin`].
 //!
 //! The shared app owns scene/UI/layout/input. Here we only wrap the backend's
-//! [`FontMetrics`] in a `draw_ui::TextMeasurer`, so the layout engine measures
-//! text with the exact advances the backend renders with (proportional Latin +
-//! CJK when a system font is available).
+//! `FontMetrics` in a `draw_ui::TextMeasurer` (via the plugin), so the layout
+//! engine measures text with the exact advances the backend renders with.
 
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use draw_backend_wgpu::FontMetrics;
-use draw_core::{EventResult, FontWeight, InputEvent, ViewportSize};
+use draw_core::{EventResult, InputEvent, ViewportSize};
 use draw_render::PaintContext;
 use draw_ui::TextMeasurer;
 
 use demo_app::DemoApp;
-
-/// Adapts the backend's font metrics to the layout engine.
-struct BackendTextMeasurer {
-    metrics: FontMetrics,
-}
-
-impl TextMeasurer for BackendTextMeasurer {
-    fn advance(&self, ch: char, font_size: f32) -> f32 {
-        self.metrics.advance(ch, font_size)
-    }
-
-    fn advance_weighted(&self, ch: char, font_size: f32, weight: FontWeight) -> f32 {
-        self.metrics.advance_weighted(ch, font_size, weight)
-    }
-
-    fn line_height(&self, font_size: f32) -> f32 {
-        self.metrics.line_height(font_size)
-    }
-
-    fn ascent(&self, font_size: f32) -> f32 {
-        self.metrics.ascent(font_size)
-    }
-
-    fn measure_run(&self, text: &str, font_size: f32) -> f32 {
-        self.metrics.measure_run(text, font_size)
-    }
-
-    fn measure_run_weighted(&self, text: &str, font_size: f32, weight: FontWeight) -> f32 {
-        self.metrics.measure_run_weighted(text, font_size, weight)
-    }
-}
 
 /// Application state owned by the window runner.
 pub struct Demo {
@@ -65,12 +32,10 @@ impl Demo {
         }
     }
 
-    /// Injects the backend's real font metrics into the layout engine.
-    ///
-    /// Call after the [`draw_backend_wgpu::WgpuBackend`] is created.
-    pub fn set_text_metrics(&mut self, metrics: FontMetrics) {
-        self.app
-            .set_text_measurer(Rc::new(BackendTextMeasurer { metrics }));
+    /// Injects the layout measurer (the backend's real font metrics) into the
+    /// layout engine.
+    pub fn set_text_measurer(&mut self, measurer: Rc<dyn TextMeasurer>) {
+        self.app.set_text_measurer(measurer);
     }
 
     /// Reserves extra top padding on the sidebar for a transparent title bar

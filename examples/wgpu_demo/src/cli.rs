@@ -49,6 +49,8 @@ impl Default for Options {
 pub enum Command {
     /// Run the demo with these options.
     Run(Options),
+    /// Render a few frames headlessly and report (no window).
+    SelfCheck,
     /// Print [`HELP`] and exit.
     Help,
     /// Print the version and exit.
@@ -78,6 +80,7 @@ OPTIONS:
                           title bar background and title text; the sidebar
                           reserves a top safe area for them (no effect on other
                           platforms)
+        --selfcheck       Render a few frames headlessly (no window) and report
     -h, --help            Print this help
     -V, --version         Print the version
 
@@ -114,6 +117,7 @@ where
             "--transparent-titlebar" | "--macos-titlebar" => {
                 options.titlebar = TitlebarMode::Transparent
             }
+            "--selfcheck" => return Ok(Command::SelfCheck),
             "-h" | "--help" => return Ok(Command::Help),
             "-V" | "--version" => return Ok(Command::Version),
             other => return Err(format!("unrecognized argument '{other}'")),
@@ -213,6 +217,11 @@ mod tests {
         assert_eq!(parse_strs(&["--version"]), Ok(Command::Version));
         // help/version short-circuit even with other flags present
         assert_eq!(parse_strs(&["--no-profiler", "--help"]), Ok(Command::Help));
+    }
+
+    #[test]
+    fn selfcheck_is_a_headless_command() {
+        assert_eq!(parse_strs(&["--selfcheck"]), Ok(Command::SelfCheck));
     }
 
     #[test]
