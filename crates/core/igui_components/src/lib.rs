@@ -397,4 +397,108 @@ mod tests {
         igui_ui::paint(&tree, &mut ctx);
         assert_eq!(&*log.borrow(), &["a", "a", "b", "b"]);
     }
+
+    /// Named focus neighbors drive the arrows regardless of where the buttons
+    /// sit: a game menu wires `up -> home`, `right -> play`, `down -> next`.
+    #[test]
+    fn named_directional_focus_overrides_the_layout() {
+        let (mut tree, root) = host();
+        let play = tree.add_child(
+            root,
+            base::Button::new("Play")
+                .focus_name("play")
+                .focus_neighbor_up("home")
+                .focus_neighbor_down("next"),
+        );
+        let next = tree.add_child(root, base::Button::new("Next").focus_name("next"));
+        // `home` is the last column child (bottom), yet `up` reaches it by name.
+        let home = tree.add_child(root, base::Button::new("Home").focus_name("home"));
+        igui_ui::layout(&mut tree, viewport(400.0, 400.0));
+
+        assert!(igui_ui::set_focus(&mut tree, play));
+        assert!(igui_ui::focus_up(&mut tree));
+        assert_eq!(igui_ui::focused(&tree), Some(home));
+        assert!(igui_ui::set_focus(&mut tree, play));
+        assert!(igui_ui::focus_down(&mut tree));
+        assert_eq!(igui_ui::focused(&tree), Some(next));
+    }
+
+    /// `group` + `group_hover` wire a parent's interaction state to a child's
+    /// hover.
+    #[test]
+    fn group_hover_lights_the_declaring_control() {
+        let (mut tree, root) = host();
+        let card = tree.add_child(root, Flex::column().group_hover("card"));
+        let button = tree.add_child(card, base::Button::new("Save").group("card"));
+        igui_ui::layout(&mut tree, viewport(400.0, 400.0));
+
+        let center = igui_ui::control(&tree, button).unwrap().rect.center();
+        igui_ui::handle_input(&mut tree, &InputEvent::PointerMove { position: center });
+        assert!(
+            igui_ui::state_for(&tree, card).group_hovered,
+            "hovering the button lights the group_declaring card"
+        );
+    }
+
+    /// A focused themed button activates on Enter (it is a Flex widget, not
+    /// `Widget::Button`, so the click callback is the signal).
+    #[test]
+    fn enter_activates_a_focused_button() {
+        let theme = crate::theme::default_theme(crate::theme::Mode::Dark);
+        let (mut tree, root) = host();
+        let clicks = Rc::new(Cell::new(0));
+        let counter = clicks.clone();
+        let button = tree.add_child(
+            root,
+            crate::Button::primary("Push", theme).on_click(move || counter.set(counter.get() + 1)),
+        );
+        igui_ui::layout(&mut tree, viewport(400.0, 200.0));
+
+        assert!(igui_ui::set_focus(&mut tree, button));
+        igui_ui::handle_input(
+            &mut tree,
+            &InputEvent::KeyDown {
+                key: igui_core::Key::Enter,
+            },
+        );
+        assert_eq!(clicks.get(), 1);
+    }
+
+    /// A click focuses the button's inner label, but the arrows still use the
+    /// button root's `FocusNav` (names live on the root).
+    #[test]
+    fn a_clicked_button_uses_its_own_focus_wiring() {
+        let theme = crate::theme::default_theme(crate::theme::Mode::Dark);
+        let (mut tree, root) = host();
+        let col = tree.add_child(root, Column::new().gap(8.0));
+        let home = tree.add_child(
+            col,
+            crate::Button::primary("Home", theme)
+                .focus_name("home")
+                .focus_neighbor_right("next"),
+        );
+        tree.add_child(
+            col,
+            crate::Button::secondary("Play", theme).focus_name("play"),
+        );
+        let next = tree.add_child(
+            col,
+            crate::Button::secondary("Next", theme).focus_name("next"),
+        );
+        igui_ui::layout(&mut tree, viewport(400.0, 400.0));
+        tree.update();
+
+        let center = igui_ui::control(&tree, home).unwrap().rect.center();
+        click(&mut tree, center);
+        assert!(
+            igui_ui::focused(&tree).is_some(),
+            "the click focused a node"
+        );
+        assert!(igui_ui::focus_right(&mut tree));
+        assert_eq!(
+            igui_ui::focused(&tree),
+            Some(next),
+            "the arrow followed the button's name, not the label's empty wiring"
+        );
+    }
 }

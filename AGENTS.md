@@ -312,6 +312,19 @@ notes are `docs/godot-migration.md`.
   observability remains. Remaining host migrations to the `igui_app` runtime
   (`file_browser`, `deepseek_balance`, `game_demo`, and the sibling
   `image_editor` / `archiver` / `classic-game-box` checkouts) are follow-ups.
+- **Un-numbered enhancement (accepted): keyboard focus navigation + named group
+  hover.** `igui_ui` gained a `focus` module (`FocusNav`/`FocusDir` +
+  `set_focus`/`focus_move`/`focus_up..right`/`focus_next`/`focus_prev`/
+  `focusable_nodes`/`set_focus_nav`): a directional move follows an explicit
+  named neighbor first and falls back to a spatial search, and Tab walks
+  `tab_index` then tree order (wrapping). `Control` gained `focus`/`group`/
+  `group_hover`, `InteractState` gained `group_hovered`, and `handle_input` now
+  runs a focused control's `on_key` first, then navigates the arrows/Tab, then
+  activates the focused control's nearest click callback on Enter/Space.
+  `igui_components` exposes `Component::{focus_name, focus_neighbor_up/down/
+  left/right, tab_index, group, group_hover}` and makes `Button` focusable by
+  default. `examples/demo_app` gained Focus navigation / Group hover cards with
+  end-to-end tests. Recorded in `docs/design-system.md`; see `docs/components.md`.
 - **Current stage:** none — next up Stage 32 (`igui` facade backend features).
 
 On acceptance of a whole user task, the agent writes the durable summary into

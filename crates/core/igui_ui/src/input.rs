@@ -296,28 +296,48 @@ pub fn handle_input(tree: &mut SceneTree, event: &InputEvent) -> EventResult {
             EventResult::Ignored
         }
         InputEvent::KeyDown { key } => {
-            // A focused text control owns the key first.
+            let modifiers =
+                crate::gui_state_of(tree).map_or(Modifiers::NONE, |state| state.modifiers);
+            // A focused text control owns the key first. When it ignores the
+            // key, framework focus navigation still gets a chance — a text
+            // field returns `Handled` for the arrows it uses for the caret.
             if let Some(callback) = focused_ancestor(tree, |control| control.key_callback.clone()) {
-                let modifiers =
-                    crate::gui_state_of(tree).map_or(Modifiers::NONE, |state| state.modifiers);
-                return (callback.borrow_mut())(tree, *key, true, modifiers);
-            }
-            // Otherwise Enter/Space activate a focused button.
-            if matches!(*key, Key::Enter | Key::Space) {
-                let focused = crate::gui_state_of(tree).and_then(|state| state.focused);
-                match focused {
-                    Some(focused)
-                        if tree
-                            .data::<Control>(focused)
-                            .is_some_and(|control| control.widget.is_button()) =>
-                    {
-                        activate(tree, focused);
-                        EventResult::Handled
-                    }
-                    _ => EventResult::Ignored,
+                let result = (callback.borrow_mut())(tree, *key, true, modifiers);
+                if result == EventResult::Handled {
+                    return result;
                 }
-            } else {
-                EventResult::Ignored
+            }
+            match key {
+                Key::ArrowUp if crate::focus_up(tree) => EventResult::Handled,
+                Key::ArrowDown if crate::focus_down(tree) => EventResult::Handled,
+                Key::ArrowLeft if crate::focus_left(tree) => EventResult::Handled,
+                Key::ArrowRight if crate::focus_right(tree) => EventResult::Handled,
+                Key::Tab => {
+                    let moved = if modifiers.shift {
+                        crate::focus_prev(tree)
+                    } else {
+                        crate::focus_next(tree)
+                    };
+                    if moved {
+                        EventResult::Handled
+                    } else {
+                        EventResult::Ignored
+                    }
+                }
+                // Otherwise Enter/Space activate the focused control's nearest
+                // click handler (a themed button is a Flex widget, not
+                // `Widget::Button`, so the callback is the reliable signal).
+                Key::Enter | Key::Space => {
+                    let focused = crate::gui_state_of(tree).and_then(|state| state.focused);
+                    match focused {
+                        Some(focused) if nearest_with_click(tree, focused).is_some() => {
+                            activate(tree, focused);
+                            EventResult::Handled
+                        }
+                        _ => EventResult::Ignored,
+                    }
+                }
+                _ => EventResult::Ignored,
             }
         }
         InputEvent::KeyUp { key } => {
@@ -410,6 +430,21 @@ fn activate(tree: &mut SceneTree, id: NodeId) {
     }
 }
 
+/// Nearest ancestor (including `id`) that owns a click callback.
+fn nearest_with_click(tree: &SceneTree, id: NodeId) -> Option<NodeId> {
+    let mut current = Some(id);
+    while let Some(node) = current {
+        if tree
+            .data::<Control>(node)
+            .is_some_and(|control| control.callback.is_some())
+        {
+            return Some(node);
+        }
+        current = tree.parent(node);
+    }
+    None
+}
+
 /// Nearest ancestor (including `id`) that owns a scroll callback.
 fn nearest_with_scroll(tree: &SceneTree, id: NodeId) -> Option<NodeId> {
     let mut current = Some(id);
@@ -460,6 +495,25 @@ fn set_hover(tree: &mut SceneTree, hit: Option<NodeId>) {
         }
     }
     crate::gui_state_mut(tree).hovered = hit;
+    crate::control::set_hovered_groups(tree, hovered_group_chain(tree, hit));
+}
+
+/// The named groups driven by `hit`: its own, then each ancestor's, nearest
+/// first, with duplicates collapsed.
+fn hovered_group_chain(tree: &SceneTree, hit: Option<NodeId>) -> Vec<String> {
+    let mut groups = Vec::new();
+    let mut current = hit;
+    while let Some(node) = current {
+        if let Some(control) = tree.data::<Control>(node) {
+            if let Some(group) = &control.group {
+                if !groups.iter().any(|name| name == group) {
+                    groups.push(group.clone());
+                }
+            }
+        }
+        current = tree.parent(node);
+    }
+    groups
 }
 
 // -- queries -----------------------------------------------------------------
@@ -803,6 +857,117 @@ mod tests {
                 },
             ),
             EventResult::Ignored
+        );
+    }
+
+    /// Arrow keys drive focus navigation through the normal input path.
+    #[test]
+    fn the_arrow_keys_move_focus() {
+        let mut tree = SceneTree::new();
+        let root = tree.root();
+        let container = add(&mut tree, root, ControlData::fill_parent(), panel());
+        let left = slab(&mut tree, container, 0.0, 0.0, 40.0, 40.0, panel());
+        let right = slab(&mut tree, container, 80.0, 0.0, 120.0, 40.0, panel());
+        for id in [left, right] {
+            tree.data_mut::<Control>(id).unwrap().focusable = true;
+        }
+        crate::layout(&mut tree, ViewportSize::new(Size::new(400.0, 400.0)));
+
+        assert!(crate::set_focus(&mut tree, left));
+        assert_eq!(
+            handle_input(
+                &mut tree,
+                &InputEvent::KeyDown {
+                    key: Key::ArrowRight
+                }
+            ),
+            EventResult::Handled
+        );
+        assert_eq!(crate::focused(&tree), Some(right));
+    }
+
+    /// A focused key handler defers only what it ignores: an arrow it consumes
+    /// keeps focus (a text field moves its caret), an arrow it ignores still
+    /// navigates.
+    #[test]
+    fn a_focused_key_handler_defers_only_what_it_ignores() {
+        let mut tree = SceneTree::new();
+        let root = tree.root();
+        let container = add(&mut tree, root, ControlData::fill_parent(), panel());
+        let field = slab(&mut tree, container, 0.0, 0.0, 40.0, 40.0, panel());
+        let button = slab(&mut tree, container, 80.0, 0.0, 120.0, 40.0, panel());
+        for id in [field, button] {
+            tree.data_mut::<Control>(id).unwrap().focusable = true;
+        }
+        crate::layout(&mut tree, ViewportSize::new(Size::new(400.0, 400.0)));
+        let set_handler = |tree: &mut SceneTree, result: EventResult| {
+            tree.data_mut::<Control>(field).unwrap().key_callback = Some(Rc::new(RefCell::new(
+                move |_: &mut SceneTree, _: Key, _: bool, _: Modifiers| result,
+            )));
+        };
+
+        set_handler(&mut tree, EventResult::Ignored);
+        assert!(crate::set_focus(&mut tree, field));
+        handle_input(
+            &mut tree,
+            &InputEvent::KeyDown {
+                key: Key::ArrowRight,
+            },
+        );
+        assert_eq!(
+            crate::focused(&tree),
+            Some(button),
+            "an ignored arrow navigates"
+        );
+
+        set_handler(&mut tree, EventResult::Handled);
+        assert!(crate::set_focus(&mut tree, field));
+        handle_input(
+            &mut tree,
+            &InputEvent::KeyDown {
+                key: Key::ArrowLeft,
+            },
+        );
+        assert_eq!(
+            crate::focused(&tree),
+            Some(field),
+            "a handled arrow is kept"
+        );
+    }
+
+    /// A control that declares `group_hover` lights up while the control whose
+    /// hover drives that group (or one of its descendants) is hovered.
+    #[test]
+    fn group_hover_tracks_a_named_group_under_the_pointer() {
+        let mut tree = SceneTree::new();
+        let root = tree.root();
+        let container = add(&mut tree, root, ControlData::fill_parent(), panel());
+        let card = add(&mut tree, container, ControlData::fill_parent(), panel());
+        let button = slab(&mut tree, card, 10.0, 10.0, 60.0, 40.0, panel());
+        tree.data_mut::<Control>(card).unwrap().group_hover = Some("card".to_string());
+        tree.data_mut::<Control>(button).unwrap().group = Some("card".to_string());
+        crate::layout(&mut tree, ViewportSize::new(Size::new(200.0, 200.0)));
+
+        assert!(!crate::state_for(&tree, card).group_hovered, "idle");
+        handle_input(
+            &mut tree,
+            &InputEvent::PointerMove {
+                position: Vec2::new(20.0, 20.0),
+            },
+        );
+        assert!(
+            crate::state_for(&tree, card).group_hovered,
+            "hovering the button lights the card"
+        );
+        handle_input(
+            &mut tree,
+            &InputEvent::PointerMove {
+                position: Vec2::new(150.0, 150.0),
+            },
+        );
+        assert!(
+            !crate::state_for(&tree, card).group_hovered,
+            "leaving clears it"
         );
     }
 }

@@ -25,7 +25,7 @@ use igui_render::PaintContext;
 use igui_scene::SceneTree;
 use igui_ui::layout::{FlexDirection, FlexStyle, GridStyle, SizeBasis, Track};
 use igui_ui::{
-    dynamic_surface_decor, foreground_decor, ButtonData, Control, ControlData, DragPhase,
+    dynamic_surface_decor, foreground_decor, ButtonData, Control, ControlData, DragPhase, FocusNav,
     InteractState, MouseFilter, SurfaceStyle, Widget,
 };
 
@@ -81,6 +81,13 @@ pub struct Spec {
     pub on_text: Option<TextFn>,
     pub on_ime: Option<ImeFn>,
     pub caret_provider: Option<CaretFn>,
+    /// Keyboard-focus wiring (named directional neighbors + tab index). See
+    /// [`Component::focus_neighbor_up`] and friends.
+    pub focus: FocusNav,
+    /// Name this control's hover drives for group-hover styling.
+    pub group: Option<String>,
+    /// Name of the group this control reacts to while it is hovered.
+    pub group_hover: Option<String>,
     pub children: Vec<ChildFn>,
 }
 
@@ -103,6 +110,9 @@ impl Default for Spec {
             on_text: None,
             on_ime: None,
             caret_provider: None,
+            focus: FocusNav::default(),
+            group: None,
+            group_hover: None,
             children: Vec::new(),
         }
     }
@@ -341,6 +351,64 @@ pub trait Component: Sized {
         self
     }
 
+    /// Names this component for explicit focus neighbors.
+    ///
+    /// Another component reaches it with [`focus_neighbor_up`](Self::focus_neighbor_up)
+    /// and friends; the name need not match the node's scene name.
+    fn focus_name(mut self, name: impl Into<String>) -> Self {
+        self.spec().focus.name = Some(name.into());
+        self
+    }
+
+    /// Names the component the up arrow moves to (overrides the spatial search).
+    fn focus_neighbor_up(mut self, name: impl Into<String>) -> Self {
+        self.spec().focus.up = Some(name.into());
+        self
+    }
+
+    /// Names the component the down arrow moves to (overrides the spatial search).
+    fn focus_neighbor_down(mut self, name: impl Into<String>) -> Self {
+        self.spec().focus.down = Some(name.into());
+        self
+    }
+
+    /// Names the component the left arrow moves to (overrides the spatial search).
+    fn focus_neighbor_left(mut self, name: impl Into<String>) -> Self {
+        self.spec().focus.left = Some(name.into());
+        self
+    }
+
+    /// Names the component the right arrow moves to (overrides the spatial search).
+    fn focus_neighbor_right(mut self, name: impl Into<String>) -> Self {
+        self.spec().focus.right = Some(name.into());
+        self
+    }
+
+    /// Overrides this component's Tab order (lower sorts first; components
+    /// without a value follow, in tree order).
+    fn tab_index(mut self, index: i32) -> Self {
+        self.spec().focus.tab_index = Some(index);
+        self
+    }
+
+    /// Drives the named group's hover state from this component's hover.
+    ///
+    /// A control declaring [`group_hover`](Self::group_hover) with the same
+    /// name lights up while this component (or one of its descendants) is
+    /// hovered.
+    fn group(mut self, name: impl Into<String>) -> Self {
+        self.spec().group = Some(name.into());
+        self
+    }
+
+    /// Reacts to another component's hover through a named group: the
+    /// [`InteractState`] this component's background / foreground sees reports
+    /// [`group_hovered`](InteractState::group_hovered).
+    fn group_hover(mut self, name: impl Into<String>) -> Self {
+        self.spec().group_hover = Some(name.into());
+        self
+    }
+
     /// Runs `callback` when a wheel event lands on this node or one of its
     /// descendants, with the scroll delta in logical pixels.
     ///
@@ -473,6 +541,19 @@ pub fn apply_spec(tree: &mut SceneTree, id: NodeId, spec: Spec) {
     if spec.focusable {
         if let Some(control) = tree.data_mut::<Control>(id) {
             control.focusable = true;
+        }
+    }
+    if !spec.focus.is_empty() {
+        igui_ui::set_focus_nav(tree, id, spec.focus.clone());
+    }
+    if let Some(group) = spec.group {
+        if let Some(control) = tree.data_mut::<Control>(id) {
+            control.group = Some(group);
+        }
+    }
+    if let Some(group) = spec.group_hover {
+        if let Some(control) = tree.data_mut::<Control>(id) {
+            control.group_hover = Some(group);
         }
     }
     if let Some(callback) = spec.on_key {
@@ -773,8 +854,12 @@ pub struct Button {
 
 impl Button {
     pub fn new(text: impl Into<String>) -> Self {
+        // Buttons are keyboard-focusable by default (arrow keys / Tab reach
+        // them); `.focusable(false)` opts a specific button out.
+        let mut spec = Spec::leaf();
+        spec.focusable = true;
         Self {
-            spec: Spec::leaf(),
+            spec,
             data: ButtonData::new(text),
         }
     }

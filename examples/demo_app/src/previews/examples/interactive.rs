@@ -8,13 +8,14 @@ use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use igui_components::{
-    apply_spec, Button, Card, Checkbox, Column, Component, List, ListColumn, Menu, MenuItem,
+    apply_spec, Button, Card, Checkbox, Column, Component, Flex, List, ListColumn, Menu, MenuItem,
     NodeRef, Panel, ResizeHandle, Router, Row, ScrollView, Spec, Switch, Text, TextArea, TextInput,
 };
-use igui_core::{NodeId, Size};
+use igui_core::{Color, Edges, NodeId, Rect, Size, Vec2};
+use igui_render::PaintContext;
 use igui_scene::{SceneChild, SceneTree};
-use igui_theme::{space, Theme, Tone};
-use igui_ui::{Control, SizeBasis, Widget};
+use igui_theme::{radius, space, Theme, Tone};
+use igui_ui::{Control, InteractState, SizeBasis, SurfaceStyle, Widget};
 
 use super::Ctx;
 
@@ -286,4 +287,110 @@ pub fn menu_content(tree: &mut SceneTree, node: NodeId, theme: &'static dyn Them
             .separator()
             .item(MenuItem::new("Delete", theme).destructive()),
     );
+}
+
+/// A row of buttons whose arrow keys follow `focus_name` links, not the grid:
+/// right from `Home` jumps to `Next`, skipping the `Play` in between. The
+/// focused button gets a ring; the last one activated (Enter / click) a dot.
+pub(crate) fn focus_navigation(card: Card, ctx: &mut Ctx) -> Card {
+    let theme = ctx.theme;
+    // Index of the last activated button (0 = none); shared with the click
+    // callbacks and read by the foreground at paint time.
+    let active = Rc::new(Cell::new(0u8));
+    let activate = |index: u8| {
+        let active = active.clone();
+        move || active.set(index)
+    };
+    card.child(
+        Column::new()
+            .gap(space::SM)
+            .child(
+                Text::caption(
+                    "Click a button, then use the arrow keys; Enter activates.",
+                    theme,
+                )
+                .tone(Tone::Muted),
+            )
+            .child(
+                Row::new()
+                    .gap(space::SM)
+                    .child(
+                        Button::primary("Home", theme)
+                            .focus_name("home")
+                            .focus_neighbor_right("next")
+                            .foreground(button_chrome(theme, 1, active.clone()))
+                            .on_click(activate(1)),
+                    )
+                    .child(
+                        Button::secondary("Play", theme)
+                            .focus_name("play")
+                            .focus_neighbor_left("home")
+                            .foreground(button_chrome(theme, 2, active.clone()))
+                            .on_click(activate(2)),
+                    )
+                    .child(
+                        Button::secondary("Next", theme)
+                            .focus_name("next")
+                            .focus_neighbor_left("home")
+                            .foreground(button_chrome(theme, 3, active.clone()))
+                            .on_click(activate(3)),
+                    ),
+            )
+            .child(
+                Text::caption(
+                    "Right from Home reaches Next — Play is skipped; a dot marks the last activation.",
+                    theme,
+                )
+                .tone(Tone::Subtle),
+            ),
+    )
+}
+
+/// A surface that lights up while its button is hovered (`group` /
+/// `group_hover`).
+pub(crate) fn group_hover(card: Card, ctx: &mut Ctx) -> Card {
+    let theme = ctx.theme;
+    card.child(
+        Flex::column()
+            .gap(space::SM)
+            .padding(Edges::all(space::MD))
+            .group_hover("gallery-card")
+            .dynamic_background(move |state| {
+                let palette = theme.palette();
+                let (fill, border) = if state.group_hovered {
+                    (palette.surface_hover, palette.accent)
+                } else {
+                    (palette.surface_raised, palette.border)
+                };
+                SurfaceStyle::new(fill).border(border).radius(radius::MD)
+            })
+            .child(Text::small("Hover the button", theme))
+            .child(Button::secondary("Hover me", theme).group("gallery-card")),
+    )
+}
+
+/// Focus ring plus an "activated" dot, drawn over a focus-navigation button
+/// (the components paint no focus / activation state of their own).
+fn button_chrome(
+    theme: &'static dyn Theme,
+    index: u8,
+    active: Rc<Cell<u8>>,
+) -> impl Fn(&mut PaintContext, Rect, InteractState) {
+    let ring = theme.palette().focus_ring;
+    let dot = theme.palette().success;
+    move |ctx, rect, state| {
+        if state.focused {
+            igui_ui::surface(
+                ctx,
+                rect,
+                &SurfaceStyle::new(Color::TRANSPARENT)
+                    .border(ring)
+                    .border_width(2.0)
+                    .radius(radius::MD),
+            );
+        }
+        if active.get() == index {
+            ctx.fill_circle(Vec2::new(rect.right() - 6.0, rect.top() + 6.0), 3.0, dot);
+        }
+    }
 }

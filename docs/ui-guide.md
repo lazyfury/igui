@@ -110,6 +110,11 @@ Input and interaction:
 - Drag/resize: `.on_drag(..)` with `DragPhase::{Start, Move, End}` plus delta.
 - Scroll: `.on_scroll(..)`; wheel routes to the nearest control with a scroll
   callback. Virtualized lists own this (`docs/components.md` §Scroll).
+- Keyboard focus: arrow keys / `Tab` move focus (`igui_ui::focus_move`). Wire a
+  menu with `.focus_name("play")` plus `.focus_neighbor_up/down/left/right` —
+  explicit names beat the layout — and order `Tab` with `.tab_index(i32)`.
+- Group hover: `.group("card")` on the hovered child, `.group_hover("card")` on
+  the reacting ancestor, read through `InteractState::group_hovered`.
 
 Reach a mounted node with `NodeRef` + `.ref_(&slot)` / `.with_ref(..)`, then
 `igui_components::{set_text, set_on_click, set_on_drag, set_on_scroll}`:
@@ -256,6 +261,9 @@ Read this section before scanning the repo; then open only the file you need.
 - Tokens: `igui_theme::{Theme, DefaultTheme, Tone, SurfaceLevel, space, radius,
   TextSize}`; use `igui_theme::default_theme(Mode::Dark)` / `compact_theme(..)`,
   or implement `Theme` for your own type, and pass the `&'static dyn Theme`.
+- Focus & groups: `igui_ui::{focus_move, focus_next, set_focus,
+  focusable_nodes}`; `Component::{focus_name, focus_neighbor_up/down/left/right,
+  tab_index, group, group_hover}`.
 - Types/input: `igui_core::{Rect, Size, Vec2, Edges, Color, InputEvent,
   EventResult, Cursor, Key}`; IR/commands: `igui_render::{PaintContext,
   DrawList, DrawCommand}`.

@@ -38,8 +38,12 @@ pub struct Button {
 
 impl Button {
     pub fn new(text: impl Into<String>, theme: &'static dyn Theme) -> Self {
+        // Buttons are keyboard-focusable by default (arrow keys / Tab reach
+        // them); `.focusable(false)` opts a specific button out.
+        let mut spec = Spec::leaf();
+        spec.focusable = true;
         Self {
-            spec: Spec::leaf(),
+            spec,
             theme,
             text: text.into(),
             variant: ButtonVariant::Secondary,
@@ -151,6 +155,10 @@ impl Component for Button {
         let variant = self.variant;
         let disabled = self.disabled;
         self.spec.data.disabled = disabled;
+        // A disabled button is not a focus target.
+        if disabled {
+            self.spec.focusable = false;
+        }
 
         // The theme provides the default height; an explicit `min_size` from the
         // caller (e.g. the toolbar's 32x28 icon buttons) wins.

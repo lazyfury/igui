@@ -223,6 +223,16 @@ pub const ITEMS: &[&[Item]] = &[
             blurb: "Multi-line editor with wrapping and scrolling.",
             snippet: "TextArea::new(theme).rows(3)",
         },
+        Item {
+            name: "Focus navigation",
+            blurb: "Arrow keys follow named neighbors, not the layout.",
+            snippet: "Button::new(\"Play\", theme).focus_neighbor_up(\"home\")",
+        },
+        Item {
+            name: "Group hover",
+            blurb: "A surface reacts while its button is hovered.",
+            snippet: "Button::new(\"Save\", theme).group(\"card\")",
+        },
     ],
     // Data
     &[

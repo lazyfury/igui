@@ -239,7 +239,53 @@ let count = igui_components::click_count(&tree, button);
 
 Hit testing returns the topmost control under a point, honoring `MouseFilter`
 (`Stop`/`Pass`/`Ignore`) and visibility. Keyboard (`Enter`/`Space`) activates the
-focused button. MVP does target dispatch; capture/bubble is a future extension.
+focused control's nearest click callback. MVP does target dispatch; capture/bubble
+is a future extension.
+
+### Keyboard focus & directional navigation
+
+`Enter`/`Space` activates the focused button; the arrow keys and `Tab` move
+focus. A directional move follows an explicit **named neighbor** first and
+falls back to a spatial search over the resolved rectangles, so a game menu can
+wire its buttons regardless of layout:
+
+```rust
+Button::primary("Play", theme)
+    .focus_name("play")
+    .focus_neighbor_up("home")
+    .focus_neighbor_down("next");
+```
+
+- `focus_name(name)` — the logical key other controls refer to.
+- `focus_neighbor_up/down/left/right(name)` — the control reached in that
+  direction; an unset, hidden or disabled name falls back to the nearest
+  focusable control in that direction (center distance + twice the
+  perpendicular offset).
+- `tab_index(i32)` — overrides Tab order (lower first; unset controls follow in
+  tree order, and Tab wraps).
+- `focusable(bool)` — `Button` is focusable by default; opt out explicitly.
+
+At the core it is `igui_ui::{set_focus, focus_move, focus_up..right, focus_next,
+focus_prev, set_focus_nav, focusable_nodes}` with `igui_ui::FocusNav` and
+`FocusDir`. A focused control's `on_key` runs first and focus only navigates
+when it returns `EventResult::Ignored`, so a text field keeps the arrows it uses
+for its caret. Focus targets are visible, enabled, focusable controls that are
+not clipped away entirely.
+
+### Named group hover
+
+Hover is per-node, but a control can drive a named **group** and another can
+react to it — a `Card` that lights up while one of its buttons is hovered:
+
+```rust
+Card::new(theme)
+    .group_hover("card")                    // reacts
+    .dynamic_background(move |st| if st.group_hovered { hover } else { base });
+Button::primary("Save", theme).group("card"); // drives
+```
+
+The reacting control's `InteractState` reports `group_hovered` while a control
+carrying `.group(same_name)` (or one of its descendants) is hovered.
 
 ### Drag / resize
 
@@ -364,7 +410,10 @@ nearest ancestor carrying the matching callback:
 
 A click focuses the control under the pointer; `igui_ui::focused_caret(&tree)`
 returns the focused control's caret rect and `igui_ui::request_paint(&mut tree)`
-invalidates the paint cache after a paint-only edit. Key events are separate from
+invalidates the paint cache after a paint-only edit. Arrow keys and `Tab` move
+focus between focusable controls (`igui_ui::focus_move`; explicit
+`focus_neighbor_*` names override the spatial search — see [Keyboard focus &
+directional navigation](#keyboard-focus--directional-navigation)). Key events are separate from
 committed text: a host emits `InputEvent::KeyDown` for named keys and
 `InputEvent::TextInput` for typed/committed characters, and
 `InputEvent::ModifiersChanged` whenever the platform modifier state changes

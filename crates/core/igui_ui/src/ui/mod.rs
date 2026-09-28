@@ -221,6 +221,7 @@ impl Ui {
     /// Hover/pressed/focused state of `id`, inherited from its ancestors.
     pub fn state_for(&self, tree: &SceneTree, id: NodeId) -> InteractState {
         let state = gui_state(tree).copied().unwrap_or_default();
+        let groups = crate::control::hovered_groups(tree);
         InteractState {
             hovered: state
                 .hovered
@@ -232,6 +233,9 @@ impl Ui {
                 .focused
                 .is_some_and(|node| is_self_or_ancestor(tree, node, id)),
             disabled: control_of(tree, id).is_some_and(|control| control.data.disabled),
+            group_hovered: control_of(tree, id)
+                .and_then(|control| control.group_hover.as_deref())
+                .is_some_and(|group| groups.iter().any(|name| name == group)),
         }
     }
 

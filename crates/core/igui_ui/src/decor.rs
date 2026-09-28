@@ -25,6 +25,12 @@ pub struct InteractState {
     pub focused: bool,
     /// The control (or an ancestor) is disabled, so hover / press are ignored.
     pub disabled: bool,
+    /// The group this control reacts to (declared with `Component::group_hover`)
+    /// is currently hovered. `false` when the control declares no group.
+    ///
+    /// **Non-breaking addition to `igui_ui`** together with named groups;
+    /// recorded in `docs/design-system.md`.
+    pub group_hovered: bool,
 }
 
 /// Chrome attached to one control node.

@@ -8,6 +8,7 @@ use igui_core::{
 use igui_scene::SceneTree;
 
 use crate::decor::DecorRef;
+use crate::focus::FocusNav;
 use crate::layout::{ApproxTextMeasurer, ContentSize, LayoutStyle, TextMeasurer, TextOptions};
 use crate::widget::Widget;
 
@@ -287,6 +288,16 @@ pub struct Control {
     pub ime_callback: Option<ImeCallback>,
     /// Caret rectangle provider for platform IME candidate-window placement.
     pub caret_provider: Option<CaretProvider>,
+    /// Keyboard-focus wiring (named directional neighbors + tab index).
+    /// See [`FocusNav`](crate::FocusNav) and [`focus_move`](crate::focus_move).
+    pub focus: FocusNav,
+    /// Name this control's hover drives for group-hover styling. Set with
+    /// `Component::group`; controls declaring `group_hover` light up while a
+    /// control named here (or one of its descendants) is hovered.
+    pub group: Option<String>,
+    /// Name of the group this control reacts to while it is hovered. Resolved
+    /// into [`InteractState::group_hovered`](crate::InteractState::group_hovered).
+    pub group_hover: Option<String>,
     /// Themed chrome attached by components (surfaces, foregrounds).
     pub decorations: Vec<DecorRef>,
     /// Set when this control's layout inputs changed; cleared as it is arranged.
@@ -310,6 +321,9 @@ impl Control {
             text_callback: None,
             ime_callback: None,
             caret_provider: None,
+            focus: FocusNav::default(),
+            group: None,
+            group_hover: None,
             decorations: Vec::new(),
             layout_dirty: true,
         }
@@ -391,7 +405,7 @@ pub(crate) struct LayoutCache {
 }
 
 /// Everything the UI layer stores on the root node: the text measurer,
-/// viewport GUI interaction state and the layout cache.
+/// viewport GUI interaction state, hovered groups and the layout cache.
 ///
 /// `Ui` is a zero-sized environment on top of this; the tree (root node) is the
 /// single owner of UI state. The theme is not stored here: it is a plain value
@@ -403,6 +417,10 @@ pub(crate) struct UiRootState {
     pub(crate) text_measurer: Rc<RefCell<Rc<dyn TextMeasurer>>>,
     pub(crate) gui: GuiState,
     pub(crate) layout: RefCell<LayoutCache>,
+    /// The named groups driven by the control currently under the pointer, in
+    /// nearest-to-hovered order. Filled by [`set_hover`](crate::input) and read
+    /// by [`Ui::state_for`](crate::Ui) for group-hover styling.
+    pub(crate) hovered_groups: Vec<String>,
     /// Host-provided clipboard, if any (text fields copy / cut / paste).
     pub(crate) clipboard: Option<Rc<RefCell<dyn Clipboard>>>,
     /// Bumped on every change that can alter the painted UI. Hosts compare it
@@ -417,6 +435,7 @@ impl Default for UiRootState {
             text_measurer: Rc::new(RefCell::new(Rc::new(ApproxTextMeasurer))),
             gui: GuiState::default(),
             layout: RefCell::new(LayoutCache::default()),
+            hovered_groups: Vec::new(),
             clipboard: None,
             paint_generation: 0,
         }
@@ -453,6 +472,16 @@ pub fn gui_state_mut(tree: &mut SceneTree) -> &mut GuiState {
     let state = root_state_mut(tree);
     state.paint_generation = state.paint_generation.wrapping_add(1);
     &mut state.gui
+}
+
+/// The named groups driven by the control currently under the pointer.
+pub(crate) fn hovered_groups(tree: &SceneTree) -> &[String] {
+    root_state(tree).map_or(&[], |state| state.hovered_groups.as_slice())
+}
+
+/// Replaces the set of hovered groups (called from [`set_hover`](crate::input)).
+pub(crate) fn set_hovered_groups(tree: &mut SceneTree, groups: Vec<String>) {
+    root_state_mut(tree).hovered_groups = groups;
 }
 
 /// Bumps the paint generation, marking the painted UI as changed.

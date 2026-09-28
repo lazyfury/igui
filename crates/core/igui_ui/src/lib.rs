@@ -31,6 +31,7 @@ mod cache;
 mod control;
 mod debug;
 mod decor;
+mod focus;
 mod input;
 pub mod layout;
 mod paint;
@@ -49,6 +50,10 @@ pub use control::{
 pub use debug::DebugDrawOptions;
 pub use decor::{
     dynamic_surface_decor, foreground_decor, surface_decor, DecorRef, InteractState, NodeDecor,
+};
+pub use focus::{
+    focus_down, focus_left, focus_move, focus_nav, focus_next, focus_prev, focus_right, focus_up,
+    focusable_nodes, set_focus, set_focus_nav, FocusDir, FocusNav,
 };
 pub use input::{
     focused, focused_caret, handle_input, hit_test, hovered, hovered_cursor, hovered_is_button,

@@ -5,7 +5,7 @@ use std::rc::Rc;
 
 use crate::*;
 use igui_backend_recording::RecordingBackend;
-use igui_core::{Color, Key, PointerButton};
+use igui_core::{Color, Key, NodeId, PointerButton};
 use igui_render::{DrawCommand, PaintContext, RenderBackend};
 
 fn laid_out() -> DemoApp {
@@ -25,6 +25,13 @@ fn click(app: &mut DemoApp, position: Vec2) {
         position,
         button: PointerButton::Left,
     });
+}
+
+fn group_index(name: &str) -> usize {
+    catalog::GROUPS
+        .iter()
+        .position(|group| group.name == name)
+        .unwrap_or_else(|| panic!("group {name}"))
 }
 
 /// The gallery installs a host clipboard for its text fields.
@@ -258,4 +265,146 @@ fn full_pipeline_records_a_draw_list_headlessly() {
     assert!(commands
         .iter()
         .any(|c| matches!(c, DrawCommand::FillRoundedRect { .. })));
+}
+
+/// The gallery's Focus navigation card is wired end to end: a click focuses
+/// `Home`, and the right arrow follows the named neighbor to `Next` (skipping
+/// the `Play` in between).
+#[test]
+fn the_focus_navigation_card_follows_named_neighbors() {
+    let viewport = ViewportSize::new(Size::new(1200.0, 1400.0));
+    let mut app = DemoApp::new();
+    app.update(viewport, 0.016);
+    app.show_group(group_index("Controls"));
+    app.update(viewport, 0.016);
+    app.layout(viewport);
+
+    let home = app
+        .tree()
+        .iter()
+        .find(|id| {
+            igui_ui::focus_nav(app.tree(), *id)
+                .is_some_and(|nav| nav.name.as_deref() == Some("home"))
+        })
+        .expect("the Home button");
+    let next = app
+        .tree()
+        .iter()
+        .find(|id| {
+            igui_ui::focus_nav(app.tree(), *id)
+                .is_some_and(|nav| nav.name.as_deref() == Some("next"))
+        })
+        .expect("the Next button");
+    let center = igui_ui::control(app.tree(), home)
+        .expect("Home laid out")
+        .rect
+        .center();
+
+    click(&mut app, center);
+    app.event(&InputEvent::KeyDown {
+        key: Key::ArrowRight,
+    });
+    assert_eq!(
+        igui_ui::focused(app.tree()),
+        Some(next),
+        "right from Home reaches Next, skipping Play"
+    );
+}
+
+/// The gallery's Group hover card reacts while its own button is hovered.
+#[test]
+fn the_group_hover_card_reacts_to_its_button() {
+    let viewport = ViewportSize::new(Size::new(1200.0, 1400.0));
+    let mut app = DemoApp::new();
+    app.update(viewport, 0.016);
+    app.show_group(group_index("Controls"));
+    app.update(viewport, 0.016);
+    app.layout(viewport);
+
+    let surface = app
+        .tree()
+        .iter()
+        .find(|id| {
+            app.tree()
+                .data::<igui_ui::Control>(*id)
+                .is_some_and(|control| control.group_hover.as_deref() == Some("gallery-card"))
+        })
+        .expect("the group_hover surface");
+    let button = app
+        .tree()
+        .iter()
+        .find(|id| {
+            app.tree()
+                .data::<igui_ui::Control>(*id)
+                .is_some_and(|control| control.group.as_deref() == Some("gallery-card"))
+        })
+        .expect("the group button");
+    let center = igui_ui::control(app.tree(), button)
+        .expect("button laid out")
+        .rect
+        .center();
+
+    app.event(&InputEvent::PointerMove { position: center });
+    assert!(
+        igui_ui::state_for(app.tree(), surface).group_hovered,
+        "hovering the button lights the surface"
+    );
+}
+
+/// Whether the activation dot (the `success` marker) is painted inside `button`.
+fn activation_dot_inside(app: &DemoApp, button: NodeId) -> bool {
+    let rect = igui_ui::control(app.tree(), button)
+        .expect("button laid out")
+        .rect;
+    let mut ctx = PaintContext::new();
+    app.paint(&mut ctx);
+    let list = ctx.into_draw_list();
+    let success = app.theme().palette().success;
+    list.commands().iter().any(|command| match command {
+        DrawCommand::FillCircle { center, paint, .. } => {
+            paint.color == success && rect.contains(*center)
+        }
+        _ => false,
+    })
+}
+
+/// The gallery's Focus navigation buttons respond to Enter: activating with the
+/// keyboard moves the marker to the focused button.
+#[test]
+fn enter_activates_the_focused_menu_button() {
+    let viewport = ViewportSize::new(Size::new(1200.0, 1400.0));
+    let mut app = DemoApp::new();
+    app.update(viewport, 0.016);
+    app.show_group(group_index("Controls"));
+    app.update(viewport, 0.016);
+    app.layout(viewport);
+
+    let named = |app: &DemoApp, name: &str| {
+        app.tree().iter().find(|id| {
+            igui_ui::focus_nav(app.tree(), *id).is_some_and(|nav| nav.name.as_deref() == Some(name))
+        })
+    };
+    let home = named(&app, "home").expect("the Home button");
+    let next = named(&app, "next").expect("the Next button");
+
+    let center = igui_ui::control(app.tree(), home)
+        .expect("laid out")
+        .rect
+        .center();
+    click(&mut app, center);
+    assert!(activation_dot_inside(&app, home), "the click marks Home");
+
+    app.event(&InputEvent::KeyDown {
+        key: Key::ArrowRight,
+    });
+    assert_eq!(igui_ui::focused(app.tree()), Some(next));
+    app.event(&InputEvent::KeyDown { key: Key::Enter });
+    assert!(
+        activation_dot_inside(&app, next),
+        "Enter activates the focused Next button"
+    );
+    assert!(
+        !activation_dot_inside(&app, home),
+        "and the marker moves off Home"
+    );
 }

@@ -161,6 +161,13 @@ Surfaces are usually static, but selection and hover need per-frame styles:
 `dynamic_surface_decor(|state| ...)` recomputes a `SurfaceStyle` from the node's
 `InteractState` on every frame; the closure captures the theme/colors it needs.
 
+Beyond the node itself, a control can drive a named **group**
+(`Component::group`) and another can react to it (`Component::group_hover`): the
+reacting control's `InteractState::group_hovered` is true while a control carrying
+that group (or a descendant) is hovered, so a card can light up with its button.
+Keyboard focus moves with the arrow keys and `Tab` (`igui_ui::focus_move`), with
+explicit per-control named neighbors; see `docs/components.md`.
+
 ### Demo
 
 `examples/demo_app` is a **component gallery**: a sidebar of groups, a preview
@@ -520,6 +527,33 @@ backward-compatible addition and record it here.
   `igui_headless` records frames for a winit-free `--selfcheck`. `Host` /
   `HostOptions` / `RenderOutcome` are removed. `examples/wgpu_demo` is the
   reference migration; the core crates never depend on any of it.
+
+- **Directional focus navigation + named group hover**: keyboard navigation was
+  ad-hoc — only `focusable` + `autofocus` existed and `handle_input` did nothing
+  for arrows or `Tab` — and hover was per-node, so a parent could not react to a
+  child's hover. `igui_ui` gained a `focus` module: `FocusNav` (a logical `name`,
+  explicit `up`/`down`/`left`/`right` neighbor names, and an optional
+  `tab_index`) stored on `Control`, plus `set_focus` / `focus_move` /
+  `focus_up..right` / `focus_next` / `focus_prev` / `focusable_nodes` /
+  `set_focus_nav` / `focus_nav` and `FocusDir`. A directional move follows an
+  explicit named neighbor first and falls back to a spatial search over the
+  resolved rectangles (axis distance + twice the perpendicular offset), so a game
+  menu can wire `up -> home`, `right -> play`, `down -> next` regardless of
+  layout; `Tab` walks `tab_index` then tree order, wrapping. `handle_input` runs a
+  focused control's `key_callback` first and only navigates when it returns
+  `Ignored`, so a text field keeps the arrows it uses for its caret; `Enter` /
+  `Space` now activate the focused control's nearest click callback (a themed
+  button is a `Widget::Flex`, so the old `Widget::Button`-only check missed it).
+  Named group
+  hover adds `Control::group` (this control's hover drives the group) and
+  `Control::group_hover` (this control reacts to the group); `set_hover` collects
+  the names on the hover path into `UiRootState::hovered_groups`, and
+  `InteractState` gained `group_hovered` so a `dynamic_background` can light a
+  `Card` while its `Button` is hovered. `igui_components` exposes both as
+  `Component::{focus_name, focus_neighbor_up/down/left/right, tab_index, group,
+  group_hover}` (stored on `Spec`), and `Button` (base and themed) is
+  `focusable` by default. Additive on the whole: `Widget`, `ControlData` and
+  `GuiState` keep their shapes; `Control` and `InteractState` gained fields only.
 
 ## Deferred
 

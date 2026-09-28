@@ -77,6 +77,8 @@ pub(super) const EXAMPLES: &[&[ExampleFn]] = &[
         interactive::resize,
         interactive::text_input,
         interactive::text_area,
+        interactive::focus_navigation,
+        interactive::group_hover,
     ],
     // Data
     &[
