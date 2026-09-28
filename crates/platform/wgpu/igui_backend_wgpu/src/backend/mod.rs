@@ -52,8 +52,13 @@ use pipeline::{bind_group, upload_texture};
 
 /// Formats the offscreen render target uses.
 const TARGET_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
-/// Multisample count for the render target (geometry anti-aliasing).
-const MSAA_SAMPLES: u32 = 4;
+/// Default multisample count for the render target (geometry anti-aliasing).
+///
+/// The active count lives in [`WgpuBackend::msaa_samples`] and may be changed at
+/// runtime with [`WgpuBackend::set_msaa_samples`]; `1` disables MSAA entirely.
+const DEFAULT_MSAA_SAMPLES: u32 = 4;
+/// Initial capacity of the reusable per-backend vertex buffer, in bytes.
+const INITIAL_VERTEX_BUFFER_BYTES: u64 = 16 * 1024;
 /// Circle tessellation resolution.
 const CIRCLE_SEGMENTS: u32 = 64;
 /// UVs used when sampling the 1x1 white texture (any UV works).
@@ -208,6 +213,20 @@ pub(super) struct DrawRange {
     pub(super) scissor: Option<[u32; 4]>,
 }
 
+/// The last single-list frame's tessellated geometry, kept so an unchanged
+/// `DrawList` reuses `WgpuBackend::vertices` / `WgpuBackend::ranges` instead of
+/// being tessellated again.
+///
+/// The device geometry (NDC positions and scissors) is baked at tessellation
+/// time, so the cache is only valid for the same `device_width` /
+/// `device_height` / `scale_factor`; a resize invalidates it.
+pub(super) struct CachedGeometry {
+    pub(super) list: DrawList,
+    pub(super) device_width: f32,
+    pub(super) device_height: f32,
+    pub(super) scale_factor: f32,
+}
+
 /// The clip after resolving the current state against the target.
 #[derive(Debug, Clone, Copy)]
 pub(super) enum ClipResult {
@@ -244,12 +263,14 @@ pub(super) struct OffscreenTarget {
 
 /// A multisampled colour target that resolves into the frame's texture.
 ///
-/// Kept per size/format and reused across frames; the requested `view` holds the
-/// texture alive, so the texture handle itself does not need to be stored.
+/// Kept per size/format/sample-count and reused across frames; the requested
+/// `view` holds the texture alive, so the texture handle itself does not need to
+/// be stored.
 pub(super) struct MsaaTarget {
     pub(super) width: u32,
     pub(super) height: u32,
     pub(super) format: wgpu::TextureFormat,
+    pub(super) samples: u32,
     pub(super) view: wgpu::TextureView,
 }
 
@@ -272,8 +293,9 @@ pub(super) struct RenderTarget {
 /// the surface texture view supplied by the caller.
 pub(super) struct Frame {
     pub(super) view: wgpu::TextureView,
-    /// Multisampled colour attachment; resolves into [`Frame::view`].
-    pub(super) msaa_view: wgpu::TextureView,
+    /// Multisampled colour attachment; resolves into [`Frame::view`]. `None`
+    /// when MSAA is disabled, in which case [`Frame::view`] is drawn directly.
+    pub(super) msaa_view: Option<wgpu::TextureView>,
     pub(super) width: u32,
     pub(super) height: u32,
     pub(super) format: wgpu::TextureFormat,
@@ -318,6 +340,8 @@ pub struct WgpuBackend {
     pub(super) offscreen: Option<OffscreenTarget>,
     pub(super) msaa: Option<MsaaTarget>,
     pub(super) frame: Option<Frame>,
+    /// Active multisample count; `1` disables MSAA.
+    pub(super) msaa_samples: u32,
 
     // Per-frame CPU staging.
     pub(super) in_frame: bool,
@@ -330,6 +354,16 @@ pub struct WgpuBackend {
     pub(super) stack: Vec<State>,
     pub(super) vertices: Vec<Vertex>,
     pub(super) ranges: Vec<DrawRange>,
+
+    // Cross-frame reuse. `vertices` / `ranges` outlive a frame so a single-list
+    // frame whose list is unchanged is neither re-tessellated nor re-uploaded.
+    /// Number of `submit` calls in the current frame.
+    pub(super) submitted: u32,
+    /// Whether the first `submit` of the frame reused cached geometry.
+    pub(super) reused: bool,
+    pub(super) cached_geometry: Option<CachedGeometry>,
+    /// A single growing buffer the frame's vertices are written into.
+    pub(super) vertex_buffer: Option<wgpu::Buffer>,
 }
 
 impl WgpuBackend {
@@ -422,6 +456,77 @@ impl WgpuBackend {
     /// Sets the color the render target is cleared to each frame.
     pub fn set_clear_color(&mut self, color: Color) {
         self.clear = color;
+    }
+
+    /// Sets the multisample count used for geometry anti-aliasing.
+    ///
+    /// `1` disables MSAA (a single-sample pass); `2`, `4` and `8` enable it. Any
+    /// other value is snapped up to the nearest supported count. Changing the
+    /// count drops the multisample target and cached pipelines, which are rebuilt
+    /// on the next frame — call this between frames, not mid-frame.
+    pub fn set_msaa_samples(&mut self, samples: u32) {
+        let samples = match samples {
+            0 | 1 => 1,
+            2 => 2,
+            3..=4 => 4,
+            _ => 8,
+        };
+        if samples == self.msaa_samples {
+            return;
+        }
+        self.msaa_samples = samples;
+        self.msaa = None;
+        self.pipelines.clear();
+        self.effect_pipelines.clear();
+    }
+
+    /// The active multisample count (`1` means MSAA is disabled).
+    pub fn msaa_samples(&self) -> u32 {
+        self.msaa_samples
+    }
+
+    /// Uploads the current [`WgpuBackend::vertices`] into the reusable vertex
+    /// buffer and returns a handle to draw from, or `None` when there is no
+    /// geometry.
+    ///
+    /// Reusing one growing buffer avoids allocating a fresh GPU vertex buffer
+    /// every frame.
+    pub(super) fn stage_vertices(&mut self) -> Option<wgpu::Buffer> {
+        if self.vertices.is_empty() {
+            return None;
+        }
+        let bytes: &[u8] = bytemuck::cast_slice(&self.vertices);
+        let needed = bytes.len() as u64;
+        // A frame whose single list was reused already has these exact vertices
+        // in the buffer from the previous frame; skip the upload entirely.
+        if let (true, 1, Some(buffer)) =
+            (self.reused, self.submitted, self.vertex_buffer.as_ref())
+        {
+            if buffer.size() >= needed {
+                return Some(buffer.clone());
+            }
+        }
+        let reallocate = match self.vertex_buffer.as_ref() {
+            Some(buffer) => buffer.size() < needed,
+            None => true,
+        };
+        if reallocate {
+            let capacity = needed.next_power_of_two().max(INITIAL_VERTEX_BUFFER_BYTES);
+            let buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("igui_backend_wgpu.vertices"),
+                size: capacity,
+                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            });
+            self.vertex_buffer = Some(buffer);
+        }
+        let buffer = self
+            .vertex_buffer
+            .as_ref()
+            .expect("vertex buffer created above")
+            .clone();
+        self.queue.write_buffer(&buffer, 0, bytes);
+        Some(buffer)
     }
 
     /// Registers an RGBA8 image so `DrawImage` can reference it by [`TextureId`].
@@ -520,6 +625,23 @@ impl WgpuBackend {
         }
     }
 
+    /// Removes a registered texture, freeing its GPU resources.
+    ///
+    /// [`register_texture`](Self::register_texture) keeps an uploaded texture
+    /// alive until it is replaced or removed. Call this when an image is deleted
+    /// so a large upload (a cover, a screenshot) does not stay resident for the
+    /// lifetime of the process. A no-op for an unknown id.
+    pub fn remove_texture(&mut self, id: TextureId) {
+        self.textures.remove(&id);
+        self.texture_objects.remove(&id);
+        self.texture_sizes.remove(&id);
+        self.texture_filters.remove(&id);
+        self.texture_effects.remove(&id);
+        // A cached frame may reference `id` (`image_uv` size lookup); drop it so
+        // the next submission re-tessellates and skips the removed image.
+        self.cached_geometry = None;
+    }
+
     /// The effect recorded for `id` (`None` when none was set).
     pub(super) fn effect_for(&self, id: TextureId) -> TextureEffect {
         self.texture_effects.get(&id).copied().unwrap_or_default()
@@ -540,6 +662,7 @@ impl WgpuBackend {
             &self.bind_group_layout,
             format,
             effect.entry_point(),
+            self.msaa_samples,
         );
         self.effect_pipelines.insert((effect, format), pipeline);
     }
@@ -732,12 +855,7 @@ impl RenderBackend for WgpuBackend {
             .expect("offscreen target created above")
             .view
             .clone();
-        let msaa_view = self
-            .msaa
-            .as_ref()
-            .expect("msaa target created above")
-            .view
-            .clone();
+        let msaa_view = self.msaa.as_ref().map(|target| target.view.clone());
         self.frame = Some(Frame {
             view,
             msaa_view,
@@ -753,10 +871,42 @@ impl RenderBackend for WgpuBackend {
         if !self.in_frame {
             return Err(WgpuError::NotInFrame);
         }
+        self.submitted += 1;
+        if self.submitted == 1 {
+            // A single-list frame reuses the previous frame's geometry when the
+            // list and the device geometry are unchanged.
+            let reuse = self.cached_geometry.as_ref().is_some_and(|cache| {
+                cache.device_width == self.device_width
+                    && cache.device_height == self.device_height
+                    && cache.scale_factor == self.scale_factor
+                    && cache.list == *list
+            });
+            if reuse {
+                self.reused = true;
+                return Ok(());
+            }
+            self.vertices.clear();
+            self.ranges.clear();
+        } else {
+            // More than one list per frame is no longer cacheable. The first list
+            // may have been reused, in which case its geometry is still present
+            // and this list simply appends to it.
+            self.cached_geometry = None;
+        }
+        self.state = State::default();
+        self.stack.clear();
         for command in list.commands() {
             self.execute(command);
         }
         self.upload_pending_font_glyphs();
+        if self.submitted == 1 {
+            self.cached_geometry = Some(CachedGeometry {
+                list: list.clone(),
+                device_width: self.device_width,
+                device_height: self.device_height,
+                scale_factor: self.scale_factor,
+            });
+        }
         Ok(())
     }
 
@@ -765,6 +915,13 @@ impl RenderBackend for WgpuBackend {
             return Err(WgpuError::NotInFrame);
         }
         self.in_frame = false;
+        // A frame with no submit draws nothing; drop both the geometry and the
+        // cache so a later frame cannot replay stale vertices.
+        if self.submitted == 0 {
+            self.vertices.clear();
+            self.ranges.clear();
+            self.cached_geometry = None;
+        }
         self.render_frame();
         Ok(())
     }

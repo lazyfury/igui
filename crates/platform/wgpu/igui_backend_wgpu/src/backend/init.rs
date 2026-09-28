@@ -170,6 +170,7 @@ impl WgpuBackend {
             offscreen: None,
             msaa: None,
             frame: None,
+            msaa_samples: DEFAULT_MSAA_SAMPLES,
             in_frame: false,
             viewport: ViewportSize::default(),
             scale_factor: 1.0,
@@ -180,6 +181,10 @@ impl WgpuBackend {
             stack: Vec::new(),
             vertices: Vec::new(),
             ranges: Vec::new(),
+            submitted: 0,
+            reused: false,
+            cached_geometry: None,
+            vertex_buffer: None,
         })
     }
 }

@@ -12,6 +12,7 @@ pub(super) fn create_render_pipeline(
     bind_group_layout: &wgpu::BindGroupLayout,
     format: wgpu::TextureFormat,
     fragment_entry: &str,
+    samples: u32,
 ) -> wgpu::RenderPipeline {
     let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: Some("igui_backend_wgpu.pipeline_layout"),
@@ -30,7 +31,7 @@ pub(super) fn create_render_pipeline(
         primitive: wgpu::PrimitiveState::default(),
         depth_stencil: None,
         multisample: wgpu::MultisampleState {
-            count: MSAA_SAMPLES,
+            count: samples,
             mask: !0,
             alpha_to_coverage_enabled: false,
         },

@@ -2,7 +2,6 @@
 
 use super::*;
 use pipeline::create_render_pipeline;
-use wgpu::util::DeviceExt;
 
 impl WgpuBackend {
     /// Begins a frame that renders into an external view, such as the texture
@@ -25,12 +24,7 @@ impl WgpuBackend {
         self.ensure_pipeline(format);
         self.ensure_msaa(width, height, format);
         self.start_frame(viewport, width, height)?;
-        let msaa_view = self
-            .msaa
-            .as_ref()
-            .expect("msaa target created above")
-            .view
-            .clone();
+        let msaa_view = self.msaa.as_ref().map(|target| target.view.clone());
         self.frame = Some(Frame {
             view,
             msaa_view,
@@ -59,6 +53,7 @@ impl WgpuBackend {
             &self.bind_group_layout,
             format,
             "fs_main",
+            self.msaa_samples,
         );
         self.pipelines.insert(format, pipeline);
     }
@@ -79,8 +74,10 @@ impl WgpuBackend {
         self.device_height = height as f32;
         self.state = State::default();
         self.stack.clear();
-        self.vertices.clear();
-        self.ranges.clear();
+        // `vertices` / `ranges` are deliberately kept: a frame whose single
+        // submitted list matches the cached one reuses them (see `submit`).
+        self.submitted = 0;
+        self.reused = false;
         Ok(())
     }
 
@@ -113,11 +110,22 @@ impl WgpuBackend {
     }
 
     /// Ensures a multisampled colour target exists for `width`x`height`/`format`.
+    ///
+    /// When [`WgpuBackend::set_msaa_samples`] is `1`, MSAA is disabled and no
+    /// target is kept: frames render single-sampled straight to their view.
     pub(super) fn ensure_msaa(&mut self, width: u32, height: u32, format: wgpu::TextureFormat) {
+        let samples = self.msaa_samples;
+        if samples <= 1 {
+            self.msaa = None;
+            return;
+        }
         if matches!(
             &self.msaa,
             Some(target)
-                if target.width == width && target.height == height && target.format == format
+                if target.width == width
+                    && target.height == height
+                    && target.format == format
+                    && target.samples == samples
         ) {
             return;
         }
@@ -129,7 +137,7 @@ impl WgpuBackend {
                 depth_or_array_layers: 1,
             },
             mip_level_count: 1,
-            sample_count: MSAA_SAMPLES,
+            sample_count: samples,
             dimension: wgpu::TextureDimension::D2,
             format,
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
@@ -140,6 +148,7 @@ impl WgpuBackend {
             width,
             height,
             format,
+            samples,
             view,
         });
     }
@@ -167,6 +176,9 @@ impl WgpuBackend {
             self.ensure_effect_pipeline(format, effect);
         }
 
+        // Stage the vertices before borrowing the pipeline cache immutably.
+        let vertex_buffer = self.stage_vertices();
+
         let Some(default_pipeline) = self.pipelines.get(&format) else {
             return;
         };
@@ -177,19 +189,6 @@ impl WgpuBackend {
                 label: Some("igui_backend_wgpu.encoder"),
             });
 
-        let vertex_buffer = if self.vertices.is_empty() {
-            None
-        } else {
-            Some(
-                self.device
-                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                        label: Some("igui_backend_wgpu.vertices"),
-                        contents: bytemuck::cast_slice(&self.vertices),
-                        usage: wgpu::BufferUsages::VERTEX,
-                    }),
-            )
-        };
-
         let clear = wgpu::Color {
             r: self.clear.r as f64,
             g: self.clear.g as f64,
@@ -198,14 +197,21 @@ impl WgpuBackend {
         };
 
         {
+            // With MSAA the multisampled texture is the attachment and resolves
+            // into the frame view; without it the frame view is drawn directly
+            // and must be stored.
+            let (attachment, resolve_target, store) = match msaa_view.as_ref() {
+                Some(target) => (target, Some(&view), wgpu::StoreOp::Discard),
+                None => (&view, None, wgpu::StoreOp::Store),
+            };
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("igui_backend_wgpu.pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &msaa_view,
-                    resolve_target: Some(&view),
+                    view: attachment,
+                    resolve_target,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(clear),
-                        store: wgpu::StoreOp::Discard,
+                        store,
                     },
                 })],
                 depth_stencil_attachment: None,

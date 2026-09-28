@@ -853,3 +853,115 @@ fn frame_lifecycle_reports_misuse() {
     assert!(backend.begin_frame(viewport(8.0, 8.0)).is_err());
     backend.end_frame().unwrap();
 }
+
+#[test]
+fn an_unchanged_frame_reuses_cached_geometry() {
+    let Some(mut backend) = backend() else {
+        return;
+    };
+    let viewport = viewport(24.0, 24.0);
+
+    let list = |color: Color, pos: Vec2| {
+        let mut ctx = PaintContext::new();
+        ctx.fill_rect(Rect::from_min_size(pos, Size::splat(8.0)), color);
+        ctx.into_draw_list()
+    };
+    let red = list(Color::RED, Vec2::ZERO);
+    let green = list(Color::GREEN, Vec2::splat(16.0));
+
+    let draw = |backend: &mut WgpuBackend, list: &igui_render::DrawList| {
+        backend.begin_frame(viewport).unwrap();
+        backend.submit(list).unwrap();
+        backend.end_frame().unwrap();
+        backend.read_pixels().unwrap()
+    };
+
+    // Miss (cache the red frame), hit (reuse it), miss (green), miss (red again):
+    // every frame must show the list it was given, never a stale cached one.
+    let first = draw(&mut backend, &red);
+    assert_pixel(&first, 4, 4, [255, 0, 0, 255]);
+    assert_pixel(&first, 20, 20, [0, 0, 0, 0]);
+
+    let reused = draw(&mut backend, &red);
+    assert_pixel(&reused, 4, 4, [255, 0, 0, 255]);
+    assert_pixel(&reused, 20, 20, [0, 0, 0, 0]);
+
+    let changed = draw(&mut backend, &green);
+    assert_pixel(&changed, 4, 4, [0, 0, 0, 0]);
+    assert_pixel(&changed, 20, 20, [0, 255, 0, 255]);
+
+    let again = draw(&mut backend, &red);
+    assert_pixel(&again, 4, 4, [255, 0, 0, 255]);
+    assert_pixel(&again, 20, 20, [0, 0, 0, 0]);
+}
+
+#[test]
+fn msaa_can_be_disabled_and_restored() {
+    let Some(mut backend) = backend() else {
+        return;
+    };
+    let viewport = viewport(16.0, 16.0);
+    let mut ctx = PaintContext::new();
+    ctx.fill_rect(
+        Rect::from_min_size(Vec2::ZERO, Size::splat(16.0)),
+        Color::RED,
+    );
+    let list = ctx.into_draw_list();
+
+    let draw = |backend: &mut WgpuBackend| {
+        backend.begin_frame(viewport).unwrap();
+        backend.submit(&list).unwrap();
+        backend.end_frame().unwrap();
+        backend.read_pixels().unwrap()
+    };
+
+    backend.set_msaa_samples(1);
+    assert_eq!(backend.msaa_samples(), 1);
+    assert_pixel(&draw(&mut backend), 8, 8, [255, 0, 0, 255]);
+
+    backend.set_msaa_samples(4);
+    assert_eq!(backend.msaa_samples(), 4);
+    assert_pixel(&draw(&mut backend), 8, 8, [255, 0, 0, 255]);
+
+    // Values below 2 snap to the disabled single-sample path.
+    backend.set_msaa_samples(0);
+    assert_eq!(backend.msaa_samples(), 1);
+}
+
+#[test]
+fn removing_a_texture_frees_it() {
+    let Some(mut backend) = backend() else {
+        return;
+    };
+    let viewport = viewport(16.0, 16.0);
+    let id = TextureId::new(4096);
+    backend
+        .register_texture(id, 1, 1, &[255, 0, 0, 255])
+        .unwrap();
+
+    let list = || {
+        let mut ctx = PaintContext::new();
+        ctx.draw_image(
+            id,
+            Rect::from_min_size(Vec2::ZERO, Size::splat(16.0)),
+            None,
+            Paint::default(),
+        );
+        ctx.into_draw_list()
+    };
+    let render = |backend: &mut WgpuBackend, list: &igui_render::DrawList| {
+        backend.begin_frame(viewport).unwrap();
+        backend.submit(list).unwrap();
+        backend.end_frame().unwrap();
+        backend.read_pixels().unwrap()
+    };
+
+    // The registered 1x1 red texture stretches over the target.
+    let before = render(&mut backend, &list());
+    assert_pixel(&before, 8, 8, [255, 0, 0, 255]);
+
+    // After removal there is no texture to sample, so the image draws nothing.
+    backend.remove_texture(id);
+    let after = render(&mut backend, &list());
+    assert_pixel(&after, 8, 8, [0, 0, 0, 0]);
+}
