@@ -1,6 +1,6 @@
 # Plan
 
-Working roadmap for the design system (`cobbled_theme` + `cobbled_components`), the drawing
+Working roadmap for the design system (`rough_theme` + `rough_components`), the drawing
 primitives, and the demo. Keep this short and move finished items to the
 "Done" section rather than deleting them.
 
@@ -12,13 +12,13 @@ primitives, and the demo. Keep this short and move finished items to the
 > `godot-migration.md` wins.
 
 > **Stages 26-31 approved** (animation + game + GameView + `quill` facade):
-> `cobbled_anim` (26), refresh decoupling (27), `cobbled_game` (28), GameView /
+> `rough_anim` (26), refresh decoupling (27), `rough_game` (28), GameView /
 > sub-viewport + fixed timestep (29), `examples/game_demo` (30), `quill` facade
 > (31). See `docs/godot-migration.md` → "Approved plan — Stages 26-31".
 
 ## Drawing primitives
 
-The render IR (`cobbled_render::DrawCommand`) is the backend-neutral surface. Keep
+The render IR (`rough_render::DrawCommand`) is the backend-neutral surface. Keep
 it monochrome/solid-paint only until a real need appears.
 
 | Primitive | Status | Notes |
@@ -28,15 +28,15 @@ it monochrome/solid-paint only until a real need appears.
 | `FillRoundedRect` / `StrokeRoundedRect` | done | radius clamped to half the smaller side |
 | `Line` | done | `from`/`to`/`width`; butt caps; thin quad on wgpu |
 | `Arc` / `Ellipse` | planned | spinners, progress rings, gauges |
-| `Path` (polyline/polygon) | partial | `cobbled_svg` strokes SVG paths with `Line` + `FillCircle`; a native `Path` IR primitive is still planned |
+| `Path` (polyline/polygon) | partial | `rough_svg` strokes SVG paths with `Line` + `FillCircle`; a native `Path` IR primitive is still planned |
 | Rounded `ClipRect` | planned | rounded image masks / cards |
 | Gradients / patterns | later | `Paint` grows variants without changing command shapes |
 
 Every new primitive must be implemented in **all** backends
-(`cobbled_backend_canvas`, `cobbled_backend_wgpu`, `cobbled_backend_recording`) and
-audited by `cobbled_profile`'s inspector, or it is not "done".
+(`rough_backend_canvas`, `rough_backend_wgpu`, `rough_backend_recording`) and
+audited by `rough_profile`'s inspector, or it is not "done".
 
-## Components (`cobbled_components`)
+## Components (`rough_components`)
 
 | Component | Status | Notes |
 |---|---|---|
@@ -45,7 +45,7 @@ audited by `cobbled_profile`'s inspector, or it is not "done".
 | `Checkbox`, `Switch` | done | shared `Rc<Cell<_>>` state |
 | `Radio` / `RadioGroup` | next | same interaction layer as `Checkbox` |
 | `Tabs` | next | active indicator, keyboard focus |
-| `Input` / `TextArea` | done | interactive editors: caret, selection (char/word/line), password masking, IME preedit; `TextEdit` state in `cobbled_ui::text_edit`; `docs/components.md` §Text fields |
+| `Input` / `TextArea` | done | interactive editors: caret, selection (char/word/line), password masking, IME preedit; `TextEdit` state in `rough_ui::text_edit`; `docs/components.md` §Text fields |
 | `Select` / `Dropdown` | next | menu surface + selected state |
 | `Tooltip` | done | `Overlays::tips`, anchored and hover-tracked |
 | `List` | done | virtualized: mounts the viewport's rows (+1 buffer) and recycles them; rows come from a `RowSource`; wheel + click + selection; `docs/components.md` |
@@ -63,10 +63,10 @@ Tokens, palette, density and the `Theme` trait API are documented in
 [`docs/design-system.md`](design-system.md); font resolution and shaping in
 [`docs/font.md`](font.md). Remaining roadmap:
 
-- **Font weight (done).** `cobbled_core::FontWeight` (numeric 100–900) rides the
-  IR, `cobbled_ui::TextOptions::weight` and `Theme::font_weight(TextSize)`;
+- **Font weight (done).** `rough_core::FontWeight` (numeric 100–900) rides the
+  IR, `rough_ui::TextOptions::weight` and `Theme::font_weight(TextSize)`;
   `Text`/`Button` expose `.weight(..)`/`.bold()`.
-- **`FontServer` (done).** `cobbled_font` discovers system families/weights,
+- **`FontServer` (done).** `rough_font` discovers system families/weights,
   resolves `(family, weight)` with per-character fallback, shapes and rasterizes
   into a shared atlas — replacing the fixed candidate-path loading.
 - **Configurable font metrics (planned).** Add `line_height_ratio` /
@@ -75,16 +75,16 @@ Tokens, palette, density and the `Theme` trait API are documented in
   defaults keep today's behaviour. A host can already override
   `TextMeasurer::ascent` (as `image_editor` does for its bundled CJK font).
 
-## Component layer (`cobbled_components`)
+## Component layer (`rough_components`)
 
 Components are the public construction API: attach with `SceneTree::add_child`,
 compose with `.child(..)`, and mutate nodes with `Component` modifiers
-(`grow`, `min_size`, `background`, `foreground`, `on_click`, …). `cobbled_components`
-owns `Component` + `Spec`, the base primitives (`cobbled_components::base`) and the
+(`grow`, `min_size`, `background`, `foreground`, `on_click`, …). `rough_components`
+owns `Component` + `Spec`, the base primitives (`rough_components::base`) and the
 themed library. Remaining polish, in priority order:
 
 1. **Reactive text bindings** — add `Text::dynamic(|| …)` (a text source on
-   labels) so `update()` stops calling `cobbled_components::set_text`; the runtime
+   labels) so `update()` stops calling `rough_components::set_text`; the runtime
    re-evaluates the closure at layout/paint.
 2. **Explicit rect anchors** — allow a popover/menu to anchor to a raw `Rect` or
    pointer position (context menus), not only a laid-out `NodeId`.
@@ -111,10 +111,10 @@ themed library. Remaining polish, in priority order:
 
 `Ui` is necessary as the retained UI document + layout/paint/input runtime, but
 it is currently a god object and overlaps `SceneTree` on "who owns a control".
-Godot puts `Control` data on the node; here `cobbled_scene` stays a generic draw
+Godot puts `Control` data on the node; here `rough_scene` stays a generic draw
 graph and UI data lives in `Ui`'s `NodeId`-keyed maps. Priority order:
 
-**Resolved (Stage 25).** The `Ui` object was removed entirely; `cobbled_ui` is now
+**Resolved (Stage 25).** The `Ui` object was removed entirely; `rough_ui` is now
 free functions over the tree, and every per-control runtime value
 (`ControlData`/`Widget`/decorators/callback) lives on the node's extension slot.
 The layout cache, GUI interaction state and text measurer live on the root; the
@@ -122,24 +122,24 @@ The layout cache, GUI interaction state and text measurer live on the root; the
 
 ## Core hardening (design-review follow-ups)
 
-Findings from a design review of `cobbled_core` / `cobbled_render` / `cobbled_scene` /
-`cobbled_ui` / `cobbled_components`. All fixes keep the core backend-neutral; land them in
+Findings from a design review of `rough_core` / `rough_render` / `rough_scene` /
+`rough_ui` / `rough_components`. All fixes keep the core backend-neutral; land them in
 priority order and add native tests.
 
 | # | Item | Severity | Where |
 |---|---|---|---|
-| 1 | Extension slot is **single-type**: `Node::set_data` replaces the one `Box<dyn Any>`, so storing app data on a `Control` node silently destroys its `Control` runtime, and a node cannot hold both. Make the slot type-keyed (`HashMap<TypeId, Box<dyn Any>>`) or give `Control` a dedicated field. | high | `cobbled_scene/src/node.rs:369`, `tree.rs:176` |
-| 2 | `SceneTree::paint` includes **every** canvas item with a `Visual`, not just `Node2D`; a `Control` with a `Visual` would be painted twice (scene + `cobbled_ui`). Filter by node kind / ownership. | medium | `cobbled_scene/src/paint.rs:66` |
-| 3 | **Resource lifecycle is not in the IR contract**: `RenderBackend` has no texture registration; each backend registers privately (e.g. Canvas `register_image`). Document it as a backend extension point, and consider a minimal `register_texture` contract. | medium | `cobbled_render/src/backend.rs`, `texture.rs` |
-| 4 | `DrawCommand::DrawText` owns a `String` (one allocation per text command per frame). Revisit (`Rc<str>`/interned text) only if it shows in the benchmarks. | low | `cobbled_render/src/command.rs` |
-| 5 | Naming: cross-link `cobbled_core::ViewportSize` vs `cobbled_scene::Viewport` docs; clarify that the internal zero-sized `cobbled_ui` `Ui` namespace is not a public object. | low | `cobbled_core`, `cobbled_ui/src/ui/mod.rs` |
+| 1 | Extension slot is **single-type**: `Node::set_data` replaces the one `Box<dyn Any>`, so storing app data on a `Control` node silently destroys its `Control` runtime, and a node cannot hold both. Make the slot type-keyed (`HashMap<TypeId, Box<dyn Any>>`) or give `Control` a dedicated field. | high | `rough_scene/src/node.rs:369`, `tree.rs:176` |
+| 2 | `SceneTree::paint` includes **every** canvas item with a `Visual`, not just `Node2D`; a `Control` with a `Visual` would be painted twice (scene + `rough_ui`). Filter by node kind / ownership. | medium | `rough_scene/src/paint.rs:66` |
+| 3 | **Resource lifecycle is not in the IR contract**: `RenderBackend` has no texture registration; each backend registers privately (e.g. Canvas `register_image`). Document it as a backend extension point, and consider a minimal `register_texture` contract. | medium | `rough_render/src/backend.rs`, `texture.rs` |
+| 4 | `DrawCommand::DrawText` owns a `String` (one allocation per text command per frame). Revisit (`Rc<str>`/interned text) only if it shows in the benchmarks. | low | `rough_render/src/command.rs` |
+| 5 | Naming: cross-link `rough_core::ViewportSize` vs `rough_scene::Viewport` docs; clarify that the internal zero-sized `rough_ui` `Ui` namespace is not a public object. | low | `rough_core`, `rough_ui/src/ui/mod.rs` |
 
 ## Demo (`examples/demo_app`)
 
 The shared `demo_app` is a component gallery (groups → preview `Router` → live
 cards), each preview page wrapped in a `ScrollView` so a short window still
 reaches every card. It now has an **Animation** group: `DemoApp` owns a
-`cobbled_anim::Animator` that (only while that page is visible) tweens an external
+`rough_anim::Animator` that (only while that page is visible) tweens an external
 `Rc<Cell<f32>>` which two cards read in their `foreground` at paint time, and
 `DemoApp::needs_frame()` reports a running tween / transient overlay / pending
 layout / scene / UI change. `examples/wgpu_demo` uses it to request a redraw
@@ -152,22 +152,22 @@ host is already continuous. Next:
 ## Demo (`examples/game_demo`)
 
 A top-down collect game and the reference game host. The world runs in a
-`cobbled_game::GameView` (embedded sub-viewport) with a `cobbled_ui` HUD: an embedded
-PNG atlas decoded by `cobbled_assets` drives `SpriteFrames` walk animation, a
-`Camera2D` follows the player, `Area` coin pickups score, a `cobbled_anim` tween
+`rough_game::GameView` (embedded sub-viewport) with a `rough_ui` HUD: an embedded
+PNG atlas decoded by `rough_assets` drives `SpriteFrames` walk animation, a
+`Camera2D` follows the player, `Area` coin pickups score, a `rough_anim` tween
 scales the player in, and movement runs at a 120 Hz `FixedTimestep`. The window
-host is `winit` + `cobbled_backend_wgpu` with on-demand redraw; `--selfcheck`
-renders the same pipeline headlessly through `cobbled_backend_recording`. Next:
+host is `winit` + `rough_backend_wgpu` with on-demand redraw; `--selfcheck`
+renders the same pipeline headlessly through `rough_backend_recording`. Next:
 
 - Enemy/obstacle behaviour and a game-over/restart flow.
 - Interpolation between fixed steps for smoother motion at low step rates.
 
 ## Demo (`image_editor`)
 
-A Photoshop-style editor built on `cobbled_ui` / `cobbled_components`. It graduated to
+A Photoshop-style editor built on `rough_ui` / `rough_components`. It graduated to
 its own repo (sibling checkout `../image_editor`, consuming these crates via
 relative path deps — see its README). Phases 1–8 landed. The next three reuse the overlay layer
-(`cobbled_components::Overlays`) and the worker-thread / `EventLoopProxy` pattern
+(`rough_components::Overlays`) and the worker-thread / `EventLoopProxy` pattern
 from `examples/file_browser`:
 
 - **Phase 9 — menu bar (done).** The menu bar opens real drop-downs: a title
@@ -175,7 +175,7 @@ from `examples/file_browser`:
   content is a `Menu` of `MenuItem`s (label + right-aligned shortcut, disabled
   when the action is unavailable). Undo/redo, import/export, zoom and
   clear-selection are wired; the rest are labeled placeholders. `Menu`/
-  `MenuItem` and `Overlays::menu` live in `cobbled_components`, so Phase 11 reuses
+  `MenuItem` and `Overlays::menu` live in `rough_components`, so Phase 11 reuses
   them.
 - **Phase 10 — file browser.** Replace the inline path field in the file panel
   with a picker overlay: a `List` of directory entries filled by a scan on a
@@ -189,7 +189,7 @@ from `examples/file_browser`:
   1. `Overlays` anchored to a **raw rect or pointer position**, not only a
      laid-out `NodeId` (Component-layer item 2 above).
   2. Right-click routing: `PointerButton::Right` exists, but
-     `cobbled_ui::handle_input` only reacts to the left button. Add an additive
+     `rough_ui::handle_input` only reacts to the left button. Add an additive
      context callback (`Control::context_callback` +
      `Component::on_context_menu`) so any control can own a context menu, rather
      than the host hit-testing rows itself.
@@ -199,7 +199,7 @@ Cross-cutting: Phases 9 and 11 both need "a popover full of commands", so the
 
 ## Invariants
 
-- The core (`cobbled_core`, `cobbled_scene`, `cobbled_render`, `cobbled_ui`) stays
+- The core (`rough_core`, `rough_scene`, `rough_render`, `rough_ui`) stays
   backend-neutral; new layers only use public APIs.
 - API -> test -> implementation -> integration.
 - No screenshot/screen-recording verification; assert `DrawList` commands,
@@ -215,11 +215,11 @@ section keeps non-stage work items.
 
 - **Wheel pump in every host.** `examples/file_browser` already translated
   winit's `MouseScrollDelta` into `InputEvent::Wheel`; `examples/wgpu_demo`
-  (`app::wheel_pixels`) and the Canvas runner (`cobbled_wasm::wheel`) now do too, so
+  (`app::wheel_pixels`) and the Canvas runner (`rough_wasm::wheel`) now do too, so
   a `List` scrolls under the wheel in all three hosts. Each keeps its own pure,
   unit-tested sign convention (winit negates an up-scroll; DOM already reports
   "down" as positive), so the core stays sign-agnostic.
-- `cobbled_svg` (`crates/core/cobbled_svg`): backend-neutral SVG vector rendering with **no
+- `rough_svg` (`crates/core/rough_svg`): backend-neutral SVG vector rendering with **no
 external dependency**. It parses a small SVG subset (the Lucide grammar:
 `path`/`rect`/`circle`/`ellipse`/`line`/`polyline`/`polygon`, full path data
 incl. arcs, `stroke`/`stroke-width`/`stroke-linecap`/`stroke-linejoin`/`viewBox`)
@@ -233,8 +233,8 @@ Lucide case.
   source of `DrawCommand::ClipRect`, resolved in the layout pass, emitted as one
   save/clip/restore per clipped region, respected by hit testing),
   `InputEvent::Wheel` routing to the nearest ancestor with a scroll callback
-  (`cobbled_components::set_on_scroll` / `Component::on_scroll`), and
-  `cobbled_components::List` + `ListState` — a virtualized list that mounts
+  (`rough_components::set_on_scroll` / `Component::on_scroll`), and
+  `rough_components::List` + `ListState` — a virtualized list that mounts
   `ceil(viewport/row) + 1` rows and recycles them, so its frame cost is flat in
   the row count. Measured: 107 controls and 72 commands per scrolling frame at
   1 K, 10 K and 100 K rows (73 µs) against a naive mounted-everything list's
@@ -258,53 +258,53 @@ Lucide case.
   the viewport, so a resizing host must re-clamp on `layout`; and every
   virtualized list in a view needs its own `ListState::sync` in the same frame
   step.
-- **Text mode cannot show indentation**: `cobbled_ui`'s wrapping is word-based and
-  collapses leading whitespace (`cobbled_ui::layout::text::wrap_hard_line`), and
+- **Text mode cannot show indentation**: `rough_ui`'s wrapping is word-based and
+  collapses leading whitespace (`rough_ui::layout::text::wrap_hard_line`), and
   `List` builds its row cells with `max_lines(1)` + ellipsis, so a line's leading
   spaces never reach the screen. Fixing it means a per-column `TextOptions.wrap`
   on `ListColumn` (or a non-wrapping cell), which is an API change nobody has
   asked for yet; the row content itself is correct.
-- `cobbled_core::Key` has no `PageUp` / `PageDown`, so list UIs cannot map a
+- `rough_core::Key` has no `PageUp` / `PageDown`, so list UIs cannot map a
   page-step key yet (the browser falls back to arrows + `Home` / `End`). Adding
   the two variants is additive and would let `List` offer a page step.
 
-- `Router` view switching: `cobbled_components::Router` shows exactly one child
+- `Router` view switching: `rough_components::Router` shows exactly one child
   view at a time by toggling scene visibility from a shared route cell. Layout,
   paint and hit-testing now skip controls hidden at runtime (flex lines drop
   them and hidden nodes get no rect). `demo_app`'s detail pane is a router with
   a note view and a settings view.
 
-- Split the old `draw_app` crate: **input routing** moved into `cobbled_ui`
+- Split the old `draw_app` crate: **input routing** moved into `rough_ui`
   (`hit_test` / `handle_input` / `route_input` / `hovered` / `hovered_cursor` /
   `focused` / `is_interactive`), next to the `ControlData` it operates on, and the
-  **construction layer** folded into `cobbled_components::base`
+  **construction layer** folded into `rough_components::base`
   (`Component`/`Spec`/`Flex`/`Panel`/`Label`/`base::Button`/`Grid`,
-  `impl_scene_child!`, mutation helpers). Result: `cobbled_ui` (layout/paint/input
-  engine) + `cobbled_components` (base + themed widgets) — no separate
+  `impl_scene_child!`, mutation helpers). Result: `rough_ui` (layout/paint/input
+  engine) + `rough_components` (base + themed widgets) — no separate
   `draw_widgets` crate.
 - Removed the unused `draw_app::App` runtime: it duplicated the host's frame
   loop and its `render` never painted world (`Node2D`) visuals. Frame submission
-  now lives with the host (`cobbled_ui::layout`/`paint` + `cobbled_scene` paint ->
+  now lives with the host (`rough_ui::layout`/`paint` + `rough_scene` paint ->
   `RenderBackend`), which is what every demo already did. See the review item
   "Core hardening".
 
 - Fixed flex cross-axis `Stretch` overflowing a definite container: items now
   fill the container's inner cross size instead of growing to their content's
   preferred width, so a fixed-width column's items no longer push past its edge.
-  Covered by `cobbled_ui::ui::layout::stretch_does_not_grow_a_definite_cross_axis`.
-- Button cursor feedback: `cobbled_ui::hovered_is_button` / `is_interactive` feed
+  Covered by `rough_ui::ui::layout::stretch_does_not_grow_a_definite_cross_axis`.
+- Button cursor feedback: `rough_ui::hovered_is_button` / `is_interactive` feed
   `demo_app::DemoApp::pointer_over_clickable`, which the Canvas runner maps to a
   CSS `pointer` cursor and `wgpu_demo` to `CursorIcon::Pointer`.
-- Canvas/WASM text is vertically centered: `cobbled_wasm::CanvasTextMeasurer`
+- Canvas/WASM text is vertically centered: `rough_wasm::CanvasTextMeasurer`
   measures with the same `measureText` font the Canvas backend draws with
-  (shared `cobbled_backend_canvas::font_spec`), so layout baselines use the real
+  (shared `rough_backend_canvas::font_spec`), so layout baselines use the real
   ascent instead of the default `0.8em` guess. The runner hands the context to
   the app via `App::attach_context`, and the WASM demos inject the measurer.
 - Exact-fit text no longer wraps from float rounding (the wrap loop sums
   advances in a different order than the natural width); this fixes single-line
   UI text like the "All Notes" list header wrapping at its space.
 - Rounded rectangles are first-class `DrawCommand`s with **per-corner radii**
-  (`CornerRadii`); `cobbled_components` surfaces use them instead of composing circles +
+  (`CornerRadii`); `rough_components` surfaces use them instead of composing circles +
   rects. The demo's list items use square left / rounded right corners with a
   full-height accent bar.
 - Centered button/badge text via centered flex labels (measurer-driven, so it

@@ -1,7 +1,7 @@
 use std::any::{Any, TypeId};
 
-use cobbled_core::{Color, EventResult, InputEvent, NodeId, Rect, Size, Transform2D, Vec2};
-use cobbled_render::TextureId;
+use rough_core::{Color, EventResult, InputEvent, NodeId, Rect, Size, Transform2D, Vec2};
+use rough_render::TextureId;
 
 use crate::viewport::Viewport;
 
@@ -113,13 +113,13 @@ pub enum Visual {
 /// `CanvasLayer` opens a new canvas transform context (it is *not* a canvas
 /// item); `Camera2D` is a canvas item that writes the viewport camera.
 /// `Control` is a UI canvas item whose layout and painting are owned by
-/// `cobbled_ui`.
+/// `rough_ui`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum NodeKind {
     Node,
     Node2D,
     /// A UI control. Like `Node2D` it is a canvas item, but its layout and
-    /// painting are owned by `cobbled_ui`.
+    /// painting are owned by `rough_ui`.
     Control,
     /// A grouping node that opens a new canvas transform context. Children
     /// belonging to no nested `CanvasLayer` are painted with this layer's
@@ -307,7 +307,7 @@ pub struct Node {
     pub(crate) camera_2d: Option<Camera2DData>,
     pub(crate) viewport: Option<Viewport>,
     /// Backend-neutral, type-keyed extension store for engine/UI data
-    /// (`Control`, game components, …). `cobbled_scene` never names the types.
+    /// (`Control`, game components, …). `rough_scene` never names the types.
     pub(crate) data: Extensions,
     /// Per-frame lifecycle callback, dispatched by [`crate::SceneTree::process`].
     pub(crate) process: Option<Box<dyn FnMut(f32)>>,

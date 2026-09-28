@@ -21,7 +21,7 @@ pub use text::{
     FixedWidthTextMeasurer, TextMeasurer, TextOptions, WordBreak,
 };
 
-use cobbled_core::{Edges, Size};
+use rough_core::{Edges, Size};
 
 /// Intrinsic size of a control: the smallest it may become (`min`) and its
 /// natural size (`preferred`), both independent of any parent.

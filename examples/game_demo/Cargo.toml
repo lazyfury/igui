@@ -7,15 +7,15 @@ license.workspace = true
 publish = false
 
 [dependencies]
-cobbled_core.workspace = true
-cobbled_render.workspace = true
-cobbled_scene.workspace = true
-cobbled_ui.workspace = true
-cobbled_theme.workspace = true
-cobbled_components.workspace = true
-cobbled_anim.workspace = true
-cobbled_assets.workspace = true
-cobbled_game = { workspace = true, features = ["ui"] }
-cobbled_backend_wgpu.workspace = true
-cobbled_backend_recording.workspace = true
+rough_core.workspace = true
+rough_render.workspace = true
+rough_scene.workspace = true
+rough_ui.workspace = true
+rough_theme.workspace = true
+rough_components.workspace = true
+rough_anim.workspace = true
+rough_assets.workspace = true
+rough_game = { workspace = true, features = ["ui"] }
+rough_backend_wgpu.workspace = true
+rough_backend_recording.workspace = true
 winit = "0.30"

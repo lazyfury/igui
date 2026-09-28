@@ -1,14 +1,14 @@
 //! Debug drawing of UI controls (yellow bounds + `name#id` labels).
 //!
 //! [`DebugDrawOptions`] is the style used by
-//! [`cobbled_ui::paint_debug`](crate::paint_debug): a yellow rectangle around every
+//! [`rough_ui::paint_debug`](crate::paint_debug): a yellow rectangle around every
 //! visible control plus a `Name #id` label pinned to its top-left corner. It
-//! emits ordinary backend-neutral [`DrawCommand`](cobbled_render::DrawCommand)s, so
+//! emits ordinary backend-neutral [`DrawCommand`](rough_render::DrawCommand)s, so
 //! every backend can render it.
 
-use cobbled_core::{Color, NodeId, Vec2};
+use rough_core::{Color, NodeId, Vec2};
 
-/// Style for [`cobbled_ui::paint_debug`](crate::paint_debug).
+/// Style for [`rough_ui::paint_debug`](crate::paint_debug).
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct DebugDrawOptions {
     /// Border color (default: yellow).

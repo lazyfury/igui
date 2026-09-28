@@ -1,7 +1,7 @@
 //! A generic scrollable viewport: clip + offset + a draggable scrollbar.
 //!
 //! The core primitive is the same one [`List`](crate::List) uses — a control
-//! that clips its subtree ([`ControlData::clip`](cobbled_ui::ControlData)) — but
+//! that clips its subtree ([`ControlData::clip`](rough_ui::ControlData)) — but
 //! where `List` pools row nodes, `ScrollView` puts an arbitrary child in a
 //! translated, clipped viewport and adds a scrollbar. The host drives the
 //! offset with [`ScrollViewState::sync`] after layout, exactly like
@@ -12,9 +12,9 @@
 //! let state = view.state();
 //! tree.add_child(pane, view);
 //!
-//! cobbled_ui::layout(&mut tree, viewport);
+//! rough_ui::layout(&mut tree, viewport);
 //! if state.sync(&mut tree) {
-//!     cobbled_ui::layout(&mut tree, viewport);   // the offset moved the content
+//!     rough_ui::layout(&mut tree, viewport);   // the offset moved the content
 //! }
 //! ```
 //!
@@ -26,10 +26,10 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use cobbled_core::{Color, Cursor, Edges, NodeId, Vec2};
-use cobbled_scene::SceneTree;
-use cobbled_theme::{radius, Theme};
-use cobbled_ui::{Control, DragPhase, MouseFilter, SurfaceStyle, Widget};
+use rough_core::{Color, Cursor, Edges, NodeId, Vec2};
+use rough_scene::SceneTree;
+use rough_theme::{radius, Theme};
+use rough_ui::{Control, DragPhase, MouseFilter, SurfaceStyle, Widget};
 
 use crate::base::{apply_spec, set_on_drag, set_on_scroll, update_control, Component, Spec};
 use crate::Panel;
@@ -104,7 +104,7 @@ impl ScrollViewState {
         let Some(container) = inner.container else {
             return false;
         };
-        let Some(viewport) = cobbled_ui::control(tree, container).map(|data| data.rect) else {
+        let Some(viewport) = rough_ui::control(tree, container).map(|data| data.rect) else {
             return false;
         };
         if viewport.size.height <= 0.0 {
@@ -119,7 +119,7 @@ impl ScrollViewState {
         // its preferred height; once known we pin it, so the offset translation
         // cannot feed back into the measured size.
         if inner.content_height <= 0.0 {
-            let Some(rect) = cobbled_ui::control(tree, content).map(|data| data.rect) else {
+            let Some(rect) = rough_ui::control(tree, content).map(|data| data.rect) else {
                 return false;
             };
             inner.content_height = rect.size.height;
@@ -135,7 +135,7 @@ impl ScrollViewState {
         // scrolls.
         if let Some(max) = inner.max_height {
             let target = content_height.min(max);
-            let current = cobbled_ui::control(tree, container)
+            let current = rough_ui::control(tree, container)
                 .map(|data| data.min_size.height)
                 .unwrap_or(0.0);
             if (current - target).abs() > 0.5 {
@@ -149,7 +149,7 @@ impl ScrollViewState {
         let reserve = if show_bar { SCROLLBAR_WIDTH } else { 0.0 };
 
         let want = Edges::new(0.0, -inner.offset, -reserve, content_height - inner.offset);
-        if cobbled_ui::control(tree, content).is_some_and(|data| data.offsets != want) {
+        if rough_ui::control(tree, content).is_some_and(|data| data.offsets != want) {
             update_control(tree, content, |data| data.offsets = want);
             changed = true;
         }
@@ -157,7 +157,7 @@ impl ScrollViewState {
         for node in [inner.track, inner.thumb].into_iter().flatten() {
             if tree.is_visible(node) != Some(show_bar) {
                 tree.set_visible(node, show_bar);
-                cobbled_ui::mark_dirty(tree, node);
+                rough_ui::mark_dirty(tree, node);
                 changed = true;
             }
         }
@@ -182,7 +182,7 @@ impl ScrollViewState {
         };
         if let Some(thumb) = inner.thumb {
             let want = Edges::new(0.0, thumb_y, 0.0, thumb_y + thumb_h);
-            if cobbled_ui::control(tree, thumb).is_some_and(|data| data.offsets != want) {
+            if rough_ui::control(tree, thumb).is_some_and(|data| data.offsets != want) {
                 update_control(tree, thumb, |data| data.offsets = want);
                 changed = true;
             }
@@ -410,9 +410,9 @@ crate::impl_scene_child!(ScrollView);
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cobbled_core::{InputEvent, PointerButton, Size, ViewportSize};
-    use cobbled_theme::{default_theme, Mode};
-    use cobbled_ui::{handle_input, layout};
+    use rough_core::{InputEvent, PointerButton, Size, ViewportSize};
+    use rough_theme::{default_theme, Mode};
+    use rough_ui::{handle_input, layout};
 
     use crate::{Column, Panel};
 
@@ -479,8 +479,8 @@ mod tests {
         relayout(fixture);
     }
 
-    fn rect(fixture: &Fixture, id: NodeId) -> cobbled_core::Rect {
-        cobbled_ui::control(&fixture.tree, id).unwrap().rect
+    fn rect(fixture: &Fixture, id: NodeId) -> rough_core::Rect {
+        rough_ui::control(&fixture.tree, id).unwrap().rect
     }
 
     #[test]
@@ -619,7 +619,7 @@ mod tests {
     #[test]
     fn max_height_caps_tall_content_and_scrolls() {
         let (tree, state, node) = capped(1000.0, 80.0);
-        let h = cobbled_ui::control(&tree, node).unwrap().rect.size.height;
+        let h = rough_ui::control(&tree, node).unwrap().rect.size.height;
         assert!((h - 80.0).abs() < 1.5, "capped at 80, got {h}");
         assert!(state.max_offset() > 0.0, "tall content scrolls");
     }
@@ -627,7 +627,7 @@ mod tests {
     #[test]
     fn max_height_shrinks_to_short_content() {
         let (tree, state, node) = capped(30.0, 80.0);
-        let h = cobbled_ui::control(&tree, node).unwrap().rect.size.height;
+        let h = rough_ui::control(&tree, node).unwrap().rect.size.height;
         assert!((h - 30.0).abs() < 1.5, "shrinks to 30, got {h}");
         assert_eq!(state.max_offset(), 0.0);
     }

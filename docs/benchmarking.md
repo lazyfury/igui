@@ -4,8 +4,8 @@ quill has two performance tools, and they answer different questions:
 
 | Tool | Crate | Question | Output |
 |---|---|---|---|
-| Profiler | `cobbled_profile` | *Where* did this frame's time go? | per-phase ms, counts, findings |
-| Benchmark | `cobbled_bench` | *Is this path faster or slower than before?* | median/p95 ns, regression verdict |
+| Profiler | `rough_profile` | *Where* did this frame's time go? | per-phase ms, counts, findings |
+| Benchmark | `rough_bench` | *Is this path faster or slower than before?* | median/p95 ns, regression verdict |
 
 The profiler is a microscope; a benchmark is a ruler. Use the profiler to find
 *what* to optimize, and the benchmark to prove the change helped and to keep it
@@ -13,14 +13,14 @@ from regressing.
 
 ---
 
-## 1. The harness (`cobbled_bench`)
+## 1. The harness (`rough_bench`)
 
-`cobbled_bench` is a small, dependency-free benchmarking framework (`std` only, no
+`rough_bench` is a small, dependency-free benchmarking framework (`std` only, no
 randomness). It warms up, calibrates an iteration count so one sample runs for
 about `sample_time`, then collects `samples` timed samples.
 
 ```rust
-use cobbled_bench::{finish, BenchRunner, RunConfig};
+use rough_bench::{finish, BenchRunner, RunConfig};
 
 fn main() {
     let config = RunConfig::from_env();
@@ -51,7 +51,7 @@ harness = false
 ### Important
 
 - **Always consume the result.** Wrap the value you care about in
-  `cobbled_bench::black_box(..)` so the optimizer cannot delete the work under
+  `rough_bench::black_box(..)` so the optimizer cannot delete the work under
   test.
 - **Do not benchmark debug builds.** `cargo bench` uses the `bench` profile,
   which the workspace pins to `opt-level = 3` (the `release` profile is
@@ -77,10 +77,10 @@ harness = false
 understand these flags. To pass harness flags, target the bench explicitly:
 
 ```bash
-cargo bench -p cobbled_bench_suite --bench pipeline -- --filter scene/update
+cargo bench -p rough_bench_suite --bench pipeline -- --filter scene/update
 ```
 
-Running `cargo bench -p cobbled_bench_suite` with no flags works as-is and runs
+Running `cargo bench -p rough_bench_suite` with no flags works as-is and runs
 every benchmark.
 
 ### Baselines & regression gating
@@ -88,7 +88,7 @@ every benchmark.
 A baseline is plain text (diff-friendly, no serde):
 
 ```text
-# cobbled_bench baseline v1
+# rough_bench baseline v1
 scene/update_clean/1000	2384.7
 ```
 
@@ -98,10 +98,10 @@ the CI gate:
 
 ```bash
 # record a baseline once (on a quiet, otherwise-idle machine)
-cargo bench -p cobbled_bench_suite --bench pipeline -- --save-baseline benches/cpu.baseline.txt
+cargo bench -p rough_bench_suite --bench pipeline -- --save-baseline benches/cpu.baseline.txt
 
 # later / in CI: fail on a >5% regression
-cargo bench -p cobbled_bench_suite --bench pipeline -- --baseline benches/cpu.baseline.txt
+cargo bench -p rough_bench_suite --bench pipeline -- --baseline benches/cpu.baseline.txt
 ```
 
 Benchmarks are machine- and load-sensitive. Pin the toolchain, close other work,
@@ -110,9 +110,9 @@ are meaningful across machines.
 
 ---
 
-## 2. CPU pipeline suite (`cobbled_bench_suite`)
+## 2. CPU pipeline suite (`rough_bench_suite`)
 
-`cobbled_bench_suite` owns the scenarios; `cobbled_bench` owns the measurement. Every
+`rough_bench_suite` owns the scenarios; `rough_bench` owns the measurement. Every
 fixture is deterministic and every scenario runs at `100 / 1_000 / 10_000`
 entities to expose scaling curves — the list scenarios are the exception, at
 `1_000 / 10_000 / 100_000` rows (see below).
@@ -122,20 +122,20 @@ entities to expose scaling curves — the list scenarios are the exception, at
 | `scene/update_clean/{n}` | `SceneTree::update` with nothing dirty (dirty-flag traversal) |
 | `scene/update_dirty_all/{n}` | move every node, then `update` (propagation + recompute) |
 | `scene/paint/{n}` | `SceneTree::paint` into a fresh `DrawList` |
-| `ui/layout/{n}` | `cobbled_ui::layout` across the control tree |
+| `ui/layout/{n}` | `rough_ui::layout` across the control tree |
 | `ui/hit_test/{n}` | worst-case reverse hit test (point over the bottom-most control) |
-| `ui/paint/{n}` | `cobbled_ui::paint` into a fresh `DrawList` |
+| `ui/paint/{n}` | `rough_ui::paint` into a fresh `DrawList` |
 | `pipeline/ui_frame/{n}` | end-to-end CPU frame: layout → paint → submit → end |
 | `list/scroll_full/{n}` | one scrolling frame of a list with **every** row mounted (the naive shape) |
-| `list/scroll_virtual/{n}` | the same frame through `cobbled_components::List` (the viewport's rows, recycled) |
+| `list/scroll_virtual/{n}` | the same frame through `rough_components::List` (the viewport's rows, recycled) |
 
 ```bash
-cargo bench -p cobbled_bench_suite
-cargo bench -p cobbled_bench_suite --bench pipeline -- --filter ui/
-cargo bench -p cobbled_bench_suite --bench pipeline -- --filter list/
+cargo bench -p rough_bench_suite
+cargo bench -p rough_bench_suite --bench pipeline -- --filter ui/
+cargo bench -p rough_bench_suite --bench pipeline -- --filter list/
 ```
 
-The suite submits through `cobbled_bench_suite::SinkBackend`, a consuming
+The suite submits through `rough_bench_suite::SinkBackend`, a consuming
 `RenderBackend` that counts commands and retains nothing, so a long loop does not
 grow memory the way `RecordingBackend` (which clones commands) would.
 
@@ -189,15 +189,15 @@ and leaving are re-bound is the next ~12× if it ever matters;
 
 ---
 
-## 3. GPU benchmark (`cobbled_backend_wgpu`)
+## 3. GPU benchmark (`rough_backend_wgpu`)
 
-`crates/platform/wgpu/cobbled_backend_wgpu/benches/wgpu.rs` measures the offscreen path end to
+`crates/platform/wgpu/rough_backend_wgpu/benches/wgpu.rs` measures the offscreen path end to
 end: CPU command execution, GPU submission, and a blocking `read_pixels` sync.
 The readback makes each frame deterministic but dominates the number, so read it
 as "cost of a readback-synchronized frame", not raw raster time.
 
 ```bash
-cargo bench -p cobbled_backend_wgpu --bench wgpu
+cargo bench -p rough_backend_wgpu --bench wgpu
 ```
 
 If no adapter is available (GPU-less CI, headless box) the benchmarks are skipped

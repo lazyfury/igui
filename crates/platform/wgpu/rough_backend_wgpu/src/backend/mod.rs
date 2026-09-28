@@ -44,8 +44,8 @@ use std::sync::mpsc;
 
 use bytemuck::{Pod, Zeroable};
 
-use cobbled_core::{Color, Rect, Transform2D, Vec2, ViewportSize};
-use cobbled_render::{DrawList, Paint, RenderBackend, RenderTargetId, TextureId};
+use rough_core::{Color, Rect, Transform2D, Vec2, ViewportSize};
+use rough_render::{DrawList, Paint, RenderBackend, RenderTargetId, TextureId};
 
 use crate::font::{Font, FontConfig, FontMetrics};
 use pipeline::{bind_group, upload_texture};
@@ -342,7 +342,7 @@ impl WgpuBackend {
 
     /// Returns the loaded font's metrics.
     ///
-    /// Hosts wrap this in a `cobbled_ui::TextMeasurer` so layout measures text
+    /// Hosts wrap this in a `rough_ui::TextMeasurer` so layout measures text
     /// with the same advances the backend renders with.
     pub fn text_metrics(&self) -> FontMetrics {
         FontMetrics::new(self.font.clone())
@@ -369,7 +369,7 @@ impl WgpuBackend {
         let texture = upload_texture(
             &self.device,
             &self.queue,
-            "cobbled_backend_wgpu.font_atlas",
+            "rough_backend_wgpu.font_atlas",
             &font.initial_atlas(),
             width,
             height,
@@ -446,7 +446,7 @@ impl WgpuBackend {
         let texture = upload_texture(
             &self.device,
             &self.queue,
-            "cobbled_backend_wgpu.texture",
+            "rough_backend_wgpu.texture",
             &rgba[..expected],
             width,
             height,
@@ -653,7 +653,7 @@ impl WgpuBackend {
             * wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
 
         let buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("cobbled_backend_wgpu.readback"),
+            label: Some("rough_backend_wgpu.readback"),
             size: (padded as u64) * (height as u64),
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
             mapped_at_creation: false,
@@ -662,7 +662,7 @@ impl WgpuBackend {
         let mut encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("cobbled_backend_wgpu.readback_encoder"),
+                label: Some("rough_backend_wgpu.readback_encoder"),
             });
         encoder.copy_texture_to_buffer(
             wgpu::TexelCopyTextureInfo {
@@ -799,7 +799,7 @@ impl RenderBackend for WgpuBackend {
             ));
         }
         let texture = self.device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("cobbled_backend_wgpu.render_target"),
+            label: Some("rough_backend_wgpu.render_target"),
             size: wgpu::Extent3d {
                 width,
                 height,
@@ -855,7 +855,7 @@ impl RenderBackend for WgpuBackend {
         } else {
             1.0
         };
-        let viewport = ViewportSize::new(cobbled_core::Size::new(
+        let viewport = ViewportSize::new(rough_core::Size::new(
             width as f32 / scale,
             height as f32 / scale,
         ));

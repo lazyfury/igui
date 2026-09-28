@@ -1,7 +1,7 @@
 use super::*;
 use crate::stats::FrameStats;
-use cobbled_core::{Color, FontWeight, Rect, Size, Transform2D, Vec2};
-use cobbled_render::{DrawCommand, DrawList, Paint, TextAlign};
+use rough_core::{Color, FontWeight, Rect, Size, Transform2D, Vec2};
+use rough_render::{DrawCommand, DrawList, Paint, TextAlign};
 
 fn rect(w: f32, h: f32) -> Rect {
     Rect::from_min_size(Vec2::ZERO, Size::new(w, h))

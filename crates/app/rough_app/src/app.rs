@@ -1,14 +1,14 @@
 //! The application runtime: `App`, its builder and the frame loop.
 //!
 //! ```no_run
-//! # use cobbled_app::{App, AppConfig};
+//! # use rough_app::{App, AppConfig};
 //! # struct MyPlugin;
-//! # impl cobbled_app::Plugin for MyPlugin {
+//! # impl rough_app::Plugin for MyPlugin {
 //! #     fn name(&self) -> &'static str { "my" }
-//! #     fn build(&self, _app: &mut cobbled_app::AppBuilder) {}
+//! #     fn build(&self, _app: &mut rough_app::AppBuilder) {}
 //! # }
 //! # struct MyApp;
-//! # impl cobbled_app::AppLogic for MyApp {}
+//! # impl rough_app::AppLogic for MyApp {}
 //! App::new(AppConfig::default())
 //!     .plugin(MyPlugin)
 //!     .logic(MyApp)
@@ -16,7 +16,7 @@
 //!     .run();
 //! ```
 //!
-//! `cobbled_app` is backend-neutral: it never names a window or GPU type. A
+//! `rough_app` is backend-neutral: it never names a window or GPU type. A
 //! platform plugin installs a [`Runner`] (the loop) and a
 //! [`Presenter`] (the graphics boundary); headless use installs a recording
 //! presenter and calls [`App::run_headless`].
@@ -24,8 +24,8 @@
 use std::any::Any;
 use std::time::Instant;
 
-use cobbled_core::{Cursor, InputEvent, Rect, ViewportSize};
-use cobbled_render::PaintContext;
+use rough_core::{Cursor, InputEvent, Rect, ViewportSize};
+use rough_render::PaintContext;
 
 use crate::logic::{AppLogic, EventContext, FrameContext, InitContext};
 use crate::platform::{
@@ -300,7 +300,7 @@ impl App {
     /// `WinitPlugin`).
     pub fn run(mut self) {
         let Some(runner) = self.runner.take() else {
-            panic!("cobbled_app: no runner registered; add a platform plugin such as WinitPlugin");
+            panic!("rough_app: no runner registered; add a platform plugin such as WinitPlugin");
         };
         runner(self);
     }

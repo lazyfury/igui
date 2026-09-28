@@ -1,4 +1,4 @@
-//! A `cobbled_ui::TextMeasurer` backed by the Canvas 2D `measureText` API.
+//! A `rough_ui::TextMeasurer` backed by the Canvas 2D `measureText` API.
 //!
 //! The core `ApproxTextMeasurer` guesses advances and (crucially) an `ascent`
 //! of `0.8 * font_size`. The Canvas backend paints `DrawText` at the baseline
@@ -12,16 +12,16 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-use cobbled_backend_canvas::font_spec;
-use cobbled_core::FontWeight;
-use cobbled_ui::TextMeasurer;
+use rough_backend_canvas::font_spec;
+use rough_core::FontWeight;
+use rough_ui::TextMeasurer;
 use web_sys::CanvasRenderingContext2d;
 
 /// Measures text using a live [`CanvasRenderingContext2d`].
 ///
 /// Construct one from the context the backend renders with (the runner hands it
 /// to [`App::attach_context`](crate::App::attach_context)) and install it with
-/// [`cobbled_ui::set_text_measurer`](cobbled_ui::set_text_measurer).
+/// [`rough_ui::set_text_measurer`](rough_ui::set_text_measurer).
 pub struct CanvasTextMeasurer {
     ctx: CanvasRenderingContext2d,
     advances: RefCell<HashMap<(u32, u32, u32), f32>>,

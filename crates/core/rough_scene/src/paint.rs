@@ -1,5 +1,5 @@
-use cobbled_core::{NodeId, Rect, Size, Transform2D, Vec2};
-use cobbled_render::{Paint, PaintContext, TextureId};
+use rough_core::{NodeId, Rect, Size, Transform2D, Vec2};
+use rough_render::{Paint, PaintContext, TextureId};
 
 use crate::node::Visual;
 use crate::tree::SceneTree;
@@ -17,7 +17,7 @@ pub(crate) struct PaintGroup {
 impl SceneTree {
     /// Sets the built-in visual of a canvas item. Returns `false` for non-canvas
     /// nodes or unknown ids.
-    pub fn set_visual(&mut self, id: cobbled_core::NodeId, visual: Visual) -> bool {
+    pub fn set_visual(&mut self, id: rough_core::NodeId, visual: Visual) -> bool {
         if !self.contains(id) {
             return false;
         }
@@ -28,7 +28,7 @@ impl SceneTree {
         true
     }
 
-    pub fn visual(&self, id: cobbled_core::NodeId) -> Option<Visual> {
+    pub fn visual(&self, id: rough_core::NodeId) -> Option<Visual> {
         self.get(id).map(|node| node.visual())
     }
 
@@ -114,7 +114,7 @@ impl SceneTree {
     }
 }
 
-/// Emits a [`Visual::Sprite`] as one or nine [`DrawImage`](cobbled_render::DrawCommand::DrawImage)
+/// Emits a [`Visual::Sprite`] as one or nine [`DrawImage`](rough_render::DrawCommand::DrawImage)
 /// commands, applying flip as a local transform around the sprite's origin.
 fn paint_sprite(
     ctx: &mut PaintContext,
@@ -215,8 +215,8 @@ fn paint_nine_slice(
 mod tests {
     use super::*;
     use crate::node::Visual;
-    use cobbled_core::{Color, Size, Transform2D};
-    use cobbled_render::DrawCommand;
+    use rough_core::{Color, Size, Transform2D};
+    use rough_render::DrawCommand;
 
     fn paint(tree: &SceneTree) -> Vec<DrawCommand> {
         let mut ctx = PaintContext::new();
@@ -277,7 +277,7 @@ mod tests {
     fn an_image_visual_emits_a_draw_image_under_the_node_transform() {
         let mut tree = SceneTree::new();
         let id = tree.add_node2d(tree.root(), "image");
-        let texture = cobbled_render::TextureId::new(7);
+        let texture = rough_render::TextureId::new(7);
         tree.set_visual(
             id,
             Visual::Image {
@@ -308,7 +308,7 @@ mod tests {
     fn a_sprite_visual_draws_its_source_region() {
         let mut tree = SceneTree::new();
         let id = tree.add_node2d(tree.root(), "sprite");
-        let texture = cobbled_render::TextureId::new(3);
+        let texture = rough_render::TextureId::new(3);
         let source = Rect::from_min_size(Vec2::new(8.0, 4.0), Size::new(16.0, 16.0));
         tree.set_visual(
             id,
@@ -349,7 +349,7 @@ mod tests {
         tree.set_visual(
             id,
             Visual::Sprite {
-                texture: cobbled_render::TextureId::new(1),
+                texture: rough_render::TextureId::new(1),
                 size: Size::new(10.0, 4.0),
                 source: None,
                 flip_x: true,
@@ -372,7 +372,7 @@ mod tests {
         tree.set_visual(
             id,
             Visual::Sprite {
-                texture: cobbled_render::TextureId::new(2),
+                texture: rough_render::TextureId::new(2),
                 size: Size::new(60.0, 60.0),
                 source: Some(Rect::from_min_size(Vec2::ZERO, Size::new(30.0, 30.0))),
                 flip_x: false,

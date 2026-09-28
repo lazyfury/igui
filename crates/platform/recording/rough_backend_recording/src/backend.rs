@@ -1,7 +1,7 @@
 use std::fmt;
 
-use cobbled_core::ViewportSize;
-use cobbled_render::{DrawCommand, DrawList, RenderBackend, RenderTargetId, TextureId};
+use rough_core::ViewportSize;
+use rough_render::{DrawCommand, DrawList, RenderBackend, RenderTargetId, TextureId};
 
 /// Errors from the frame lifecycle.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -250,8 +250,8 @@ impl RenderBackend for RecordingBackend {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cobbled_core::{Color, Rect, Size};
-    use cobbled_render::PaintContext;
+    use rough_core::{Color, Rect, Size};
+    use rough_render::PaintContext;
 
     fn viewport() -> ViewportSize {
         ViewportSize::new(Size::new(100.0, 100.0))
@@ -272,7 +272,7 @@ mod tests {
 
         let mut ctx = PaintContext::new();
         ctx.fill_rect(
-            Rect::from_min_size(cobbled_core::Vec2::ZERO, Size::splat(10.0)),
+            Rect::from_min_size(rough_core::Vec2::ZERO, Size::splat(10.0)),
             Color::RED,
         );
         backend.submit(&ctx.into_draw_list()).unwrap();
@@ -301,11 +301,11 @@ mod tests {
 
         let mut a = PaintContext::new();
         a.fill_rect(
-            Rect::from_min_size(cobbled_core::Vec2::ZERO, Size::splat(1.0)),
+            Rect::from_min_size(rough_core::Vec2::ZERO, Size::splat(1.0)),
             Color::RED,
         );
         let mut b = PaintContext::new();
-        b.fill_circle(cobbled_core::Vec2::ZERO, 1.0, Color::BLUE);
+        b.fill_circle(rough_core::Vec2::ZERO, 1.0, Color::BLUE);
 
         backend.submit(&a.into_draw_list()).unwrap();
         backend.submit(&b.into_draw_list()).unwrap();
@@ -368,7 +368,7 @@ mod tests {
 
         let mut ctx = PaintContext::new();
         ctx.fill_rect(
-            Rect::from_min_size(cobbled_core::Vec2::ZERO, Size::splat(4.0)),
+            Rect::from_min_size(rough_core::Vec2::ZERO, Size::splat(4.0)),
             Color::RED,
         );
         backend.render_to_target(id, &ctx.into_draw_list()).unwrap();

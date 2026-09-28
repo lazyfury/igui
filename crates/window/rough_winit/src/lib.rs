@@ -1,4 +1,4 @@
-//! Shared `winit` + `wgpu` platform plugins for the `cobbled_app` runtime.
+//! Shared `winit` + `wgpu` platform plugins for the `rough_app` runtime.
 //!
 //! This is **not** a core crate: it depends on `winit` and the `wgpu` backend,
 //! and it never belongs in a backend-neutral layer. It provides the platform
@@ -6,21 +6,21 @@
 //!
 //! - [`WinitPlugin`] — event loop, window creation and lifecycle (no `wgpu`);
 //! - [`WgpuPlugin`] — surface, backend, swap chain and a
-//!   [`Presenter`](cobbled_app::Presenter);
+//!   [`Presenter`](rough_app::Presenter);
 //! - [`PointerPlugin`] / [`KeyboardPlugin`] / [`ImePlugin`] — native event →
-//!   backend-neutral [`InputEvent`](cobbled_core::InputEvent) translation;
+//!   backend-neutral [`InputEvent`](rough_core::InputEvent) translation;
 //! - [`TextMeasurePlugin`] — the backend's font metrics as a
-//!   [`TextMeasurer`](cobbled_ui::TextMeasurer);
+//!   [`TextMeasurer`](rough_ui::TextMeasurer);
 //! - [`ClipboardPlugin`] — the system clipboard.
 //!
 //! Minimal assembly:
 //!
 //! ```no_run
-//! # use cobbled_winit::{WinitPlugin, WgpuPlugin, PointerPlugin, KeyboardPlugin};
-//! # use cobbled_winit::{ImePlugin, TextMeasurePlugin, ClipboardPlugin, WindowConfig};
+//! # use rough_winit::{WinitPlugin, WgpuPlugin, PointerPlugin, KeyboardPlugin};
+//! # use rough_winit::{ImePlugin, TextMeasurePlugin, ClipboardPlugin, WindowConfig};
 //! # struct MyApp;
-//! # impl cobbled_app::AppLogic for MyApp {}
-//! cobbled_app::App::new(cobbled_app::AppConfig::default())
+//! # impl rough_app::AppLogic for MyApp {}
+//! rough_app::App::new(rough_app::AppConfig::default())
 //!     .plugin(WinitPlugin::new(WindowConfig { ime: true, ..Default::default() }))
 //!     .plugin(WgpuPlugin::default())
 //!     .plugin(PointerPlugin)

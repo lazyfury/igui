@@ -4,8 +4,8 @@
 use super::finding::{FindingCode, Severity};
 use super::report::{InspectionConfig, InspectionReport};
 use crate::stats::FrameStats;
-use cobbled_core::{Rect, Transform2D, Vec2};
-use cobbled_render::{CornerRadii, DrawCommand, DrawList};
+use rough_core::{Rect, Transform2D, Vec2};
+use rough_render::{CornerRadii, DrawCommand, DrawList};
 
 /// Inspects `list` and `stats` with the default [`InspectionConfig`].
 pub fn inspect(list: &DrawList, stats: &FrameStats) -> InspectionReport {

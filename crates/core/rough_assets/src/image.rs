@@ -2,7 +2,7 @@
 
 use std::fmt;
 
-use cobbled_core::Size;
+use rough_core::Size;
 
 /// A decoded image, tightly packed as RGBA8 (straight alpha, row-major).
 #[derive(Debug, Clone, PartialEq, Eq)]

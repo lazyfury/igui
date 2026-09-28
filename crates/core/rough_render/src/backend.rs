@@ -1,4 +1,4 @@
-use cobbled_core::ViewportSize;
+use rough_core::ViewportSize;
 
 use crate::list::DrawList;
 use crate::target::RenderTargetId;
@@ -35,7 +35,7 @@ pub trait RenderBackend {
     /// backend with no image support (or a headless one) needs no code; a caller
     /// must treat `Ok` from such a backend as "decoded but not displayed".
     ///
-    /// **Non-breaking addition to `cobbled_render`** (Stage 28.2); recorded in
+    /// **Non-breaking addition to `rough_render`** (Stage 28.2); recorded in
     /// `docs/design-system.md`.
     fn register_texture(
         &mut self,

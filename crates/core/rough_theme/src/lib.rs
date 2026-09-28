@@ -1,11 +1,11 @@
-//! `cobbled_theme` — design tokens for the quill developer-native UI system.
+//! `rough_theme` — design tokens for the quill developer-native UI system.
 //!
 //! This crate is pure data: colors, spacing, radii, type sizes and motion
-//! durations. It depends only on [`cobbled_core`] (for [`Color`]) and never on
-//! `cobbled_ui` or any backend, so it is usable from every layer.
+//! durations. It depends only on [`rough_core`] (for [`Color`]) and never on
+//! `rough_ui` or any backend, so it is usable from every layer.
 //!
 //! ```rust
-//! use cobbled_theme::{space, DefaultTheme, Mode, Space, TextSize, Theme};
+//! use rough_theme::{space, DefaultTheme, Mode, Space, TextSize, Theme};
 //!
 //! let theme = DefaultTheme::dark();
 //! assert_eq!(theme.mode(), Mode::Dark);
@@ -22,7 +22,7 @@
 //! `docs/design-system.md` for the full spec.
 
 /// Crate name, kept for lightweight smoke checks.
-pub const CRATE: &str = "cobbled_theme";
+pub const CRATE: &str = "rough_theme";
 
 mod density;
 mod palette;

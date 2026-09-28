@@ -1,4 +1,4 @@
-//! `cobbled_wasm` — browser integration glue for the quill drawing core.
+//! `rough_wasm` — browser integration glue for the quill drawing core.
 //!
 //! Owns the canvas lookup, `requestAnimationFrame` loop, logical size / DPR
 //! handling and the [`App`] hook. Kept separate from the pure core so Scene/UI
@@ -7,7 +7,7 @@
 //! On non-`wasm32` targets this crate is intentionally empty.
 
 /// Crate name, kept for lightweight smoke checks.
-pub const CRATE: &str = "cobbled_wasm";
+pub const CRATE: &str = "rough_wasm";
 
 #[cfg(any(target_arch = "wasm32", test))]
 mod wheel;
@@ -28,6 +28,6 @@ mod tests {
 
     #[test]
     fn crate_identity() {
-        assert_eq!(CRATE, "cobbled_wasm");
+        assert_eq!(CRATE, "rough_wasm");
     }
 }

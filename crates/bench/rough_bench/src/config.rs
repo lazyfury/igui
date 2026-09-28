@@ -107,7 +107,7 @@ impl RunConfig {
     /// Usage text for `--help`.
     pub fn usage() -> String {
         format!(
-            "cobbled_bench bench runner\n\
+            "rough_bench bench runner\n\
              \n\
              Usage: <bench target> [OPTIONS]\n\
              \n\

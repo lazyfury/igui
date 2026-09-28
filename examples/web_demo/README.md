@@ -19,7 +19,7 @@ python3 -m http.server 8080 --directory .
 
 ## What it shows
 
-- a component gallery built from `cobbled_components` on the shared
+- a component gallery built from `rough_components` on the shared
   `demo_app::DemoApp`: a sidebar of groups, a preview `Router` and live cards
   (`Text`, `Card`, `Badge`, `Button`, `Checkbox`, `Switch`, `List`, …),
 - theme switching (the sidebar footer toggles light/dark),

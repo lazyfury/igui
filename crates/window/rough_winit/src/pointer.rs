@@ -1,7 +1,7 @@
 //! Pointer input: mouse move / button / wheel → core [`InputEvent`]s.
 
-use cobbled_app::{AppBuilder, PlatformEvent, PlatformObserver, Plugin};
-use cobbled_core::{InputEvent, PointerButton, Vec2};
+use rough_app::{AppBuilder, PlatformEvent, PlatformObserver, Plugin};
+use rough_core::{InputEvent, PointerButton, Vec2};
 use winit::event::{ElementState, WindowEvent};
 
 use crate::input;
@@ -80,7 +80,7 @@ mod tests {
     use std::cell::RefCell;
     use std::rc::Rc;
 
-    use cobbled_core::{PointerButton, Vec2};
+    use rough_core::{PointerButton, Vec2};
     use winit::dpi::PhysicalPosition;
     use winit::event::{DeviceId, MouseButton, MouseScrollDelta, TouchPhase};
 

@@ -8,13 +8,13 @@
 
 use std::any::Any;
 
-use cobbled_core::{Cursor, InputEvent, Rect, ViewportSize};
-use cobbled_render::PaintContext;
+use rough_core::{Cursor, InputEvent, Rect, ViewportSize};
+use rough_render::PaintContext;
 
 use crate::service::ServiceMap;
 
 /// Whether the app consumed an event (re-exported from the core).
-pub use cobbled_core::EventResult;
+pub use rough_core::EventResult;
 
 /// Read-only services, available during [`AppLogic::init`].
 pub struct InitContext<'a> {

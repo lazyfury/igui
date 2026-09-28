@@ -1,9 +1,9 @@
 [package]
-name = "cobbled_theme"
+name = "rough_theme"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 
 [dependencies]
-cobbled_core.workspace = true
+rough_core.workspace = true

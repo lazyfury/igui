@@ -1,4 +1,4 @@
-use cobbled_core::{FontWeight, Rect, Transform2D, Vec2};
+use rough_core::{FontWeight, Rect, Transform2D, Vec2};
 
 use crate::command::{CornerRadii, DrawCommand, Paint, TextAlign};
 use crate::texture::TextureId;
@@ -134,7 +134,7 @@ impl PaintContext {
     /// untouched; `list` must be balanced (`Save`/`Restore`) on its own, which
     /// every painter here is.
     ///
-    /// **Non-breaking addition to `cobbled_render`** (Stage 27); recorded in
+    /// **Non-breaking addition to `rough_render`** (Stage 27); recorded in
     /// `docs/design-system.md`.
     pub fn extend(&mut self, list: &DrawList) {
         self.commands.extend_from_slice(&list.commands);
@@ -222,8 +222,8 @@ impl PaintContext {
     /// Strokes a line segment from `from` to `to`, `width` logical pixels wide.
     pub fn draw_line(
         &mut self,
-        from: cobbled_core::Vec2,
-        to: cobbled_core::Vec2,
+        from: rough_core::Vec2,
+        to: rough_core::Vec2,
         width: f32,
         paint: impl Into<Paint>,
     ) {
@@ -354,7 +354,7 @@ impl PaintContext {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cobbled_core::{Color, Size};
+    use rough_core::{Color, Size};
 
     fn rect(w: f32, h: f32) -> Rect {
         Rect::from_min_size(Vec2::ZERO, Size::new(w, h))

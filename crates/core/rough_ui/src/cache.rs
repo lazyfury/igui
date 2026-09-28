@@ -12,8 +12,8 @@
 //! change that can alter painted output (`mark_dirty`, GUI interaction state,
 //! decorators).
 
-use cobbled_render::{DrawCommand, DrawList, PaintContext};
-use cobbled_scene::SceneTree;
+use rough_render::{DrawCommand, DrawList, PaintContext};
+use rough_scene::SceneTree;
 
 use crate::{paint, paint_generation};
 
@@ -35,7 +35,7 @@ impl PaintStatus {
 
 /// Holds the UI's last [`DrawList`] across frames.
 ///
-/// **Non-breaking addition to `cobbled_ui`** (Stage 27); recorded in
+/// **Non-breaking addition to `rough_ui`** (Stage 27); recorded in
 /// `docs/design-system.md`.
 #[derive(Default)]
 pub struct UiPaintCache {
@@ -104,8 +104,8 @@ pub fn paint_cached(
 
 #[cfg(test)]
 mod tests {
-    use cobbled_core::{Color, Edges, NodeId, Size, ViewportSize};
-    use cobbled_render::DrawCommand;
+    use rough_core::{Color, Edges, NodeId, Size, ViewportSize};
+    use rough_render::DrawCommand;
 
     use crate::control::{control_mut, Control, ControlData};
     use crate::layout::TextOptions;

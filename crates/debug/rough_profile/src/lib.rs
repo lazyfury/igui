@@ -1,14 +1,14 @@
-//! `cobbled_profile` — backend-neutral performance inspection for the quill pipeline.
+//! `rough_profile` — backend-neutral performance inspection for the quill pipeline.
 //!
 //! This crate observes the pipeline stages without owning any of them:
 //!
 //! ```text
 //! Input -> SceneTree -> Update -> Layout -> Paint -> DrawList -> RenderBackend -> Pixels
 //!                        ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^   ^^^^^^^^^^^^
-//!                        \_____ cobbled_profile observes these __/
+//!                        \_____ rough_profile observes these __/
 //! ```
 //!
-//! It depends only on `cobbled_core` and `cobbled_render` and **must never** reference a
+//! It depends only on `rough_core` and `rough_render` and **must never** reference a
 //! concrete backend, browser API, or GPU object. Everything here is plain data
 //! plus pure functions, so all of it is testable with native `cargo test` and can
 //! be rendered by any of the existing backends.
@@ -28,7 +28,7 @@
 //! deterministic and the tests exact.
 
 /// Crate name, kept for lightweight smoke checks.
-pub const CRATE: &str = "cobbled_profile";
+pub const CRATE: &str = "rough_profile";
 
 mod inspector;
 mod phase;
@@ -49,6 +49,6 @@ mod tests {
 
     #[test]
     fn crate_identity() {
-        assert_eq!(CRATE, "cobbled_profile");
+        assert_eq!(CRATE, "rough_profile");
     }
 }

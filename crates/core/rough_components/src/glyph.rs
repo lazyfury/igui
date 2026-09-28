@@ -8,14 +8,14 @@
 //! code.
 //!
 //! ```ignore
-//! use cobbled_components::{paint_glyph, Glyph};
+//! use rough_components::{paint_glyph, Glyph};
 //!
 //! // Inside a foreground decorator:
 //! paint_glyph(Glyph::Check, ctx, rect, color, 1.8);
 //! ```
 
-use cobbled_core::{Color, Rect, Vec2};
-use cobbled_render::PaintContext;
+use rough_core::{Color, Rect, Vec2};
+use rough_render::PaintContext;
 
 /// The side of the coordinate space glyphs are authored in.
 pub const GLYPH_VIEWBOX: f32 = 24.0;
@@ -240,7 +240,7 @@ pub fn paint_glyph(glyph: Glyph, ctx: &mut PaintContext, rect: Rect, color: Colo
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cobbled_render::DrawCommand;
+    use rough_render::DrawCommand;
 
     /// Every glyph, so a new one is covered by the tests below.
     const ALL: &[Glyph] = &[
@@ -269,7 +269,7 @@ mod tests {
         paint_glyph(
             glyph,
             &mut ctx,
-            Rect::from_min_size(Vec2::ZERO, cobbled_core::Size::splat(24.0)),
+            Rect::from_min_size(Vec2::ZERO, rough_core::Size::splat(24.0)),
             Color::WHITE,
             2.0,
         );

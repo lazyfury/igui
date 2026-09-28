@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
 use ab_glyph::{point, Font, FontRef, Glyph, GlyphId, PxScale, ScaleFont};
-use cobbled_core::FontWeight;
+use rough_core::FontWeight;
 use rustybuzz::UnicodeBuffer;
 
 use crate::atlas::{Atlas, ATLAS_HEIGHT, ATLAS_WIDTH};

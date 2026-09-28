@@ -4,13 +4,13 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use cobbled_app::{
+use rough_app::{
     App, AppBuilder, LifecycleObserver, PlatformEvent, PlatformObserver, Plugin, PresentOutcome,
     Presenter,
 };
-use cobbled_backend_wgpu::{wgpu, FontConfig, WgpuBackend};
-use cobbled_core::{Color, InputEvent, Size, ViewportSize};
-use cobbled_render::{DrawList, RenderBackend};
+use rough_backend_wgpu::{wgpu, FontConfig, WgpuBackend};
+use rough_core::{Color, InputEvent, Size, ViewportSize};
+use rough_render::{DrawList, RenderBackend};
 use winit::event::WindowEvent;
 use winit::window::Window;
 
@@ -127,10 +127,10 @@ impl LifecycleObserver for WgpuLifecycle {
         let instance = wgpu::Instance::default();
         let surface = instance
             .create_surface(window.clone())
-            .expect("cobbled_winit: create surface");
+            .expect("rough_winit: create surface");
         let mut backend =
             WgpuBackend::from_instance(&instance, Some(&surface), self.config.power_preference)
-                .expect("cobbled_winit: create wgpu backend");
+                .expect("rough_winit: create wgpu backend");
 
         // Prefer a non-sRGB format so the unorm colors written by the shader
         // match the Canvas backend; fall back to whatever the surface offers.
@@ -159,7 +159,7 @@ impl LifecycleObserver for WgpuLifecycle {
         backend.set_scale_factor(if scale > 0.0 { scale as f32 } else { 1.0 });
         backend.set_clear_color(self.config.clear_color);
         if let Err(error) = backend.set_font_config(self.config.font.clone()) {
-            eprintln!("cobbled_winit: font setup failed, using fallback: {error}");
+            eprintln!("rough_winit: font setup failed, using fallback: {error}");
         }
 
         let backend: SharedBackend = Rc::new(RefCell::new(backend));
@@ -245,7 +245,7 @@ impl Presenter for WgpuPresenter {
             }
             Err(wgpu::SurfaceError::Timeout) => return PresentOutcome::Skipped,
             Err(error) => {
-                eprintln!("cobbled_winit: surface error: {error}");
+                eprintln!("rough_winit: surface error: {error}");
                 return PresentOutcome::Skipped;
             }
         };

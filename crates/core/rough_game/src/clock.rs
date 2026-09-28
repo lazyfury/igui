@@ -1,7 +1,7 @@
 //! A fixed-timestep accumulator for host loops.
 //!
 //! A host measures the real frame time, feeds it to [`FixedTimestep::advance`],
-//! runs the returned number of [`SceneTree::physics_process`](cobbled_scene::SceneTree::physics_process)
+//! runs the returned number of [`SceneTree::physics_process`](rough_scene::SceneTree::physics_process)
 //! steps, and uses the returned `alpha` to interpolate rendering between the
 //! previous and current physics states. The accumulator clamps a long stall so
 //! it cannot spiral into an unbounded number of steps.

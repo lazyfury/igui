@@ -4,11 +4,11 @@ use std::cell::{Cell, RefCell};
 use std::ops::Range;
 use std::rc::Rc;
 
-use cobbled_core::{Color, Edges, NodeId, Rect, Size, Vec2};
-use cobbled_render::PaintContext;
-use cobbled_scene::SceneTree;
-use cobbled_theme::{default_theme, Mode, Space, TextSize, Theme, Tone};
-use cobbled_ui::{
+use rough_core::{Color, Edges, NodeId, Rect, Size, Vec2};
+use rough_render::PaintContext;
+use rough_scene::SceneTree;
+use rough_theme::{default_theme, Mode, Space, TextSize, Theme, Tone};
+use rough_ui::{
     dynamic_surface_decor, Align, Control, MouseFilter, SizeBasis, SurfaceStyle, Widget,
 };
 
@@ -223,7 +223,7 @@ impl ListState {
 
     /// Reconciles the row pool with the viewport and the data, reporting
     /// whether the tree changed and therefore wants another
-    /// [`layout`](cobbled_ui::layout) before the frame is painted.
+    /// [`layout`](rough_ui::layout) before the frame is painted.
     ///
     /// Call it *after* layout — the viewport is the container's resolved height
     /// — and lay out again when it returns `true`. When nothing moved, which is
@@ -330,7 +330,7 @@ impl ListInner {
         let Some(container) = self.container else {
             return false;
         };
-        let Some(rect) = cobbled_ui::control(tree, container).map(|data| data.rect) else {
+        let Some(rect) = rough_ui::control(tree, container).map(|data| data.rect) else {
             return false;
         };
         if rect.size.height <= 0.0 {
@@ -352,7 +352,7 @@ impl ListInner {
             }
             // A node added after the last layout is only reached if its parent
             // is arranged again; mounting is what makes that necessary.
-            cobbled_ui::mark_dirty(tree, container);
+            rough_ui::mark_dirty(tree, container);
             changed = true;
         }
 
@@ -377,7 +377,7 @@ impl ListInner {
 
             if tree.is_visible(root) != Some(show) {
                 tree.set_visible(root, show);
-                cobbled_ui::mark_dirty(tree, root);
+                rough_ui::mark_dirty(tree, root);
                 self.slots[slot_index].bound = UNBOUND;
                 changed = true;
             }
@@ -387,7 +387,7 @@ impl ListInner {
             shown += 1;
 
             let want = Edges::new(0.0, y, 0.0, y + self.row_height);
-            if cobbled_ui::control(tree, root).is_some_and(|data| data.offsets != want) {
+            if rough_ui::control(tree, root).is_some_and(|data| data.offsets != want) {
                 update_control(tree, root, |data| data.offsets = want);
                 changed = true;
             }
@@ -490,7 +490,7 @@ impl ListInner {
             .map(|id| vec![id])
             .collect();
 
-        cobbled_ui::add_decor(
+        rough_ui::add_decor(
             tree,
             root,
             dynamic_surface_decor(move |state| {
@@ -541,7 +541,7 @@ impl ListInner {
                     let width = width(index);
                     if let Some(node) = node.get() {
                         if update_control(tree, node, |data| data.min_size.width = width) {
-                            cobbled_ui::mark_dirty(tree, node);
+                            rough_ui::mark_dirty(tree, node);
                         }
                     }
                 }
@@ -564,7 +564,7 @@ impl ListInner {
 /// plus the partially visible one at the bottom edge) and scrolling moves and
 /// re-binds those nodes instead of building new ones — so the node count, the
 /// layout work and the emitted commands depend on the viewport, not on how many
-/// rows the data has. The container clips (`cobbled_ui::set_clip`), so the partial
+/// rows the data has. The container clips (`rough_ui::set_clip`), so the partial
 /// rows at the edges are cut off instead of bleeding over the pane.
 ///
 /// ```ignore
@@ -578,9 +578,9 @@ impl ListInner {
 /// let state = list.state();
 /// tree.add_child(pane, list.grow(1.0));
 ///
-/// cobbled_ui::layout(&mut tree, viewport);
+/// rough_ui::layout(&mut tree, viewport);
 /// if state.sync(&mut tree) {
-///     cobbled_ui::layout(&mut tree, viewport);
+///     rough_ui::layout(&mut tree, viewport);
 /// }
 /// ```
 pub struct List {
@@ -775,12 +775,12 @@ crate::impl_scene_child!(List);
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cobbled_theme::{default_theme, Mode};
+    use rough_theme::{default_theme, Mode};
     use std::cell::RefCell;
 
-    use cobbled_core::{EventResult, InputEvent, Rect, Size, ViewportSize};
-    use cobbled_render::{DrawCommand, DrawList, PaintContext};
-    use cobbled_ui::handle_input;
+    use rough_core::{EventResult, InputEvent, Rect, Size, ViewportSize};
+    use rough_render::{DrawCommand, DrawList, PaintContext};
+    use rough_ui::handle_input;
 
     use crate::Flex;
 
@@ -847,25 +847,25 @@ mod tests {
         /// only when syncing changed the tree.
         fn frame(&mut self) {
             let viewport = ViewportSize::new(Size::new(WIDTH, HEIGHT));
-            cobbled_ui::layout(&mut self.tree, viewport);
+            rough_ui::layout(&mut self.tree, viewport);
             if self.state.sync(&mut self.tree) {
-                cobbled_ui::layout(&mut self.tree, viewport);
+                rough_ui::layout(&mut self.tree, viewport);
             }
             self.tree.update();
         }
 
         fn rect(&self) -> Rect {
-            cobbled_ui::control(&self.tree, self.list).unwrap().rect
+            rough_ui::control(&self.tree, self.list).unwrap().rect
         }
 
         fn controls(&self) -> usize {
-            cobbled_ui::control_count(&self.tree)
+            rough_ui::control_count(&self.tree)
         }
 
         fn cell(&self, slot: usize, column: usize) -> String {
             let row = self.state.rows()[slot];
             let node = self.tree.children(row).unwrap()[column];
-            match cobbled_ui::widget(&self.tree, node) {
+            match rough_ui::widget(&self.tree, node) {
                 Some(Widget::Label { text, .. }) => text.clone(),
                 other => panic!("row cell is not a label: {other:?}"),
             }
@@ -873,7 +873,7 @@ mod tests {
 
         fn paint(&self) -> DrawList {
             let mut ctx = PaintContext::new();
-            cobbled_ui::paint(&self.tree, &mut ctx);
+            rough_ui::paint(&self.tree, &mut ctx);
             ctx.into_draw_list()
         }
 
@@ -881,11 +881,11 @@ mod tests {
             for event in [
                 InputEvent::PointerDown {
                     position,
-                    button: cobbled_core::PointerButton::Left,
+                    button: rough_core::PointerButton::Left,
                 },
                 InputEvent::PointerUp {
                     position,
-                    button: cobbled_core::PointerButton::Left,
+                    button: rough_core::PointerButton::Left,
                 },
             ] {
                 handle_input(&mut self.tree, &event);
@@ -949,11 +949,11 @@ mod tests {
     fn a_row_centers_its_cells_vertically() {
         let fixture = Fixture::new(3, 2);
         let row = fixture.state.rows()[0];
-        let row_rect = cobbled_ui::control(&fixture.tree, row).unwrap().rect;
+        let row_rect = rough_ui::control(&fixture.tree, row).unwrap().rect;
         let cells: Vec<NodeId> = fixture.tree.children(row).unwrap().to_vec();
         assert_eq!(cells.len(), 2);
         for cell in cells {
-            let cell_rect = cobbled_ui::control(&fixture.tree, cell).unwrap().rect;
+            let cell_rect = rough_ui::control(&fixture.tree, cell).unwrap().rect;
             assert!(
                 (row_rect.center().y - cell_rect.center().y).abs() < 0.5,
                 "cell {cell_rect:?} is not on the row centre line"
@@ -1007,13 +1007,13 @@ mod tests {
 
         let container = fixture.rect();
         let top_row = fixture.state.rows()[0];
-        let row_rect = cobbled_ui::control(&fixture.tree, top_row).unwrap().rect;
+        let row_rect = rough_ui::control(&fixture.tree, top_row).unwrap().rect;
         assert!(
             row_rect.top() < container.top(),
             "the first mounted row overhangs the viewport: {row_rect:?}"
         );
         assert_eq!(
-            cobbled_ui::control(&fixture.tree, top_row)
+            rough_ui::control(&fixture.tree, top_row)
                 .unwrap()
                 .clip_rect,
             Some(container),
@@ -1050,19 +1050,19 @@ mod tests {
         fixture.frame();
 
         let top_row = fixture.state.rows()[0];
-        let row_rect = cobbled_ui::control(&fixture.tree, top_row).unwrap().rect;
+        let row_rect = rough_ui::control(&fixture.tree, top_row).unwrap().rect;
         // Inside the row's own rectangle, above the viewport: without the clip
         // hit-testing would hand this point to the overhanging row.
         let outside = Vec2::new(row_rect.center().x, row_rect.top() + 2.0);
         assert!(row_rect.contains(outside));
-        assert_eq!(cobbled_ui::hit_test(&fixture.tree, outside), None);
+        assert_eq!(rough_ui::hit_test(&fixture.tree, outside), None);
     }
 
     #[test]
     fn clicking_a_row_selects_it() {
         let mut fixture = Fixture::new(1_000, 1);
         let second = fixture.state.rows()[1];
-        let center = cobbled_ui::control(&fixture.tree, second)
+        let center = rough_ui::control(&fixture.tree, second)
             .unwrap()
             .rect
             .center();
@@ -1131,9 +1131,9 @@ mod tests {
 
         let taller = 2.0 * HEIGHT;
         let viewport = ViewportSize::new(Size::new(WIDTH, taller));
-        cobbled_ui::layout(&mut fixture.tree, viewport);
+        rough_ui::layout(&mut fixture.tree, viewport);
         if fixture.state.sync(&mut fixture.tree) {
-            cobbled_ui::layout(&mut fixture.tree, viewport);
+            rough_ui::layout(&mut fixture.tree, viewport);
         }
         let pool = (taller / ROW).ceil() as usize + 1;
         assert_eq!(fixture.state.pool_size(), pool);
@@ -1205,9 +1205,9 @@ mod tests {
 
         fn frame(&mut self) {
             let viewport = ViewportSize::new(Size::new(WIDTH, HEIGHT));
-            cobbled_ui::layout(&mut self.tree, viewport);
+            rough_ui::layout(&mut self.tree, viewport);
             if self.state.sync(&mut self.tree) {
-                cobbled_ui::layout(&mut self.tree, viewport);
+                rough_ui::layout(&mut self.tree, viewport);
             }
             self.tree.update();
         }
@@ -1220,11 +1220,11 @@ mod tests {
             for event in [
                 InputEvent::PointerDown {
                     position,
-                    button: cobbled_core::PointerButton::Left,
+                    button: rough_core::PointerButton::Left,
                 },
                 InputEvent::PointerUp {
                     position,
-                    button: cobbled_core::PointerButton::Left,
+                    button: rough_core::PointerButton::Left,
                 },
             ] {
                 handle_input(&mut self.tree, &event);
@@ -1235,11 +1235,11 @@ mod tests {
             for event in [
                 InputEvent::PointerDown {
                     position,
-                    button: cobbled_core::PointerButton::Right,
+                    button: rough_core::PointerButton::Right,
                 },
                 InputEvent::PointerUp {
                     position,
-                    button: cobbled_core::PointerButton::Right,
+                    button: rough_core::PointerButton::Right,
                 },
             ] {
                 handle_input(&mut self.tree, &event);
@@ -1253,7 +1253,7 @@ mod tests {
     fn a_right_click_reports_the_row_and_position() {
         let mut fixture = LeadFixture::new(100);
         let row = fixture.state.rows()[1];
-        let rect = cobbled_ui::control(&fixture.tree, row).unwrap().rect;
+        let rect = rough_ui::control(&fixture.tree, row).unwrap().rect;
         let point = Vec2::new(rect.center().x, rect.top() + 3.0);
         fixture.right_click(point);
         assert_eq!(*fixture.contexted.borrow(), vec![(1, point)]);
@@ -1265,7 +1265,7 @@ mod tests {
     fn a_checkbox_lead_toggles_without_activating_the_row() {
         let mut fixture = LeadFixture::new(100);
         let checkbox = fixture.lead(0, 1);
-        let center = cobbled_ui::control(&fixture.tree, checkbox)
+        let center = rough_ui::control(&fixture.tree, checkbox)
             .unwrap()
             .rect
             .center();
@@ -1281,7 +1281,7 @@ mod tests {
     fn a_spacer_lead_binds_the_row_width() {
         let mut fixture = LeadFixture::new(100);
         let width = |fixture: &LeadFixture, slot: usize| {
-            cobbled_ui::control(&fixture.tree, fixture.lead(slot, 0))
+            rough_ui::control(&fixture.tree, fixture.lead(slot, 0))
                 .unwrap()
                 .min_size
                 .width

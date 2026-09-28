@@ -4,9 +4,9 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::*;
-use cobbled_backend_recording::RecordingBackend;
-use cobbled_core::{Color, Key, PointerButton};
-use cobbled_render::{DrawCommand, PaintContext, RenderBackend};
+use rough_backend_recording::RecordingBackend;
+use rough_core::{Color, Key, PointerButton};
+use rough_render::{DrawCommand, PaintContext, RenderBackend};
 
 fn laid_out() -> DemoApp {
     let viewport = ViewportSize::new(Size::new(1200.0, 760.0));
@@ -31,9 +31,9 @@ fn click(app: &mut DemoApp, position: Vec2) {
 #[test]
 fn the_demo_installs_a_host_clipboard() {
     let mut app = laid_out();
-    let clipboard = Rc::new(RefCell::new(cobbled_ui::MemoryClipboard::default()));
+    let clipboard = Rc::new(RefCell::new(rough_ui::MemoryClipboard::default()));
     app.set_clipboard(clipboard.clone());
-    assert!(cobbled_ui::clipboard(app.tree()).is_some());
+    assert!(rough_ui::clipboard(app.tree()).is_some());
 }
 
 /// The gallery's live text fields are interactive end to end: a click focuses
@@ -55,11 +55,11 @@ fn a_gallery_text_field_accepts_typed_input() {
         .iter()
         .find(|id| {
             app.tree()
-                .data::<cobbled_ui::Control>(*id)
+                .data::<rough_ui::Control>(*id)
                 .is_some_and(|control| control.text_callback.is_some())
         })
         .expect("a text field is mounted");
-    let center = cobbled_ui::control(app.tree(), field)
+    let center = rough_ui::control(app.tree(), field)
         .expect("field laid out")
         .rect
         .center();

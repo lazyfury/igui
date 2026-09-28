@@ -4,10 +4,10 @@
 
 use std::rc::Rc;
 
-use cobbled_backend_recording::RecordingBackend;
-use cobbled_core::{InputEvent, Key, Size, Vec2, ViewportSize};
-use cobbled_render::{DrawCommand, PaintContext};
-use cobbled_ui::FixedWidthTextMeasurer;
+use rough_backend_recording::RecordingBackend;
+use rough_core::{InputEvent, Key, Size, Vec2, ViewportSize};
+use rough_render::{DrawCommand, PaintContext};
+use rough_ui::FixedWidthTextMeasurer;
 
 use crate::{Game, TARGET};
 

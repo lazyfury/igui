@@ -2,11 +2,11 @@
 
 use std::sync::Arc;
 
-use cobbled_app::{
+use rough_app::{
     App, AppBuilder, FrameObserver, LifecycleObserver, PlatformEvent, PlatformObserver, Plugin,
 };
-use cobbled_core::{ImeEvent, InputEvent, Rect};
-use cobbled_render::DrawList;
+use rough_core::{ImeEvent, InputEvent, Rect};
+use rough_render::DrawList;
 use winit::dpi::{PhysicalPosition, PhysicalSize};
 use winit::event::{Ime, WindowEvent};
 use winit::window::Window;
@@ -15,7 +15,7 @@ use crate::window::{SharedWindow, SharedWindowState, WindowConfig};
 
 /// Translates IME events and keeps the candidate window on the app's caret.
 ///
-/// The caret is read from [`App::caret`](cobbled_app::App::caret) after each frame,
+/// The caret is read from [`App::caret`](rough_app::App::caret) after each frame,
 /// so the candidate window follows the focused text field.
 #[derive(Default)]
 pub struct ImePlugin;
@@ -135,7 +135,7 @@ mod tests {
     use std::cell::RefCell;
     use std::rc::Rc;
 
-    use cobbled_app::PlatformObserver;
+    use rough_app::PlatformObserver;
     use winit::event::Ime;
 
     use super::*;
@@ -157,7 +157,7 @@ mod tests {
 
         let mut out = Vec::new();
         observer.on_platform(
-            cobbled_app::PlatformEvent::new(&WindowEvent::Ime(Ime::Enabled)),
+            rough_app::PlatformEvent::new(&WindowEvent::Ime(Ime::Enabled)),
             &mut out,
         );
         assert_eq!(out, vec![InputEvent::Ime(ImeEvent::Enabled)]);
@@ -165,7 +165,7 @@ mod tests {
 
         out.clear();
         observer.on_platform(
-            cobbled_app::PlatformEvent::new(&WindowEvent::Ime(Ime::Preedit(
+            rough_app::PlatformEvent::new(&WindowEvent::Ime(Ime::Preedit(
                 "ni".into(),
                 Some((1, 1)),
             ))),
@@ -182,7 +182,7 @@ mod tests {
 
         out.clear();
         observer.on_platform(
-            cobbled_app::PlatformEvent::new(&WindowEvent::Ime(Ime::Commit("你".into()))),
+            rough_app::PlatformEvent::new(&WindowEvent::Ime(Ime::Commit("你".into()))),
             &mut out,
         );
         assert_eq!(out, vec![InputEvent::Ime(ImeEvent::Commit("你".into()))]);
@@ -191,18 +191,18 @@ mod tests {
         // An empty preedit also clears the composition flag.
         out.clear();
         observer.on_platform(
-            cobbled_app::PlatformEvent::new(&WindowEvent::Ime(Ime::Preedit("x".into(), None))),
+            rough_app::PlatformEvent::new(&WindowEvent::Ime(Ime::Preedit("x".into(), None))),
             &mut out,
         );
         observer.on_platform(
-            cobbled_app::PlatformEvent::new(&WindowEvent::Ime(Ime::Preedit(String::new(), None))),
+            rough_app::PlatformEvent::new(&WindowEvent::Ime(Ime::Preedit(String::new(), None))),
             &mut out,
         );
         assert!(!state.borrow().composing);
 
         out.clear();
         observer.on_platform(
-            cobbled_app::PlatformEvent::new(&WindowEvent::Ime(Ime::Disabled)),
+            rough_app::PlatformEvent::new(&WindowEvent::Ime(Ime::Disabled)),
             &mut out,
         );
         assert_eq!(out, vec![InputEvent::Ime(ImeEvent::Disabled)]);

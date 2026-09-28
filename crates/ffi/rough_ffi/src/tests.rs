@@ -1,8 +1,8 @@
 //! The ABI contract tests: null safety, the round-trip of every command the
 //! C++ UI can build, and the version.
 
-use cobbled_core::Vec2;
-use cobbled_render::{DrawCommand, DrawList, Paint};
+use rough_core::Vec2;
+use rough_render::{DrawCommand, DrawList, Paint};
 
 use crate::convert::command_record;
 use crate::*;
@@ -192,8 +192,8 @@ fn unmodelled_commands_read_as_unsupported() {
         text: "hi".to_string(),
         position: Vec2::ZERO,
         font_size: 12.0,
-        weight: cobbled_render::FontWeight::NORMAL,
-        align: cobbled_render::TextAlign::Left,
+        weight: rough_render::FontWeight::NORMAL,
+        align: rough_render::TextAlign::Left,
         paint: Paint::default(),
     });
     let record = command_record(&list.commands()[0]);

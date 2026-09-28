@@ -144,13 +144,13 @@ mod tests {
     /// directory as a trailing argument:
     ///
     /// ```text
-    /// cargo test -p cobbled_svg -- --ignored --nocapture every_icon /path/to/lucide/icons
+    /// cargo test -p rough_svg -- --ignored --nocapture every_icon /path/to/lucide/icons
     /// ```
     #[test]
     #[ignore = "needs a real icon pack (pass its directory)"]
     fn every_icon_in_a_real_pack_parses() {
-        use cobbled_core::{Color, Rect, Size, Vec2};
-        use cobbled_render::PaintContext;
+        use rough_core::{Color, Rect, Size, Vec2};
+        use rough_render::PaintContext;
 
         // libtest treats the path as an extra name filter; the test name above
         // still matches. Pick the last positional argument that is a directory.

@@ -1,7 +1,7 @@
-//! `cobbled_render` — the backend-neutral render intermediate representation (IR).
+//! `rough_render` — the backend-neutral render intermediate representation (IR).
 //!
 //! Owns [`DrawCommand`], [`DrawList`], [`PaintContext`], [`Paint`] and resource
-//! handles ([`TextureId`]). It depends only on `cobbled_core` and **must never**
+//! handles ([`TextureId`]). It depends only on `rough_core` and **must never**
 //! reference a concrete backend, browser API, or GPU object, so any backend can
 //! consume the same IR.
 //!
@@ -14,7 +14,7 @@
 //! The [`RenderBackend`] trait defines the frame lifecycle a backend implements.
 
 /// Crate name, kept for lightweight smoke checks.
-pub const CRATE: &str = "cobbled_render";
+pub const CRATE: &str = "rough_render";
 
 mod backend;
 mod command;
@@ -23,7 +23,7 @@ mod target;
 mod texture;
 
 pub use backend::RenderBackend;
-pub use cobbled_core::FontWeight;
+pub use rough_core::FontWeight;
 pub use command::{CornerRadii, DrawCommand, Paint, TextAlign};
 pub use list::{DrawList, PaintContext};
 pub use target::RenderTargetId;
@@ -35,6 +35,6 @@ mod tests {
 
     #[test]
     fn crate_identity() {
-        assert_eq!(CRATE, "cobbled_render");
+        assert_eq!(CRATE, "rough_render");
     }
 }

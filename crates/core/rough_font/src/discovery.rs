@@ -6,7 +6,7 @@
 
 use std::path::{Path, PathBuf};
 
-use cobbled_core::FontWeight;
+use rough_core::FontWeight;
 
 /// One discovered face: enough to resolve and load it, without the bytes.
 #[derive(Debug, Clone, PartialEq, Eq)]

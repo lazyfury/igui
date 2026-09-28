@@ -4,12 +4,12 @@
 //! shape, lays each out, paints each headlessly through the recording backend,
 //! and asserts the trees share neither node ids nor state.
 
-use cobbled_backend_recording::RecordingBackend;
-use cobbled_components::{set_text, Column, Component, NodeRef, Text};
-use cobbled_core::{Size, ViewportSize};
-use cobbled_render::RenderBackend;
-use cobbled_scene::{SceneChild, SceneTree};
-use cobbled_theme::{default_theme, Mode, Theme, Tone};
+use rough_backend_recording::RecordingBackend;
+use rough_components::{set_text, Column, Component, NodeRef, Text};
+use rough_core::{Size, ViewportSize};
+use rough_render::RenderBackend;
+use rough_scene::{SceneChild, SceneTree};
+use rough_theme::{default_theme, Mode, Theme, Tone};
 
 fn build(theme: &'static dyn Theme, label: &str) -> (SceneTree, NodeRef) {
     let title = NodeRef::new();
@@ -31,11 +31,11 @@ fn main() {
 
     // 2. Layout + paint each headlessly: no panics, each yields commands.
     for tree in [&mut a, &mut b, &mut c] {
-        cobbled_ui::layout(tree, viewport);
+        rough_ui::layout(tree, viewport);
         tree.update();
 
-        let mut ctx = cobbled_render::PaintContext::new();
-        cobbled_ui::paint(tree, &mut ctx);
+        let mut ctx = rough_render::PaintContext::new();
+        rough_ui::paint(tree, &mut ctx);
         let list = ctx.into_draw_list();
         assert!(!list.commands().is_empty(), "each tree must paint commands");
 
@@ -51,12 +51,12 @@ fn main() {
     // valid with their own tree. The real check is that edits never cross-talk.
     set_text(&mut a, title_a.get().expect("tree A title"), "A (edited)");
     assert_eq!(
-        cobbled_ui::widget(&b, title_b.get().expect("tree B title")).and_then(|w| w.text()),
+        rough_ui::widget(&b, title_b.get().expect("tree B title")).and_then(|w| w.text()),
         Some("B"),
         "editing tree A must not touch tree B"
     );
     assert_eq!(
-        cobbled_ui::widget(&c, title_c.get().expect("tree C title")).and_then(|w| w.text()),
+        rough_ui::widget(&c, title_c.get().expect("tree C title")).and_then(|w| w.text()),
         Some("C"),
         "editing tree A must not touch tree C"
     );

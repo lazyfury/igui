@@ -1,4 +1,4 @@
-//! `cobbled_core` — foundation layer for the quill drawing core.
+//! `rough_core` — foundation layer for the quill drawing core.
 //!
 //! This crate owns the backend-neutral base types every other crate builds on:
 //! math ([`Vec2`], [`Size`], [`Rect`], [`Edges`], [`Transform2D`]), [`Color`],
@@ -18,7 +18,7 @@
 //! - Rectangles are axis-aligned, defined by an `origin` and a `size`.
 
 /// Crate name, kept for lightweight smoke checks.
-pub const CRATE: &str = "cobbled_core";
+pub const CRATE: &str = "rough_core";
 
 mod color;
 mod cursor;
@@ -50,6 +50,6 @@ mod tests {
 
     #[test]
     fn crate_identity() {
-        assert_eq!(CRATE, "cobbled_core");
+        assert_eq!(CRATE, "rough_core");
     }
 }

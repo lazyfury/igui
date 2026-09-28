@@ -16,9 +16,9 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use cobbled_core::Edges;
-use cobbled_theme::{radius, ControlSize, SurfaceLevel, Theme};
-use cobbled_ui::{Align, FlexStyle, Justify, SurfaceStyle, TextEdit, TextMeasurer, Widget};
+use rough_core::Edges;
+use rough_theme::{radius, ControlSize, SurfaceLevel, Theme};
+use rough_ui::{Align, FlexStyle, Justify, SurfaceStyle, TextEdit, TextMeasurer, Widget};
 
 use crate::base::{Component, Spec};
 use crate::components::text_field::{self, FieldState};
@@ -105,9 +105,9 @@ impl Component for TextInput {
         )
     }
 
-    fn bind(&mut self, tree: &mut cobbled_scene::SceneTree) {
+    fn bind(&mut self, tree: &mut rough_scene::SceneTree) {
         if self.measurer.is_none() {
-            self.measurer = Some(cobbled_ui::text_measurer_handle(tree));
+            self.measurer = Some(rough_ui::text_measurer_handle(tree));
         }
     }
 
@@ -128,7 +128,7 @@ impl Component for TextInput {
         let measurer = self
             .measurer
             .clone()
-            .unwrap_or_else(|| Rc::new(RefCell::new(Rc::new(cobbled_ui::ApproxTextMeasurer))));
+            .unwrap_or_else(|| Rc::new(RefCell::new(Rc::new(rough_ui::ApproxTextMeasurer))));
         text_field::wire(
             &mut self.spec,
             theme,
@@ -150,12 +150,12 @@ mod tests {
     use std::cell::RefCell;
     use std::rc::Rc;
 
-    use cobbled_core::{Edges, ImeEvent, InputEvent, Key, Modifiers, Size, Vec2, ViewportSize};
-    use cobbled_scene::SceneTree;
-    use cobbled_theme::{default_theme, Mode};
-    use cobbled_ui::{Clipboard, MouseFilter, Widget};
+    use rough_core::{Edges, ImeEvent, InputEvent, Key, Modifiers, Size, Vec2, ViewportSize};
+    use rough_scene::SceneTree;
+    use rough_theme::{default_theme, Mode};
+    use rough_ui::{Clipboard, MouseFilter, Widget};
 
-    fn mount(tree: &mut SceneTree, input: TextInput) -> cobbled_core::NodeId {
+    fn mount(tree: &mut SceneTree, input: TextInput) -> rough_core::NodeId {
         let page = tree.add_child(
             tree.root(),
             Flex::column()
@@ -168,19 +168,19 @@ mod tests {
     }
 
     /// Lays out and clicks the field so it has focus.
-    fn focus(tree: &mut SceneTree, id: cobbled_core::NodeId) {
-        cobbled_ui::layout(tree, ViewportSize::new(Size::new(400.0, 300.0)));
+    fn focus(tree: &mut SceneTree, id: rough_core::NodeId) {
+        rough_ui::layout(tree, ViewportSize::new(Size::new(400.0, 300.0)));
         let center = tree
-            .data::<cobbled_ui::Control>(id)
+            .data::<rough_ui::Control>(id)
             .unwrap()
             .data
             .rect
             .center();
-        cobbled_ui::handle_input(
+        rough_ui::handle_input(
             tree,
             &InputEvent::PointerDown {
                 position: center,
-                button: cobbled_core::PointerButton::Left,
+                button: rough_core::PointerButton::Left,
             },
         );
     }
@@ -193,9 +193,9 @@ mod tests {
         let shared = input.shared();
         let id = mount(&mut tree, input);
         focus(&mut tree, id);
-        cobbled_ui::handle_input(&mut tree, &InputEvent::TextInput { text: "hi".into() });
+        rough_ui::handle_input(&mut tree, &InputEvent::TextInput { text: "hi".into() });
         assert_eq!(shared.borrow().text(), "hi");
-        cobbled_ui::handle_input(
+        rough_ui::handle_input(
             &mut tree,
             &InputEvent::KeyDown {
                 key: Key::Backspace,
@@ -212,8 +212,8 @@ mod tests {
         let shared = input.shared();
         let id = mount(&mut tree, input);
         focus(&mut tree, id);
-        let rect = tree.data::<cobbled_ui::Control>(id).unwrap().data.rect;
-        cobbled_ui::handle_input(
+        let rect = tree.data::<rough_ui::Control>(id).unwrap().data.rect;
+        rough_ui::handle_input(
             &mut tree,
             &InputEvent::PointerMove {
                 position: Vec2::new(rect.left() + 2.0, rect.center().y),
@@ -230,9 +230,9 @@ mod tests {
         let shared = input.shared();
         let id = mount(&mut tree, input);
         focus(&mut tree, id);
-        let rect = tree.data::<cobbled_ui::Control>(id).unwrap().data.rect;
+        let rect = tree.data::<rough_ui::Control>(id).unwrap().data.rect;
         // Beyond the text: the caret clamps to the end, inside "bar".
-        cobbled_ui::handle_input(
+        rough_ui::handle_input(
             &mut tree,
             &InputEvent::DoubleClick {
                 position: Vec2::new(rect.right() - 2.0, rect.center().y),
@@ -245,8 +245,8 @@ mod tests {
     fn copy_cut_and_paste_use_the_clipboard() {
         let theme = default_theme(Mode::Dark);
         let mut tree = SceneTree::new();
-        let clipboard = Rc::new(RefCell::new(cobbled_ui::MemoryClipboard::default()));
-        cobbled_ui::set_clipboard(&mut tree, clipboard.clone());
+        let clipboard = Rc::new(RefCell::new(rough_ui::MemoryClipboard::default()));
+        rough_ui::set_clipboard(&mut tree, clipboard.clone());
         let input = TextInput::new(theme).value("hello world").min_width(200.0);
         let shared = input.shared();
         let id = mount(&mut tree, input);
@@ -256,9 +256,9 @@ mod tests {
             ctrl: true,
             ..Modifiers::NONE
         };
-        cobbled_ui::handle_input(&mut tree, &InputEvent::ModifiersChanged(ctrl));
+        rough_ui::handle_input(&mut tree, &InputEvent::ModifiersChanged(ctrl));
 
-        cobbled_ui::handle_input(
+        rough_ui::handle_input(
             &mut tree,
             &InputEvent::KeyDown {
                 key: Key::Character('c'),
@@ -266,7 +266,7 @@ mod tests {
         );
         assert_eq!(clipboard.borrow().get().as_deref(), Some("hello world"));
 
-        cobbled_ui::handle_input(
+        rough_ui::handle_input(
             &mut tree,
             &InputEvent::KeyDown {
                 key: Key::Character('x'),
@@ -275,7 +275,7 @@ mod tests {
         assert_eq!(clipboard.borrow().get().as_deref(), Some("hello world"));
         assert_eq!(shared.borrow().text(), "");
 
-        cobbled_ui::handle_input(
+        rough_ui::handle_input(
             &mut tree,
             &InputEvent::KeyDown {
                 key: Key::Character('v'),
@@ -294,8 +294,8 @@ mod tests {
         focus(&mut tree, id);
         // Space and Tab are named keys the field inserts itself (guarded by the
         // IME preedit); no host `TextInput` is involved.
-        cobbled_ui::handle_input(&mut tree, &InputEvent::KeyDown { key: Key::Space });
-        cobbled_ui::handle_input(&mut tree, &InputEvent::KeyDown { key: Key::Tab });
+        rough_ui::handle_input(&mut tree, &InputEvent::KeyDown { key: Key::Space });
+        rough_ui::handle_input(&mut tree, &InputEvent::KeyDown { key: Key::Tab });
         assert_eq!(shared.borrow().text(), " \t");
     }
 
@@ -307,7 +307,7 @@ mod tests {
         let shared = input.shared();
         let id = mount(&mut tree, input);
         focus(&mut tree, id);
-        cobbled_ui::handle_input(
+        rough_ui::handle_input(
             &mut tree,
             &InputEvent::Ime(ImeEvent::Preedit {
                 text: "ni".into(),
@@ -316,7 +316,7 @@ mod tests {
         );
         assert_eq!(shared.borrow().text(), "");
         assert!(shared.borrow().has_preedit());
-        cobbled_ui::handle_input(&mut tree, &InputEvent::Ime(ImeEvent::Commit("你".into())));
+        rough_ui::handle_input(&mut tree, &InputEvent::Ime(ImeEvent::Commit("你".into())));
         assert_eq!(shared.borrow().text(), "你");
         assert!(!shared.borrow().has_preedit());
     }
@@ -329,8 +329,8 @@ mod tests {
         let shared = input.shared();
         let id = mount(&mut tree, input);
         focus(&mut tree, id);
-        cobbled_ui::handle_input(&mut tree, &InputEvent::ModifiersChanged(Modifiers::SHIFT));
-        cobbled_ui::handle_input(
+        rough_ui::handle_input(&mut tree, &InputEvent::ModifiersChanged(Modifiers::SHIFT));
+        rough_ui::handle_input(
             &mut tree,
             &InputEvent::KeyDown {
                 key: Key::ArrowLeft,
@@ -352,7 +352,7 @@ mod tests {
         let theme = default_theme(Mode::Dark);
         let mut tree = SceneTree::new();
         let id = mount(&mut tree, TextInput::new(theme));
-        let control = tree.data::<cobbled_ui::Control>(id).unwrap();
+        let control = tree.data::<rough_ui::Control>(id).unwrap();
         assert!(control.focusable);
         assert!(control.caret_provider.is_some());
         assert!(control.key_callback.is_some());

@@ -1,15 +1,15 @@
 //! Platform-neutral presentation: the graphics boundary and the opaque bridge
 //! to a native platform.
 //!
-//! `cobbled_app` never names a windowing or GPU type. A platform plugin (e.g.
-//! `cobbled_winit`) drives the runtime through the opaque [`PlatformEvent`]
+//! `rough_app` never names a windowing or GPU type. A platform plugin (e.g.
+//! `rough_winit`) drives the runtime through the opaque [`PlatformEvent`]
 //! bridge and installs a [`Presenter`] that turns the app's `DrawList` into
 //! pixels.
 
 use std::any::Any;
 
-use cobbled_core::{EventResult, InputEvent, ViewportSize};
-use cobbled_render::DrawList;
+use rough_core::{EventResult, InputEvent, ViewportSize};
+use rough_render::DrawList;
 
 /// What [`Presenter::present`] did with a frame.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -97,7 +97,7 @@ pub trait PaintLayer: 'static {
     fn paint(
         &mut self,
         ctx: &crate::logic::FrameContext<'_>,
-        paint: &mut cobbled_render::PaintContext,
+        paint: &mut rough_render::PaintContext,
     );
 }
 

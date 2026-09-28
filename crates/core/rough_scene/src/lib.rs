@@ -1,19 +1,19 @@
-//! `cobbled_scene` — the scene tree: [`Node`], [`SceneTree`], [`CanvasItem`] and
+//! `rough_scene` — the scene tree: [`Node`], [`SceneTree`], [`CanvasItem`] and
 //! `Node2D` (via [`NodeKind::Node2D`]).
 //!
-//! May depend on `cobbled_core` and `cobbled_render` (the Paint step, Scene -> DrawList,
+//! May depend on `rough_core` and `rough_render` (the Paint step, Scene -> DrawList,
 //! lives here by design). Must not depend on any browser or concrete-backend API,
 //! so the whole scene graph stays testable with native `cargo test`.
 //!
 //! # Model
 //!
-//! Nodes live in a [`SceneTree`] arena and are addressed by [`cobbled_core::NodeId`].
-//! A `Node2D` carries a [`CanvasItem`] with a local [`cobbled_core::Transform2D`],
+//! Nodes live in a [`SceneTree`] arena and are addressed by [`rough_core::NodeId`].
+//! A `Node2D` carries a [`CanvasItem`] with a local [`rough_core::Transform2D`],
 //! visibility and z-index. [`SceneTree::update`] walks the tree once and derives
 //! `world_transform` / `world_visible`, using [`DirtyFlags`] to skip clean nodes.
 
 /// Crate name, kept for lightweight smoke checks.
-pub const CRATE: &str = "cobbled_scene";
+pub const CRATE: &str = "rough_scene";
 
 mod child;
 mod input;
@@ -36,6 +36,6 @@ mod tests {
 
     #[test]
     fn crate_identity() {
-        assert_eq!(CRATE, "cobbled_scene");
+        assert_eq!(CRATE, "rough_scene");
     }
 }

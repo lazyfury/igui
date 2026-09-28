@@ -9,41 +9,41 @@ license.workspace = true
 default = []
 # UI: scene + layout/paint/input + design system.
 ui = [
-    "dep:cobbled_core",
-    "dep:cobbled_render",
-    "dep:cobbled_scene",
-    "dep:cobbled_theme",
-    "dep:cobbled_ui",
-    "dep:cobbled_components",
-    # When `game` is also enabled, surface `cobbled_game::GameView` (weak dep: does
-    # not pull cobbled_game on by itself).
-    "cobbled_game?/ui",
+    "dep:rough_core",
+    "dep:rough_render",
+    "dep:rough_scene",
+    "dep:rough_theme",
+    "dep:rough_ui",
+    "dep:rough_components",
+    # When `game` is also enabled, surface `rough_game::GameView` (weak dep: does
+    # not pull rough_game on by itself).
+    "rough_game?/ui",
 ]
 # Animation, independent of `ui` and `game`.
-anim = ["dep:cobbled_anim", "dep:cobbled_core", "dep:cobbled_scene"]
-# Application runtime: the plugin-based `cobbled_app` builder (no platform).
-app = ["dep:cobbled_app", "dep:cobbled_core", "dep:cobbled_render"]
+anim = ["dep:rough_anim", "dep:rough_core", "dep:rough_scene"]
+# Application runtime: the plugin-based `rough_app` builder (no platform).
+app = ["dep:rough_app", "dep:rough_core", "dep:rough_render"]
 # Headless recording presenter for `--selfcheck`; no `winit`.
-headless = ["app", "dep:cobbled_headless", "dep:cobbled_backend_recording"]
+headless = ["app", "dep:rough_headless", "dep:rough_backend_recording"]
 # 2D game layer. Does not imply `ui`; `anim` stays independent.
 game = [
-    "dep:cobbled_game",
-    "dep:cobbled_assets",
-    "dep:cobbled_core",
-    "dep:cobbled_render",
-    "dep:cobbled_scene",
+    "dep:rough_game",
+    "dep:rough_assets",
+    "dep:rough_core",
+    "dep:rough_render",
+    "dep:rough_scene",
 ]
 
 [dependencies]
-cobbled_core = { workspace = true, optional = true }
-cobbled_render = { workspace = true, optional = true }
-cobbled_scene = { workspace = true, optional = true }
-cobbled_theme = { workspace = true, optional = true }
-cobbled_ui = { workspace = true, optional = true }
-cobbled_components = { workspace = true, optional = true }
-cobbled_anim = { workspace = true, optional = true }
-cobbled_game = { workspace = true, optional = true }
-cobbled_assets = { workspace = true, optional = true }
-cobbled_app = { workspace = true, optional = true }
-cobbled_headless = { workspace = true, optional = true }
-cobbled_backend_recording = { workspace = true, optional = true }
+rough_core = { workspace = true, optional = true }
+rough_render = { workspace = true, optional = true }
+rough_scene = { workspace = true, optional = true }
+rough_theme = { workspace = true, optional = true }
+rough_ui = { workspace = true, optional = true }
+rough_components = { workspace = true, optional = true }
+rough_anim = { workspace = true, optional = true }
+rough_game = { workspace = true, optional = true }
+rough_assets = { workspace = true, optional = true }
+rough_app = { workspace = true, optional = true }
+rough_headless = { workspace = true, optional = true }
+rough_backend_recording = { workspace = true, optional = true }

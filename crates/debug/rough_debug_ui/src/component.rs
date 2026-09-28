@@ -1,14 +1,14 @@
 //! Component debug drawing: yellow bounds plus a `name#id` label per control.
 //!
 //! [`DebugOverlay`] is a lightweight, togglable wrapper around
-//! [`cobbled_ui::paint_debug`](cobbled_ui::paint_debug). Unlike
+//! [`rough_ui::paint_debug`](rough_ui::paint_debug). Unlike
 //! [`PerformanceOverlay`](crate::PerformanceOverlay) it owns no UI tree: it
 //! simply draws over whatever `Ui` you pass to [`DebugOverlay::paint`], so it
 //! works for the application's own UI.
 
-use cobbled_render::PaintContext;
-use cobbled_scene::SceneTree;
-use cobbled_ui::DebugDrawOptions;
+use rough_render::PaintContext;
+use rough_scene::SceneTree;
+use rough_ui::DebugDrawOptions;
 
 /// Debug drawing of every visible component: a border (yellow by default) and a
 /// `Name #id` label in each control's top-left corner.
@@ -76,7 +76,7 @@ impl DebugOverlay {
     /// boxes render on top.
     pub fn paint(&self, tree: &SceneTree, ctx: &mut PaintContext) {
         if self.open {
-            cobbled_ui::paint_debug(tree, ctx, &self.options);
+            rough_ui::paint_debug(tree, ctx, &self.options);
         }
     }
 }

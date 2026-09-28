@@ -9,7 +9,7 @@
 
 use std::sync::LazyLock;
 
-use cobbled_core::{Color, FontWeight};
+use rough_core::{Color, FontWeight};
 
 use crate::density::{ControlSize, Density};
 use crate::palette::Palette;
@@ -56,8 +56,8 @@ pub enum SurfaceLevel {
 /// actually changes.
 ///
 /// ```
-/// use cobbled_core::Color;
-/// use cobbled_theme::{DefaultTheme, Mode, Palette, SurfaceLevel, Theme};
+/// use rough_core::Color;
+/// use rough_theme::{DefaultTheme, Mode, Palette, SurfaceLevel, Theme};
 ///
 /// struct BrandTheme(DefaultTheme);
 ///

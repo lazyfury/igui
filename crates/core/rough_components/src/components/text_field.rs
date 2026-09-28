@@ -14,10 +14,10 @@ use std::cell::{Cell, RefCell};
 use std::ops::Range;
 use std::rc::Rc;
 
-use cobbled_core::{Cursor, EventResult, FontWeight, ImeEvent, Key, Rect, Size, Vec2};
-use cobbled_render::{PaintContext, TextAlign};
-use cobbled_theme::{ControlSize, TextSize, Theme};
-use cobbled_ui::{InteractState, PointerPhase, TextEdit, TextMeasurer};
+use rough_core::{Cursor, EventResult, FontWeight, ImeEvent, Key, Rect, Size, Vec2};
+use rough_render::{PaintContext, TextAlign};
+use rough_theme::{ControlSize, TextSize, Theme};
+use rough_ui::{InteractState, PointerPhase, TextEdit, TextMeasurer};
 
 use crate::base::Spec;
 
@@ -519,7 +519,7 @@ pub(crate) fn wire(
                 }
                 Key::Character('c') if modifiers.ctrl || modifiers.meta => {
                     if let Some(selected) = edit.selected_text().map(str::to_string) {
-                        if let Some(clipboard) = cobbled_ui::clipboard(tree) {
+                        if let Some(clipboard) = rough_ui::clipboard(tree) {
                             clipboard.borrow_mut().set(&selected);
                         }
                     }
@@ -527,7 +527,7 @@ pub(crate) fn wire(
                 }
                 Key::Character('x') if modifiers.ctrl || modifiers.meta => {
                     if let Some(selected) = edit.selected_text().map(str::to_string) {
-                        if let Some(clipboard) = cobbled_ui::clipboard(tree) {
+                        if let Some(clipboard) = rough_ui::clipboard(tree) {
                             clipboard.borrow_mut().set(&selected);
                         }
                         edit.delete_selection();
@@ -535,7 +535,7 @@ pub(crate) fn wire(
                     true
                 }
                 Key::Character('v') if modifiers.ctrl || modifiers.meta => {
-                    if let Some(clipboard) = cobbled_ui::clipboard(tree) {
+                    if let Some(clipboard) = rough_ui::clipboard(tree) {
                         if let Some(text) = clipboard.borrow().get() {
                             edit.commit_text(&text);
                         }
@@ -552,7 +552,7 @@ pub(crate) fn wire(
             if handled {
                 let measurer = measurer.borrow().clone();
                 ensure_caret_visible(theme, measurer.as_ref(), &field, masked, multiline);
-                cobbled_ui::request_paint(tree);
+                rough_ui::request_paint(tree);
                 EventResult::Handled
             } else {
                 EventResult::Ignored
@@ -568,7 +568,7 @@ pub(crate) fn wire(
             field.edit.borrow_mut().commit_text(text);
             let measurer = measurer.borrow().clone();
             ensure_caret_visible(theme, measurer.as_ref(), &field, masked, multiline);
-            cobbled_ui::request_paint(tree);
+            rough_ui::request_paint(tree);
         }));
     }
 
@@ -587,7 +587,7 @@ pub(crate) fn wire(
             }
             let measurer = measurer.borrow().clone();
             ensure_caret_visible(theme, measurer.as_ref(), &field, masked, multiline);
-            cobbled_ui::request_paint(tree);
+            rough_ui::request_paint(tree);
         }));
     }
 
@@ -646,7 +646,7 @@ pub(crate) fn wire(
             }
             let measurer = measurer.borrow().clone();
             ensure_caret_visible(theme, measurer.as_ref(), &field, masked, multiline);
-            cobbled_ui::request_paint(tree);
+            rough_ui::request_paint(tree);
         }));
     }
 

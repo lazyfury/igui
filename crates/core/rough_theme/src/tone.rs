@@ -1,6 +1,6 @@
 //! Semantic color tones resolved against a [`Theme`](crate::Theme).
 
-use cobbled_core::Color;
+use rough_core::Color;
 
 use crate::{Semantic, SurfaceLevel, Theme};
 

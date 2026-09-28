@@ -1,4 +1,4 @@
-use cobbled_core::{NodeId, NodeIdAllocator, Size, Transform2D, Vec2};
+use rough_core::{NodeId, NodeIdAllocator, Size, Transform2D, Vec2};
 
 use crate::node::{AnchorMode, Camera2DData, CanvasLayerData, DirtyFlags, Node, NodeKind};
 use crate::viewport::Viewport;
@@ -160,8 +160,8 @@ impl SceneTree {
     /// Reads the node's extension data as `T`, if it is set and of that type.
     ///
     /// This is the typed accessor behind the Phase 1 extension slot: layers
-    /// such as `cobbled_ui` store their runtime on the node and read it back
-    /// without `cobbled_scene` knowing the concrete types.
+    /// such as `rough_ui` store their runtime on the node and read it back
+    /// without `rough_scene` knowing the concrete types.
     pub fn data<T: 'static>(&self, id: NodeId) -> Option<&T> {
         self.get(id).and_then(Node::data)
     }
@@ -584,7 +584,7 @@ impl SceneTree {
     /// `world_visible`) is stale. A host can combine this with the UI repaint
     /// generation and the animation signal to decide whether a frame is needed.
     ///
-    /// **Non-breaking addition to `cobbled_scene`** (Stage 27); recorded in
+    /// **Non-breaking addition to `rough_scene`** (Stage 27); recorded in
     /// `docs/design-system.md`.
     pub fn needs_update(&self) -> bool {
         self.slots.iter().flatten().any(|node| {

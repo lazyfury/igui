@@ -1,10 +1,10 @@
 //! Attaching front-end values to the tree as children.
 //!
-//! `cobbled_scene` knows only the tree and node ids, so [`SceneChild`] stays
-//! backend- and UI-neutral; `cobbled_components` implements it for every UI component.
+//! `rough_scene` knows only the tree and node ids, so [`SceneChild`] stays
+//! backend- and UI-neutral; `rough_components` implements it for every UI component.
 //! Composition is expressed with [`SceneTree::add_child`].
 
-use cobbled_core::NodeId;
+use rough_core::NodeId;
 
 use crate::SceneTree;
 

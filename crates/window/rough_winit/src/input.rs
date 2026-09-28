@@ -1,4 +1,4 @@
-//! Platform input → backend-neutral [`InputEvent`](cobbled_core::InputEvent)
+//! Platform input → backend-neutral [`InputEvent`](rough_core::InputEvent)
 //! translation.
 //!
 //! These are the pieces every window host used to copy: function-key and named
@@ -9,7 +9,7 @@
 
 use std::time::{Duration, Instant};
 
-use cobbled_core::{Cursor, Key, Modifiers, PointerButton, Vec2};
+use rough_core::{Cursor, Key, Modifiers, PointerButton, Vec2};
 use winit::dpi::PhysicalPosition;
 use winit::event::{MouseButton, MouseScrollDelta};
 use winit::keyboard::{Key as WinitKey, ModifiersState, NamedKey};
@@ -62,7 +62,7 @@ pub fn pointer_button(button: MouseButton) -> PointerButton {
 }
 
 /// Platform wheel → logical pixels (`y > 0` scrolls down, matching
-/// [`InputEvent::Wheel`](cobbled_core::InputEvent::Wheel)).
+/// [`InputEvent::Wheel`](rough_core::InputEvent::Wheel)).
 ///
 /// Wheel-up (`LineDelta` `y > 0`) scrolls up, so the offset decreases; the sign
 /// convention lives here, not in the core.

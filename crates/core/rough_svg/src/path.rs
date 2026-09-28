@@ -4,7 +4,7 @@
 //! relative) and flattens curves to line segments with an adaptive
 //! subdivision, so the result can be stroked with straight `Line` commands.
 
-use cobbled_core::Vec2;
+use rough_core::Vec2;
 
 use crate::{Subpath, SvgError};
 

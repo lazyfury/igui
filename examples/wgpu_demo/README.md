@@ -1,6 +1,6 @@
 # wgpu demo
 
-Native window demo for the `cobbled_backend_wgpu` backend.
+Native window demo for the `rough_backend_wgpu` backend.
 
 It opens a `winit` window, renders the same `demo_app` scene/UI the `web_demo`
 renders through `WgpuBackend`, and presents the result to a `wgpu` surface:
@@ -17,7 +17,7 @@ No core, scene, UI or IR code changes between the Canvas backend and this one.
 cargo run -p wgpu_demo --release
 ```
 
-Headless check (renders the same gallery through `cobbled_headless`, no window):
+Headless check (renders the same gallery through `rough_headless`, no window):
 
 ```bash
 cargo run -p wgpu_demo -- --selfcheck
@@ -25,7 +25,7 @@ cargo run -p wgpu_demo -- --selfcheck
 
 ## Controls
 
-- A component gallery built from `cobbled_components` on the shared `demo_app`:
+- A component gallery built from `rough_components` on the shared `demo_app`:
   - **sidebar** (248px): app mark + title, one row per group, and a footer
     primary button that toggles light/dark,
   - **preview**: a `Router` showing the selected group, with a two-column grid
@@ -123,8 +123,8 @@ cargo run -p wgpu_demo --release -- --transparent-titlebar
 ## Component debug drawing
 
 Every visible `Control` is outlined in yellow with a `Name #id` label at its
-top-left corner. This is `cobbled_ui::Ui::paint_debug` wrapped by
-`cobbled_debug_ui::DebugOverlay`:
+top-left corner. This is `rough_ui::Ui::paint_debug` wrapped by
+`rough_debug_ui::DebugOverlay`:
 
 ```text
 demo.paint -> debug.paint(demo.ui(), demo.tree(), ctx) -> `ui.paint_debug(tree, ...)`
@@ -136,9 +136,9 @@ for using it with your own `Ui`.
 ## Performance panel
 
 The demo instruments each pipeline phase, records it in a
-`cobbled_profile::Profiler`, audits the frame's `DrawList` with
-`cobbled_profile::inspect`, and renders the result with
-`cobbled_debug_ui::PerformanceOverlay`:
+`rough_profile::Profiler`, audits the frame's `DrawList` with
+`rough_profile::inspect`, and renders the result with
+`rough_debug_ui::PerformanceOverlay`:
 
 ```text
 update/layout/paint/render (timed) -> Profiler.record -> inspect -> PerformanceOverlay -> DrawList
@@ -160,4 +160,4 @@ over the panel; everything else is forwarded to the demo.
   Canvas backend; if only sRGB is offered, that is used as a fallback.
 - The backend is window-agnostic: it receives a surface texture view via
   `WgpuBackend::begin_frame_with_view` and the demo calls `present()`. The same
-  backend runs headlessly in `crates/platform/wgpu/cobbled_backend_wgpu/tests/render.rs`.
+  backend runs headlessly in `crates/platform/wgpu/rough_backend_wgpu/tests/render.rs`.

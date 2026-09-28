@@ -90,7 +90,7 @@ impl WgpuBackend {
             return;
         }
         let texture = self.device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("cobbled_backend_wgpu.offscreen"),
+            label: Some("rough_backend_wgpu.offscreen"),
             size: wgpu::Extent3d {
                 width,
                 height,
@@ -122,7 +122,7 @@ impl WgpuBackend {
             return;
         }
         let texture = self.device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("cobbled_backend_wgpu.msaa"),
+            label: Some("rough_backend_wgpu.msaa"),
             size: wgpu::Extent3d {
                 width,
                 height,
@@ -174,7 +174,7 @@ impl WgpuBackend {
         let mut encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("cobbled_backend_wgpu.encoder"),
+                label: Some("rough_backend_wgpu.encoder"),
             });
 
         let vertex_buffer = if self.vertices.is_empty() {
@@ -183,7 +183,7 @@ impl WgpuBackend {
             Some(
                 self.device
                     .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                        label: Some("cobbled_backend_wgpu.vertices"),
+                        label: Some("rough_backend_wgpu.vertices"),
                         contents: bytemuck::cast_slice(&self.vertices),
                         usage: wgpu::BufferUsages::VERTEX,
                     }),
@@ -199,7 +199,7 @@ impl WgpuBackend {
 
         {
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("cobbled_backend_wgpu.pass"),
+                label: Some("rough_backend_wgpu.pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &msaa_view,
                     resolve_target: Some(&view),

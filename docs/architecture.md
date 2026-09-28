@@ -23,7 +23,7 @@ Input -> SceneTree -> Update -> Layout -> Paint -> DrawList -> RenderBackend -> 
 
 Only steps 4-5 cross the core/backend boundary, and they cross via `DrawList`.
 
-`cobbled_scene` depends on `cobbled_render` on purpose: `cobbled_render` is the
+`rough_scene` depends on `rough_render` on purpose: `rough_render` is the
 backend-neutral IR (no backend/browser deps) and the Paint step
 (Scene -> DrawList) lives in the scene. This does not weaken backend
 replaceability.
@@ -37,7 +37,7 @@ Finalized conventions (Stage 1): origin top-left, `+X` right, `+Y` down,
 rotations in radians (positive from `+X` toward `+Y`), rectangles axis-aligned
 with half-open membership `[min, max)`. `ViewportSize` stores logical size
 only; `ViewportSize::device_size(scale)` derives device pixels without storing
-DPR. (The scene-level `cobbled_scene::Viewport` is a separate render context:
+DPR. (The scene-level `rough_scene::Viewport` is a separate render context:
 logical size plus the world -> screen `canvas_transform`.)
 
 ## Implementation stages
@@ -50,14 +50,14 @@ logical size plus the world -> screen `canvas_transform`.)
 - Stage 5 — Canvas 2D backend + WASM [done]
 - Stage 6 — `Control` / layout / input [done]
 - Stage 7 — reusable component demo [done]
-- Stage 8 — second backend validation (`cobbled_backend_recording`) [done]. A
+- Stage 8 — second backend validation (`rough_backend_recording`) [done]. A
   native macOS Core Graphics backend + `macos_demo` was implemented and removed
   by request (not worth the added complexity); do not reintroduce it without an
   explicit ask.
-- Stage 9 — `wgpu` backend (`cobbled_backend_wgpu`, offscreen + pixel readback) [done]
-- Stage 10 — performance inspection (`cobbled_profile`) + debug overlay
-  (`cobbled_debug_ui`) [done]
-- Stage 11 — benchmarking (`cobbled_bench` harness + `cobbled_bench_suite`) [done]
+- Stage 9 — `wgpu` backend (`rough_backend_wgpu`, offscreen + pixel readback) [done]
+- Stage 10 — performance inspection (`rough_profile`) + debug overlay
+  (`rough_debug_ui`) [done]
+- Stage 11 — benchmarking (`rough_bench` harness + `rough_bench_suite`) [done]
 - Stage 12 — layout engine v2 [done]: intrinsic sizing (`ContentSize`),
   flex (grow/shrink/basis/justify/align/wrap), grid (`Track`, placement,
   spans), and deterministic text wrapping. `VBox`/`HBox` are now thin
@@ -68,7 +68,7 @@ logical size plus the world -> screen `canvas_transform`.)
 - Stage 14 — text measurement [done]: pluggable `TextMeasurer`
   (`ApproxTextMeasurer`, `FixedWidthTextMeasurer`), `TextOptions`
   (`wrap`/`max_lines`/`ellipsis`). A host injects metrics via
-  `cobbled_ui::set_text_measurer`; layout stays deterministic without font shaping.
+  `rough_ui::set_text_measurer`; layout stays deterministic without font shaping.
 - Stage 15 — incremental layout [done]: `Ui` caches the resolved viewport and
   skips measure/arrange unless a dirty flag is set (structure/property/text
   changes, `tree_mut`, measurer swap, or a different viewport).
@@ -86,7 +86,7 @@ logical size plus the world -> screen `canvas_transform`.)
   `DemoApp` (scene + UI + update/layout/paint/event); `examples/wgpu_demo` and the
   WASM demos only add host glue and (for wgpu) a matching `TextMeasurer`. Its
   native tests verify layout and the full pipeline through
-  `cobbled_backend_recording`.
+  `rough_backend_recording`.
 - Stage 19 — real font stack in the wgpu backend [done]: a font is located from
   a per-OS candidate list, parsed with `ab_glyph`, and rasterized
   on demand into a dynamic, shelf-packed atlas (uploaded after each `submit`).
@@ -94,11 +94,11 @@ logical size plus the world -> screen `canvas_transform`.)
   HiDPI, while metrics stay logical) or `FontMode::Pixel` (built-in bitmap), and
   `WgpuBackend::set_font_config` switches at runtime. Advance/line/ascent metrics
   are exposed as `FontMetrics` so hosts can build a matching
-  `cobbled_ui::TextMeasurer`. The core stays text-free.
-- Stage 20 — design system [done]: `cobbled_theme` tokens (light/dark palettes,
-  spacing/radius/type/motion scales) + the themed `cobbled_components` library
+  `rough_ui::TextMeasurer`. The core stays text-free.
+- Stage 20 — design system [done]: `rough_theme` tokens (light/dark palettes,
+  spacing/radius/type/motion scales) + the themed `rough_components` library
   (`Text`, `Card`, `Divider`, `Badge`, `Button`, `CodeBlock`, `Terminal`,
-  `EmptyState`, `Checkbox`, `Switch`) built on frozen `cobbled_ui` primitives; the
+  `EmptyState`, `Checkbox`, `Switch`) built on frozen `rough_ui` primitives; the
   shared `demo_app` became a three-column macOS-style notes app.
 - Stage 21 — complex-script shaping [done]: the wgpu backend shapes each line
   with `rustybuzz` (kerning, ligatures, contextual forms) and `unicode-bidi`
@@ -106,37 +106,37 @@ logical size plus the world -> screen `canvas_transform`.)
   advance. `TextMeasurer::measure_run` is the backend-neutral hook so layout
   measures with the same shaping; the Canvas/WASM `measureText` measurer also
   measures whole runs. The core stays text-free.
-- Stage 22 — overlay layer [done]: `cobbled_components::Overlays` owns its own `Ui`
+- Stage 22 — overlay layer [done]: `rough_components::Overlays` owns its own `Ui`
   and provides `confirm` / `popover` / `tips` / `message` builders on top of a
   pure placement module (edge flipping + margin clamp). It handles scrims, modal
   input capture, Esc/click-outside dismissal, auto-dismiss timers and callbacks;
   hosts call `layout`, `paint` and `handle_input` around their own pipeline.
-- Stage 23 — per-node decorations [done]: `cobbled_ui::{NodeDecor, InteractState}`
+- Stage 23 — per-node decorations [done]: `rough_ui::{NodeDecor, InteractState}`
   plus `Ui::add_decor` / `Ui::state_for` let components attach themed chrome to
   their root node. `Ui::paint` runs decorators around the widget content in one
   pass and `Ui::set_on_click` accepts any control, dispatching to the nearest
-  ancestor. The `Kit` runtime is gone: `cobbled_components` components attach
+  ancestor. The `Kit` runtime is gone: `rough_components` components attach
   decorators, and hosts run a single paint / input pass.
 - Stage 24 — declarative views [done, superseded by Stage 25]:
-  `cobbled_ui::{View, BuildContext, ViewExt, Column, Row}` + `Ui::mount`. A view
+  `rough_ui::{View, BuildContext, ViewExt, Column, Row}` + `Ui::mount`. A view
   tree composes with `.child(..)` and chainable modifiers that post-process the
   built node. Stage 25 replaced this layer with component-native `.child()`.
 - Stage 25 — unified scene + component API [accepted]: one `SceneTree` owns
-  world and UI. `cobbled_scene::{Viewport, Camera2D, CanvasLayer}` drive the world
+  world and UI. `rough_scene::{Viewport, Camera2D, CanvasLayer}` drive the world
   and layer UI in viewport coordinates. Components are values built with
-  `SceneTree::add_child`; every `cobbled_components::Component` carries a `Spec` and
+  `SceneTree::add_child`; every `rough_components::Component` carries a `Spec` and
   supports `.child()`/`.background()`/`.grow()` natively (no `View`/`ViewExt`
   layer). The theme is a value passed to constructors — it is no longer stored on
-  the tree; the text measurer still lives on the root. `cobbled_ui` is layout +
+  the tree; the text measurer still lives on the root. `rough_ui` is layout +
   paint free functions plus per-node runtime (`ControlData`/`Widget`/decorators/
   GUI state/layout cache). Phases 1-5 and sub-stages 25.1-25.16 landed; Phases
   6-9 are future stages. Details: `docs/godot-migration.md`.
-- Post-Stage-25 (un-numbered): `cobbled_font` (system-font service + numeric
-  `FontWeight`), `Theme` as a trait + `DefaultTheme`, and `cobbled_ffi` (a C ABI
+- Post-Stage-25 (un-numbered): `rough_font` (system-font service + numeric
+  `FontWeight`), `Theme` as a trait + `DefaultTheme`, and `rough_ffi` (a C ABI
   over the core so a non-Rust host can build a `DrawList` and bring its own
   backend — `examples/cpp_ffi` is a C++ UI + OpenGL 3.3 renderer on top of it,
   see `docs/cpp-ffi.md`).
-- Stage 26 — animation core + facade skeleton [done]: `cobbled_anim` is a
+- Stage 26 — animation core + facade skeleton [done]: `rough_anim` is a
   backend-neutral, time-driven tween manager (`Easing` curves, `Animator`,
   `TweenSpec` / `Repeat`, node-property and external-value targets); its
   `is_animating` is the host's "needs another frame" signal. No clock, backend
@@ -144,62 +144,62 @@ logical size plus the world -> screen `canvas_transform`.)
   re-exports only, with opt-in `ui` / `anim` features (`game` lands Stage 32).
 - Stage 27 — refresh decoupling [done]: additive core plumbing so a host can
   render only on change and keep an unchanged UI out of the frame cost. The
-  `cobbled_ui` root state gained a `paint_generation` (bumped by layout
+  `rough_ui` root state gained a `paint_generation` (bumped by layout
   invalidation, GUI interaction state and decorators) plus `needs_layout` /
   `paint_generation` queries and `UiPaintCache` / `paint_cached` (reuses the
-  last UI `DrawList`); `cobbled_scene::SceneTree::needs_update` reports stale
-  derived state; `cobbled_render::PaintContext::extend` splices a cached list.
+  last UI `DrawList`); `rough_scene::SceneTree::needs_update` reports stale
+  derived state; `rough_render::PaintContext::extend` splices a cached list.
   Recorded in `docs/design-system.md`; `Widget` / `ControlData` unchanged.
-- Stage 28 — 2D game layer (`cobbled_game`) [done]: `cobbled_scene` gained a
+- Stage 28 — 2D game layer (`rough_game`) [done]: `rough_scene` gained a
   type-keyed node extension store (core-hardening #1) and `Visual::Sprite`
-  (region/atlas, flip, nine-slice); `cobbled_render` gained a defaulted
-  `RenderBackend::register_texture`; new `cobbled_assets` decodes PNG to RGBA8; new
-  `cobbled_game` provides `Sprite2D` + a texture-upload helper, sprite-sheet frame
+  (region/atlas, flip, nine-slice); `rough_render` gained a defaulted
+  `RenderBackend::register_texture`; new `rough_assets` decodes PNG to RGBA8; new
+  `rough_game` provides `Sprite2D` + a texture-upload helper, sprite-sheet frame
   animation, lightweight timers and typed signals, and AABB/circle collision
   queries with `Area` enter/exit triggers; the `quill` facade gained the `game`
   feature. Backend-neutral, no UI dependency (`game` does not imply `ui`), no
   rigid bodies or audio. Core additions recorded in `docs/design-system.md`;
   plan/status in `docs/godot-migration.md`.
-- Stage 29 — GameView / sub-viewport + fixed timestep [done]: `cobbled_scene` gained
-  a fixed-step `physics_process` lifecycle; `cobbled_render` gained a render-target
+- Stage 29 — GameView / sub-viewport + fixed timestep [done]: `rough_scene` gained
+  a fixed-step `physics_process` lifecycle; `rough_render` gained a render-target
   contract (`RenderTargetId` + `create_render_target` / `destroy_render_target` /
   `render_to_target`; wgpu renders to an offscreen texture that is sampled as a
-  texture, recording stores metadata + lists); `cobbled_game` gained `GameView`
+  texture, recording stores metadata + lists); `rough_game` gained `GameView`
   (behind its optional `ui` feature) — an embedded sub-viewport Control that
   renders its own `SceneTree` to an offscreen target at `logical * scale` and
   composites it — and a `FixedTimestep` clock. `quill` surfaces `GameView` when
   `ui` + `game` are enabled. Single-threaded; no separate game thread.
 - Stage 30 — `examples/game_demo` [done]: a top-down collect game built on the
-  game layer — a `GameView` embedded in a `cobbled_ui` HUD, animated sprites from an
-  embedded PNG atlas (`cobbled_assets` + `SpriteFrames`), `Camera2D` follow, `Area`
-  coin pickups scoring, a `cobbled_anim` spawn tween and a 120 Hz `FixedTimestep`.
-  Window host (`winit` + `cobbled_backend_wgpu`) with on-demand redraw; `--selfcheck`
-  drives the same pipeline headlessly through `cobbled_backend_recording`. Render
+  game layer — a `GameView` embedded in a `rough_ui` HUD, animated sprites from an
+  embedded PNG atlas (`rough_assets` + `SpriteFrames`), `Camera2D` follow, `Area`
+  coin pickups scoring, a `rough_anim` spawn tween and a 120 Hz `FixedTimestep`.
+  Window host (`winit` + `rough_backend_wgpu`) with on-demand redraw; `--selfcheck`
+  drives the same pipeline headlessly through `rough_backend_recording`. Render
   targets share the texture id space, so their ids are kept disjoint from uploaded
   textures (the wgpu backend rejects a collision).
-- Editable text input + shared host [done]: `cobbled_core` gained `Modifiers`
-  (`InputEvent::ModifiersChanged`) and `InputEvent::Ime(ImeEvent)`; `cobbled_ui`
+- Editable text input + shared host [done]: `rough_core` gained `Modifiers`
+  (`InputEvent::ModifiersChanged`) and `InputEvent::Ime(ImeEvent)`; `rough_ui`
   gained the dependency-free `TextEdit` state machine, focused key/text/IME
   routing via `Control` callbacks, `focused_caret` / `modifiers` /
-  `request_paint`; `cobbled_components::TextInput` became an interactive editor and
-  `TextArea` was added. The non-core `cobbled_winit` crate (now as `cobbled_app`
+  `request_paint`; `rough_components::TextInput` became an interactive editor and
+  `TextArea` was added. The non-core `rough_winit` crate (now as `rough_app`
   plugins, Stage 31) owns the shared `winit` + `wgpu` window/surface/backend
   lifecycle, input translation (including IME), `DrawList` presentation and IME
   candidate-window placement; `examples/wgpu_demo` is the reference migration and
   the gallery exercises both fields. Selection followed: drag-select via a
   tree-aware `PointerPhase` pointer callback, host-detected
   `InputEvent::DoubleClick` for word selection, and a host `Clipboard` for copy /
-  cut / paste (`cobbled_winit` wraps arboard with an in-process fallback). Backends
+  cut / paste (`rough_winit` wraps arboard with an in-process fallback). Backends
   needed no new `DrawCommand`. See `docs/components.md` §Text fields and
   `docs/design-system.md` §Recorded core additions.
 
-- Stage 31 — `cobbled_app` plugin runtime [done]: a new **non-core** crate
+- Stage 31 — `rough_app` plugin runtime [done]: a new **non-core** crate
   (`App` / `AppBuilder` / `Plugin` / `AppLogic` / `ServiceMap` / `Runner` and a
-  neutral `Presenter`, depending only on `cobbled_core` + `cobbled_render`) plus
-  `cobbled_winit` split into `WinitPlugin`, `WgpuPlugin`, `PointerPlugin`,
+  neutral `Presenter`, depending only on `rough_core` + `rough_render`) plus
+  `rough_winit` split into `WinitPlugin`, `WgpuPlugin`, `PointerPlugin`,
   `KeyboardPlugin`, `ImePlugin`, `TextMeasurePlugin`, `ClipboardPlugin` (and a
-  `FrameObserver` hook for frame-time work like IME placement). `cobbled_headless`
-  records frames for winit-free self-checks. It replaces `cobbled_winit::Host`
+  `FrameObserver` hook for frame-time work like IME placement). `rough_headless`
+  records frames for winit-free self-checks. It replaces `rough_winit::Host`
   (removed, not kept as a façade) and adds `app` / `headless` to the `quill`
   facade; the facade's backend features remain Stage 32. `examples/wgpu_demo` is
   migrated and gains `--selfcheck`. See `docs/godot-migration.md` → "Stage 31
@@ -207,20 +207,20 @@ logical size plus the world -> screen `canvas_transform`.)
 
 ## Debugging & performance inspection
 
-Observation stays backend-neutral and outside the pipeline. `cobbled_profile` never
+Observation stays backend-neutral and outside the pipeline. `rough_profile` never
 measures time or touches a backend (hosts sample `Instant` per phase and feed
-numbers in), and `cobbled_debug_ui` draws its overlays with ordinary
+numbers in), and `rough_debug_ui` draws its overlays with ordinary
 `DrawCommand`s. `Profiler` keeps a bounded frame history; `inspect` ranks
 `Finding`s by severity; `DebugOverlay` draws component bounds via
-`cobbled_ui::paint_debug` and `PerformanceOverlay` renders the summary as a
-`cobbled_ui` panel painted after the app UI. See `docs/debug.md`.
+`rough_ui::paint_debug` and `PerformanceOverlay` renders the summary as a
+`rough_ui` panel painted after the app UI. See `docs/debug.md`.
 
 ## Benchmarking
 
 The profiler observes a frame; a benchmark pins a path to a number and guards it
-against regression. `cobbled_bench` measures and compares only and never builds a
-scene or touches a backend; `cobbled_bench_suite` owns the deterministic fixtures
-and contains no timing code; `cobbled_backend_wgpu` adds a GPU benchmark for the
+against regression. `rough_bench` measures and compares only and never builds a
+scene or touches a backend; `rough_bench_suite` owns the deterministic fixtures
+and contains no timing code; `rough_backend_wgpu` adds a GPU benchmark for the
 offscreen render + readback path. Both bench crates sit beside the pipeline
 (like the demos): core crates never depend on them. See `docs/benchmarking.md`.
 
@@ -228,22 +228,22 @@ offscreen render + readback path. Both bench crates sit beside the pipeline
 
 Same `Scene` + `UI` + `DrawList` must run on any backend without changing
 Scene/UI code. Backend-specific code lives only in `cobbled_backend_*`,
-`cobbled_wasm`, and the examples.
+`rough_wasm`, and the examples.
 
 Validated by three independent renderers consuming the same IR:
 
-- `cobbled_backend_canvas` (HTML Canvas 2D, WASM) — `examples/web_demo`.
-- `cobbled_backend_recording` (headless recording backend) — `tests/pipeline.rs`.
-- `cobbled_backend_wgpu` (native `wgpu`, offscreen target + pixel readback, and
-  window-surface presentation) — `crates/platform/wgpu/cobbled_backend_wgpu/tests/render.rs`,
+- `rough_backend_canvas` (HTML Canvas 2D, WASM) — `examples/web_demo`.
+- `rough_backend_recording` (headless recording backend) — `tests/pipeline.rs`.
+- `rough_backend_wgpu` (native `wgpu`, offscreen target + pixel readback, and
+  window-surface presentation) — `crates/platform/wgpu/rough_backend_wgpu/tests/render.rs`,
   `examples/wgpu_demo`.
-- A C++ OpenGL 3.3 backend (not Rust) consuming `cobbled_ffi`'s command stream —
+- A C++ OpenGL 3.3 backend (not Rust) consuming `rough_ffi`'s command stream —
   `examples/cpp_ffi`, verified by reading its own framebuffer back.
 
-Reused unchanged by both: `cobbled_core`, `cobbled_scene`, `cobbled_ui`, and the
-`DrawList` / `RenderBackend` contract in `cobbled_render`.
+Reused unchanged by both: `rough_core`, `rough_scene`, `rough_ui`, and the
+`DrawList` / `RenderBackend` contract in `rough_render`.
 Backend-specific: command-to-API mapping, resource registration, and the
-platform loop/window (`cobbled_wasm`, the examples).
+platform loop/window (`rough_wasm`, the examples).
 
 The native `wgpu_demo` and the WASM `web_demo` additionally share
 `examples/demo_app`: the same backend-neutral `DemoApp` drives both, and only

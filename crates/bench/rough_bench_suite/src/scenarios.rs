@@ -8,15 +8,15 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
-use cobbled_components::theme::{default_theme, space, Mode, TextSize};
-use cobbled_components::{
+use rough_components::theme::{default_theme, space, Mode, TextSize};
+use rough_components::{
     update_control, Component, Flex, Label, List, ListColumn, ListState, Panel, Row, Text, Theme,
     VBox,
 };
-use cobbled_core::{Color, Edges, NodeId, Size, Vec2, ViewportSize};
-use cobbled_render::PaintContext;
-use cobbled_scene::{SceneTree, Visual};
-use cobbled_ui::{MouseFilter, SizeBasis};
+use rough_core::{Color, Edges, NodeId, Size, Vec2, ViewportSize};
+use rough_render::PaintContext;
+use rough_scene::{SceneTree, Visual};
+use rough_ui::{MouseFilter, SizeBasis};
 
 /// Entity counts every scenario is run at, to expose scaling curves.
 pub const SIZES: [usize; 3] = [100, 1_000, 10_000];
@@ -87,7 +87,7 @@ impl UiFixture {
         let tree_root = tree.root();
         let root = tree.add_child(
             tree_root,
-            Flex::column().mouse_filter(cobbled_ui::MouseFilter::Ignore),
+            Flex::column().mouse_filter(rough_ui::MouseFilter::Ignore),
         );
         let panel = tree.add_child(root, Panel::new());
         let vbox = tree.add_child(panel, VBox::new());
@@ -97,9 +97,9 @@ impl UiFixture {
             ids.push(tree.add_child(vbox, Label::new(format!("Item {i}"))));
         }
 
-        cobbled_ui::layout(&mut tree, viewport);
+        rough_ui::layout(&mut tree, viewport);
         tree.update();
-        let first_center = cobbled_ui::control(&tree, ids[0])
+        let first_center = rough_ui::control(&tree, ids[0])
             .map(|control| control.rect.center())
             .unwrap_or(Vec2::ZERO);
 
@@ -117,16 +117,16 @@ impl UiFixture {
     }
 
     pub fn layout(&mut self, viewport: ViewportSize) {
-        cobbled_ui::layout(&mut self.tree, viewport);
+        rough_ui::layout(&mut self.tree, viewport);
         self.tree.update();
     }
 
     pub fn hit_test(&self, position: Vec2) -> Option<NodeId> {
-        cobbled_ui::hit_test(&self.tree, position)
+        rough_ui::hit_test(&self.tree, position)
     }
 
-    pub fn paint(&self, ctx: &mut cobbled_render::PaintContext) {
-        cobbled_ui::paint(&self.tree, ctx);
+    pub fn paint(&self, ctx: &mut rough_render::PaintContext) {
+        rough_ui::paint(&self.tree, ctx);
     }
 }
 
@@ -181,7 +181,7 @@ fn bounce(offset: f32, direction: f32, delta: f32, max_offset: f32) -> (f32, f32
 /// What one frame is billed in: nodes to walk, commands to submit.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FrameShape {
-    /// Controls in the tree ([`cobbled_ui::control_count`]).
+    /// Controls in the tree ([`rough_ui::control_count`]).
     pub controls: usize,
     /// Commands the frame emits (`DrawList::len`).
     pub commands: usize,
@@ -319,15 +319,15 @@ impl ListFullFixture {
     /// Places the content at the current offset and arranges the tree.
     pub fn layout(&mut self) {
         let want = Edges::new(0.0, -self.offset, 0.0, -self.offset + self.content_height);
-        if cobbled_ui::control(&self.tree, self.content).is_some_and(|data| data.offsets != want) {
+        if rough_ui::control(&self.tree, self.content).is_some_and(|data| data.offsets != want) {
             update_control(&mut self.tree, self.content, |data| data.offsets = want);
         }
-        cobbled_ui::layout(&mut self.tree, self.viewport);
+        rough_ui::layout(&mut self.tree, self.viewport);
         self.tree.update();
     }
 
     pub fn paint(&self, ctx: &mut PaintContext) {
-        cobbled_ui::paint(&self.tree, ctx);
+        rough_ui::paint(&self.tree, ctx);
     }
 
     pub fn command_hint(&self) -> usize {
@@ -339,14 +339,14 @@ impl ListFullFixture {
         let mut ctx = PaintContext::with_capacity(self.command_hint());
         self.paint(&mut ctx);
         FrameShape {
-            controls: cobbled_ui::control_count(&self.tree),
+            controls: rough_ui::control_count(&self.tree),
             commands: ctx.into_draw_list().len(),
         }
     }
 
     /// Height of the viewport the rows scroll through.
     pub fn viewport_height(&self) -> f32 {
-        cobbled_ui::control(&self.tree, self.pane).map_or(0.0, |data| data.rect.size.height)
+        rough_ui::control(&self.tree, self.pane).map_or(0.0, |data| data.rect.size.height)
     }
 }
 
@@ -436,21 +436,21 @@ impl ListVirtualFixture {
         let Some(container) = self.state.container() else {
             return 0.0;
         };
-        cobbled_ui::control(&self.tree, container).map_or(0.0, |data| data.rect.size.height)
+        rough_ui::control(&self.tree, container).map_or(0.0, |data| data.rect.size.height)
     }
 
     /// The application's frame: lay out, reconcile the pool, and lay out again
     /// only when the reconciliation changed the tree.
     pub fn layout(&mut self) {
-        cobbled_ui::layout(&mut self.tree, self.viewport);
+        rough_ui::layout(&mut self.tree, self.viewport);
         if self.state.sync(&mut self.tree) {
-            cobbled_ui::layout(&mut self.tree, self.viewport);
+            rough_ui::layout(&mut self.tree, self.viewport);
         }
         self.tree.update();
     }
 
     pub fn paint(&self, ctx: &mut PaintContext) {
-        cobbled_ui::paint(&self.tree, ctx);
+        rough_ui::paint(&self.tree, ctx);
     }
 
     pub fn command_hint(&self) -> usize {
@@ -462,7 +462,7 @@ impl ListVirtualFixture {
         let mut ctx = PaintContext::with_capacity(self.command_hint());
         self.paint(&mut ctx);
         FrameShape {
-            controls: cobbled_ui::control_count(&self.tree),
+            controls: rough_ui::control_count(&self.tree),
             commands: ctx.into_draw_list().len(),
         }
     }
@@ -479,8 +479,8 @@ mod tests {
         assert_eq!(a.ids.len(), 50);
         assert_eq!(a.tree.node_count(), 51);
 
-        let mut ctx_a = cobbled_render::PaintContext::new();
-        let mut ctx_b = cobbled_render::PaintContext::new();
+        let mut ctx_a = rough_render::PaintContext::new();
+        let mut ctx_b = rough_render::PaintContext::new();
         a.tree.paint(&mut ctx_a);
         b.tree.paint(&mut ctx_b);
         assert_eq!(ctx_a.into_draw_list(), ctx_b.into_draw_list());
@@ -508,8 +508,8 @@ mod tests {
         a.layout(a.viewport);
         b.layout(b.viewport);
 
-        let mut ctx_a = cobbled_render::PaintContext::new();
-        let mut ctx_b = cobbled_render::PaintContext::new();
+        let mut ctx_a = rough_render::PaintContext::new();
+        let mut ctx_b = rough_render::PaintContext::new();
         a.paint(&mut ctx_a);
         b.paint(&mut ctx_b);
         assert_eq!(ctx_a.into_draw_list(), ctx_b.into_draw_list());
@@ -524,7 +524,7 @@ mod tests {
 
         let virtual_list = ListVirtualFixture::new(100);
         let container = virtual_list.state.container().expect("container");
-        let rect = cobbled_ui::control(&virtual_list.tree, container)
+        let rect = rough_ui::control(&virtual_list.tree, container)
             .unwrap()
             .rect;
         assert_eq!(rect.size.height, VIEWPORT_SIZE.height);

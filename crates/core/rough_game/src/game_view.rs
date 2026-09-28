@@ -1,4 +1,4 @@
-//! `GameView`: an embedded game viewport hosted in a `cobbled_ui` tree.
+//! `GameView`: an embedded game viewport hosted in a `rough_ui` tree.
 //!
 //! A `GameView` owns a whole 2D world (a sub-[`SceneTree`]), its animation
 //! runners and collision, renders that world into its own **offscreen render
@@ -7,7 +7,7 @@
 //! contents; the surrounding UI stays cacheable, and the game keeps its own
 //! cadence via [`GameView::needs_frame`].
 //!
-//! Gated behind `cobbled_game`'s optional `ui` feature, so a UI-less game never
+//! Gated behind `rough_game`'s optional `ui` feature, so a UI-less game never
 //! compiles the UI crates.
 //!
 //! ```ignore
@@ -15,17 +15,17 @@
 //! view.set_scale_factor(backend.scale_factor());
 //! view.mount(&mut ui_tree, ui_tree.root());
 //!
-//! // each frame, after `cobbled_ui::layout` and before `cobbled_ui::paint`:
+//! // each frame, after `rough_ui::layout` and before `rough_ui::paint`:
 //! view.set_viewport(control_size);
 //! view.update(dt, &mut backend)?;
 //! if view.needs_frame() { /* request another frame */ }
 //! ```
 
-use cobbled_anim::Animator;
-use cobbled_core::{Color, NodeId, Size, ViewportSize};
-use cobbled_render::{Paint, PaintContext, RenderBackend, RenderTargetId};
-use cobbled_scene::SceneTree;
-use cobbled_ui::{add_decor, foreground_decor, Control, ControlData, Widget};
+use rough_anim::Animator;
+use rough_core::{Color, NodeId, Size, ViewportSize};
+use rough_render::{Paint, PaintContext, RenderBackend, RenderTargetId};
+use rough_scene::SceneTree;
+use rough_ui::{add_decor, foreground_decor, Control, ControlData, Widget};
 
 use crate::clock::FixedTimestep;
 use crate::{Areas, SpriteAnimations, SpriteFrames, Timers};
@@ -50,7 +50,7 @@ pub struct GameView {
 
 impl GameView {
     /// A game view rendering into `target` (create it with
-    /// [`RenderBackend::create_render_target`](cobbled_render::RenderBackend::create_render_target)
+    /// [`RenderBackend::create_render_target`](rough_render::RenderBackend::create_render_target)
     /// on the first update).
     pub fn new(target: RenderTargetId) -> Self {
         Self {
@@ -73,7 +73,7 @@ impl GameView {
     ///
     /// The control fills its parent and paints the render target as a
     /// foreground image, so it is laid out and composited by the normal
-    /// `cobbled_ui` pipeline.
+    /// `rough_ui` pipeline.
     pub fn mount(&mut self, host: &mut SceneTree, parent: NodeId) -> NodeId {
         let id = host.add_control(parent, "GameView");
         host.set_data(
@@ -189,8 +189,8 @@ impl GameView {
 
     /// Advances the world and renders it into the target.
     ///
-    /// Call after the host's `cobbled_ui::layout` (so the viewport size is known)
-    /// and before `cobbled_ui::paint` (which composites the target).
+    /// Call after the host's `rough_ui::layout` (so the viewport size is known)
+    /// and before `rough_ui::paint` (which composites the target).
     pub fn update<B: RenderBackend>(&mut self, dt: f32, backend: &mut B) -> Result<(), B::Error> {
         self.world.set_viewport_size(self.viewport.logical_size());
 
@@ -238,11 +238,11 @@ mod tests {
     use std::cell::Cell;
     use std::rc::Rc;
 
-    use cobbled_backend_recording::RecordingBackend;
-    use cobbled_core::Vec2;
-    use cobbled_render::DrawCommand;
-    use cobbled_scene::Visual;
-    use cobbled_ui;
+    use rough_backend_recording::RecordingBackend;
+    use rough_core::Vec2;
+    use rough_render::DrawCommand;
+    use rough_scene::Visual;
+    use rough_ui;
 
     use super::*;
 
@@ -270,7 +270,7 @@ mod tests {
 
         let host_root = host.root();
         let control = view.mount(&mut host, host_root);
-        assert!(cobbled_ui::control(&host, control).is_some());
+        assert!(rough_ui::control(&host, control).is_some());
 
         let mut backend = RecordingBackend::new();
         view.update(0.016, &mut backend).unwrap();
@@ -278,9 +278,9 @@ mod tests {
         assert_eq!((registered.width, registered.height), (64, 48));
         assert_eq!(backend.target_frame_count(target), 1);
 
-        cobbled_ui::layout(&mut host, viewport(200.0, 100.0));
+        rough_ui::layout(&mut host, viewport(200.0, 100.0));
         let mut ctx = PaintContext::new();
-        cobbled_ui::paint(&host, &mut ctx);
+        rough_ui::paint(&host, &mut ctx);
         let list = ctx.into_draw_list();
         assert!(
             list.commands().iter().any(|command| matches!(

@@ -41,7 +41,7 @@ impl WgpuBackend {
 
         let (device, queue) = pollster::block_on(adapter.request_device(
             &wgpu::DeviceDescriptor {
-                label: Some("cobbled_backend_wgpu.device"),
+                label: Some("rough_backend_wgpu.device"),
                 required_features: wgpu::Features::empty(),
                 required_limits: wgpu::Limits::default(),
                 memory_hints: wgpu::MemoryHints::default(),
@@ -51,7 +51,7 @@ impl WgpuBackend {
         .map_err(|error| WgpuError::Device(error.to_string()))?;
 
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("cobbled_backend_wgpu.bind_group_layout"),
+            label: Some("rough_backend_wgpu.bind_group_layout"),
             entries: &[
                 wgpu::BindGroupLayoutEntry {
                     binding: 0,
@@ -73,12 +73,12 @@ impl WgpuBackend {
         });
 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("cobbled_backend_wgpu.shader"),
+            label: Some("rough_backend_wgpu.shader"),
             source: wgpu::ShaderSource::Wgsl(crate::shader::SHADER.into()),
         });
 
         let image_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            label: Some("cobbled_backend_wgpu.image_sampler"),
+            label: Some("rough_backend_wgpu.image_sampler"),
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
             address_mode_w: wgpu::AddressMode::ClampToEdge,
@@ -88,7 +88,7 @@ impl WgpuBackend {
             ..Default::default()
         });
         let nearest_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            label: Some("cobbled_backend_wgpu.nearest_sampler"),
+            label: Some("rough_backend_wgpu.nearest_sampler"),
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
             address_mode_w: wgpu::AddressMode::ClampToEdge,
@@ -98,7 +98,7 @@ impl WgpuBackend {
             ..Default::default()
         });
         let font_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            label: Some("cobbled_backend_wgpu.font_sampler"),
+            label: Some("rough_backend_wgpu.font_sampler"),
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
             address_mode_w: wgpu::AddressMode::ClampToEdge,
@@ -112,7 +112,7 @@ impl WgpuBackend {
             let texture = upload_texture(
                 &device,
                 &queue,
-                "cobbled_backend_wgpu.white",
+                "rough_backend_wgpu.white",
                 &[255, 255, 255, 255],
                 1,
                 1,
@@ -127,7 +127,7 @@ impl WgpuBackend {
             upload_texture(
                 &device,
                 &queue,
-                "cobbled_backend_wgpu.font_atlas",
+                "rough_backend_wgpu.font_atlas",
                 &font.initial_atlas(),
                 width,
                 height,

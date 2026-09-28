@@ -18,8 +18,8 @@ use crate::layout::{
     Align, AlignContent, ContentSize, FlexStyle, GridPlacement, GridStyle, Justify, LayoutStyle,
     SizeBasis, Track,
 };
-use cobbled_core::{Rect, Size, Vec2, ViewportSize};
-use cobbled_scene::SceneTree;
+use rough_core::{Rect, Size, Vec2, ViewportSize};
+use rough_scene::SceneTree;
 
 impl Ui {
     /// Resolves every control's absolute rectangle against the viewport.
@@ -1127,7 +1127,7 @@ mod tests {
     use super::*;
     use crate::control::Control;
     use crate::widget::Widget;
-    use cobbled_core::{Color, Edges};
+    use rough_core::{Color, Edges};
     use std::rc::Rc;
 
     fn add(tree: &mut SceneTree, parent: NodeId, data: ControlData, widget: Widget) -> NodeId {
@@ -1356,11 +1356,11 @@ mod tests {
         let mut tree = SceneTree::new();
         let tree_root = tree.root();
         // Measuring reads the tree's UI state and its text measurer, both of
-        // which a `cobbled_ui`-built view already has. A bare `SceneTree` has to
+        // which a `rough_ui`-built view already has. A bare `SceneTree` has to
         // be told — exactly what a host does when it installs its font, and it
         // does so *before* the first layout.
         crate::set_text_measurer(&mut tree, Rc::new(crate::ApproxTextMeasurer::default()));
-        // The shape `cobbled_components` views are built in: the root is arranged
+        // The shape `rough_components` views are built in: the root is arranged
         // against the viewport and the column below it is the content.
         let root = add(
             &mut tree,
@@ -1448,7 +1448,7 @@ mod tests {
         assert_eq!(crate::control(&tree, a).unwrap().rect.size.width, 200.0);
         assert_eq!(
             crate::control(&tree, b).unwrap().rect,
-            cobbled_core::Rect::ZERO
+            rough_core::Rect::ZERO
         );
     }
 
@@ -1472,7 +1472,7 @@ mod tests {
         // A hidden root receives no rect (it is skipped entirely).
         assert_eq!(
             crate::control(&tree, root).unwrap().rect,
-            cobbled_core::Rect::ZERO
+            rough_core::Rect::ZERO
         );
     }
 

@@ -2,7 +2,7 @@
 //
 // It is the host's own `RenderBackend`: transform, opacity and clip are
 // resolved on the CPU while tessellating, so the GPU pass is one flat
-// colored-triangle pipeline. This mirrors how `cobbled_backend_wgpu` works, but
+// colored-triangle pipeline. This mirrors how `rough_backend_wgpu` works, but
 // lives entirely in C++ and consumes the FFI command stream.
 
 #pragma once

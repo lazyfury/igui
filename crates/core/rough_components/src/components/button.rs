@@ -1,10 +1,10 @@
 //! Themed buttons.
 
 use crate::base::{set_text, Component, Label, Spec};
-use cobbled_core::{Color, Edges, FontWeight, NodeId};
-use cobbled_scene::SceneTree;
-use cobbled_theme::{radius, ControlSize, TextSize, Theme};
-use cobbled_ui::{Align, Control, Justify, SurfaceStyle, TextOptions, Widget};
+use rough_core::{Color, Edges, FontWeight, NodeId};
+use rough_scene::SceneTree;
+use rough_theme::{radius, ControlSize, TextSize, Theme};
+use rough_ui::{Align, Control, Justify, SurfaceStyle, TextOptions, Widget};
 
 /// Visual weight of a button.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -138,7 +138,7 @@ impl Component for Button {
 
     fn widget(&self) -> Widget {
         Widget::Flex(
-            cobbled_ui::FlexStyle::row()
+            rough_ui::FlexStyle::row()
                 .align(Align::Center)
                 .justify(Justify::Center)
                 .gap(0.0)
@@ -279,7 +279,7 @@ pub fn set_disabled(
             }
         }
     }
-    cobbled_ui::mark_dirty(tree, id);
+    rough_ui::mark_dirty(tree, id);
 }
 
 /// Replaces a themed [`Button`]'s label text at runtime.
@@ -308,15 +308,15 @@ pub fn set_button_text(tree: &mut SceneTree, id: NodeId, text: impl Into<String>
 mod tests {
     use super::*;
     use crate::base::Flex;
-    use cobbled_core::{InputEvent, PointerButton, Size, Vec2, ViewportSize};
-    use cobbled_render::{DrawCommand, PaintContext};
-    use cobbled_scene::SceneTree;
-    use cobbled_theme::{compact_theme, default_theme, DefaultTheme, Mode, Palette};
-    use cobbled_ui::{control, Control, MouseFilter};
+    use rough_core::{InputEvent, PointerButton, Size, Vec2, ViewportSize};
+    use rough_render::{DrawCommand, PaintContext};
+    use rough_scene::SceneTree;
+    use rough_theme::{compact_theme, default_theme, DefaultTheme, Mode, Palette};
+    use rough_ui::{control, Control, MouseFilter};
     use std::cell::Cell;
     use std::rc::Rc;
 
-    fn column(tree: &mut SceneTree, button: Button) -> cobbled_core::NodeId {
+    fn column(tree: &mut SceneTree, button: Button) -> rough_core::NodeId {
         let root = tree.root();
         let page = tree.add_child(
             root,
@@ -340,7 +340,7 @@ mod tests {
                 button: PointerButton::Left,
             },
         ] {
-            cobbled_ui::handle_input(tree, &event);
+            rough_ui::handle_input(tree, &event);
         }
     }
 
@@ -349,7 +349,7 @@ mod tests {
         let mut tree = SceneTree::new();
         let comfortable = column(&mut tree, Button::new("A", default_theme(Mode::Dark)));
         let compact = column(&mut tree, Button::new("B", compact_theme(Mode::Dark)));
-        cobbled_ui::layout(&mut tree, ViewportSize::new(Size::new(400.0, 300.0)));
+        rough_ui::layout(&mut tree, ViewportSize::new(Size::new(400.0, 300.0)));
 
         let tall = control(&tree, comfortable).unwrap().rect.size.height;
         let short = control(&tree, compact).unwrap().rect.size.height;
@@ -370,9 +370,9 @@ mod tests {
                 .child(Button::ghost("A", default_theme(Mode::Dark)).background(Color::RED)),
         );
         let _ = page;
-        cobbled_ui::layout(&mut tree, ViewportSize::new(Size::new(400.0, 300.0)));
+        rough_ui::layout(&mut tree, ViewportSize::new(Size::new(400.0, 300.0)));
         let mut ctx = PaintContext::new();
-        cobbled_ui::paint(&tree, &mut ctx);
+        rough_ui::paint(&tree, &mut ctx);
         let red = ctx
             .into_draw_list()
             .commands()
@@ -392,7 +392,7 @@ mod tests {
             &mut tree,
             Button::new("A", compact_theme(Mode::Dark)).min_size(32.0, 28.0),
         );
-        cobbled_ui::layout(&mut tree, ViewportSize::new(Size::new(400.0, 300.0)));
+        rough_ui::layout(&mut tree, ViewportSize::new(Size::new(400.0, 300.0)));
         let rect = control(&tree, id).unwrap().rect;
         assert!(rect.size.height >= 28.0, "height was {}", rect.size.height);
     }
@@ -402,7 +402,7 @@ mod tests {
         let mut tree = SceneTree::new();
         let compact = compact_theme(Mode::Dark);
         let forced = column(&mut tree, Button::new("A", compact).regular());
-        cobbled_ui::layout(&mut tree, ViewportSize::new(Size::new(400.0, 300.0)));
+        rough_ui::layout(&mut tree, ViewportSize::new(Size::new(400.0, 300.0)));
         let height = control(&tree, forced).unwrap().rect.size.height;
         assert!(height >= compact.control_height(ControlSize::Regular));
         assert!(height > compact.control_height(ControlSize::Mini));
@@ -446,7 +446,7 @@ mod tests {
                 .disabled(true)
                 .on_click(move || flag.set(true)),
         );
-        cobbled_ui::layout(&mut tree, ViewportSize::new(Size::new(400.0, 300.0)));
+        rough_ui::layout(&mut tree, ViewportSize::new(Size::new(400.0, 300.0)));
         let center = control(&tree, id).unwrap().rect.center();
         click(&mut tree, center);
         assert!(!clicked.get(), "a disabled button must not fire");
@@ -462,7 +462,7 @@ mod tests {
             &mut tree,
             Button::new("A", theme).on_click(move || flag.set(true)),
         );
-        cobbled_ui::layout(&mut tree, ViewportSize::new(Size::new(400.0, 300.0)));
+        rough_ui::layout(&mut tree, ViewportSize::new(Size::new(400.0, 300.0)));
         let center = control(&tree, id).unwrap().rect.center();
         click(&mut tree, center);
         assert!(clicked.get(), "the control case must still fire");
@@ -479,19 +479,19 @@ mod tests {
             Button::new("A", theme).on_click(move || counter.set(counter.get() + 1)),
         );
         let viewport = ViewportSize::new(Size::new(400.0, 300.0));
-        cobbled_ui::layout(&mut tree, viewport);
+        rough_ui::layout(&mut tree, viewport);
         let center = control(&tree, id).unwrap().rect.center();
         click(&mut tree, center);
         assert_eq!(clicks.get(), 1);
 
         let muted = Color::new(0.5, 0.5, 0.5, 1.0);
         set_disabled(&mut tree, id, true, Color::WHITE, muted);
-        cobbled_ui::layout(&mut tree, viewport);
+        rough_ui::layout(&mut tree, viewport);
         click(&mut tree, center);
         assert_eq!(clicks.get(), 1, "a disabled button must not fire");
 
         set_disabled(&mut tree, id, false, Color::WHITE, muted);
-        cobbled_ui::layout(&mut tree, viewport);
+        rough_ui::layout(&mut tree, viewport);
         click(&mut tree, center);
         assert_eq!(clicks.get(), 2, "re-enabling restores the click");
     }
@@ -501,7 +501,7 @@ mod tests {
         let theme = default_theme(Mode::Dark);
         let mut tree = SceneTree::new();
         let id = column(&mut tree, Button::new("Start", theme).child(Flex::row()));
-        cobbled_ui::layout(&mut tree, ViewportSize::new(Size::new(400.0, 300.0)));
+        rough_ui::layout(&mut tree, ViewportSize::new(Size::new(400.0, 300.0)));
 
         assert!(set_button_text(&mut tree, id, "Stop"));
 

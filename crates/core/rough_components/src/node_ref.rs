@@ -5,17 +5,17 @@
 //! [`SceneTree`]. [`NodeRef`] is the Godot-style "object handle" for that
 //! identity: create it before mount, pass it into a component with
 //! [`Component::ref_`], mount the component with either
-//! [`SceneTree::add_child`](cobbled_scene::SceneTree::add_child) or
+//! [`SceneTree::add_child`](rough_scene::SceneTree::add_child) or
 //! [`Component::child`], then read the id after mount.
 
 use std::cell::Cell;
 use std::rc::Rc;
 
-use cobbled_core::NodeId;
-use cobbled_scene::{SceneChild, SceneTree};
+use rough_core::NodeId;
+use rough_scene::{SceneChild, SceneTree};
 
 use crate::base::{Component, Spec};
-use cobbled_ui::Widget;
+use rough_ui::Widget;
 
 /// A slot that a mounted component fills with its `NodeId`.
 ///

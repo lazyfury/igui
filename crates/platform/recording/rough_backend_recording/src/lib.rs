@@ -1,13 +1,13 @@
-//! `cobbled_backend_recording` — a headless [`RenderBackend`] for tests.
+//! `rough_backend_recording` — a headless [`RenderBackend`] for tests.
 //!
 //! Records each frame's viewport and concatenated [`DrawList`] commands so the
 //! full `Scene -> DrawList -> RenderBackend` pipeline can be verified with
 //! native `cargo test`, no browser required.
 //!
-//! [`DrawList`]: cobbled_render::DrawList
+//! [`DrawList`]: rough_render::DrawList
 
 /// Crate name, kept for lightweight smoke checks.
-pub const CRATE: &str = "cobbled_backend_recording";
+pub const CRATE: &str = "rough_backend_recording";
 
 mod assert;
 mod backend;
@@ -23,6 +23,6 @@ mod tests {
 
     #[test]
     fn crate_identity() {
-        assert_eq!(CRATE, "cobbled_backend_recording");
+        assert_eq!(CRATE, "rough_backend_recording");
     }
 }

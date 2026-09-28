@@ -9,8 +9,8 @@
 //! calls [`Animator::update`]. [`Animator::is_animating`] is the signal a host
 //! uses to keep requesting frames while motion is in flight.
 
-use cobbled_core::{Color, NodeId, Vec2};
-use cobbled_scene::SceneTree;
+use rough_core::{Color, NodeId, Vec2};
+use rough_scene::SceneTree;
 
 use crate::easing::Easing;
 

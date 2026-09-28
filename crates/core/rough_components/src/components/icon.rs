@@ -1,8 +1,8 @@
 //! A themed glyph icon.
 
-use cobbled_core::{Color, Size};
-use cobbled_theme::{Theme, Tone};
-use cobbled_ui::Widget;
+use rough_core::{Color, Size};
+use rough_theme::{Theme, Tone};
+use rough_ui::Widget;
 
 use crate::base::{Component, Spec};
 use crate::glyph::{paint_glyph, Glyph};

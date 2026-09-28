@@ -7,8 +7,8 @@
 //! `on_enter` / `on_exit` on both sides. This is the Godot `Area2D` shape of the
 //! problem — no rigid-body solver.
 
-use cobbled_core::NodeId;
-use cobbled_scene::SceneTree;
+use rough_core::NodeId;
+use rough_scene::SceneTree;
 
 use crate::shape::CollisionShape;
 
@@ -192,11 +192,11 @@ mod tests {
     use std::cell::RefCell;
     use std::rc::Rc;
 
-    use cobbled_core::{Size, Vec2};
+    use rough_core::{Size, Vec2};
 
     use super::*;
     use crate::Sprite;
-    use cobbled_render::TextureId;
+    use rough_render::TextureId;
 
     /// Logs `(label, other)` callbacks so tests can assert order/content.
     type Log = Rc<RefCell<Vec<(char, NodeId)>>>;

@@ -1,21 +1,21 @@
-//! `cobbled_game` — 2D game capabilities built on the scene tree.
+//! `rough_game` — 2D game capabilities built on the scene tree.
 //!
-//! This crate is the Godot-style game layer: it depends on `cobbled_scene` (the
+//! This crate is the Godot-style game layer: it depends on `rough_scene` (the
 //! single `SceneTree`, `Node2D`, `Camera2D`, `CanvasLayer`) and never on a
 //! backend or browser API. Sprites are ordinary `Node2D` nodes with a
-//! [`cobbled_scene::Visual::Sprite`], so the existing paint/layer/camera pipeline
+//! [`rough_scene::Visual::Sprite`], so the existing paint/layer/camera pipeline
 //! draws them unchanged.
 //!
-//! It is deliberately split from `cobbled_ui`: a game without a HUD never compiles
-//! the UI crates (`cobbled_game` does **not** imply `ui`). The `quill` facade's
+//! It is deliberately split from `rough_ui`: a game without a HUD never compiles
+//! the UI crates (`rough_game` does **not** imply `ui`). The `quill` facade's
 //! `game` feature forwards this crate.
 //!
 //! ```ignore
-//! use cobbled_game::{upload_texture, Sprite};
-//! use cobbled_render::TextureId;
+//! use rough_game::{upload_texture, Sprite};
+//! use rough_render::TextureId;
 //!
 //! let png = std::fs::read("player.png")?;
-//! let image = cobbled_assets::decode_png(&png)?;
+//! let image = rough_assets::decode_png(&png)?;
 //! let texture = TextureId::new(1);
 //! upload_texture(&mut backend, texture, &image)?;
 //!
@@ -32,12 +32,12 @@
 //! # `needs_frame`
 //!
 //! A host that renders on demand folds this crate's activity into its frame
-//! request: `cobbled_anim::Animator::is_animating()` (transform/colour tweens),
+//! request: `rough_anim::Animator::is_animating()` (transform/colour tweens),
 //! [`SpriteAnimations::is_animating`] (frame stepping) and
 //! [`Timers::is_animating`] (pending timers), plus the UI/scene signals.
 
 /// Crate name, kept for lightweight smoke checks.
-pub const CRATE: &str = "cobbled_game";
+pub const CRATE: &str = "rough_game";
 
 mod animation;
 mod area;
@@ -64,8 +64,8 @@ pub use texture::upload_texture;
 pub use timer::{TimerId, Timers};
 
 // Convenient handles a game needs from the core layers.
-pub use cobbled_core::{NodeId, Rect, Size, Vec2};
-pub use cobbled_render::TextureId;
+pub use rough_core::{NodeId, Rect, Size, Vec2};
+pub use rough_render::TextureId;
 
 #[cfg(test)]
 mod tests {
@@ -73,6 +73,6 @@ mod tests {
 
     #[test]
     fn crate_identity() {
-        assert_eq!(CRATE, "cobbled_game");
+        assert_eq!(CRATE, "rough_game");
     }
 }

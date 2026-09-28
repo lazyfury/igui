@@ -5,9 +5,9 @@ use std::rc::Rc;
 
 use crate::base::{Component, Flex, Label, Spec};
 use crate::glyph::{paint_glyph, Glyph};
-use cobbled_core::{Edges, Size, Vec2};
-use cobbled_theme::{radius, Space, TextSize, Theme};
-use cobbled_ui::{Align, SurfaceStyle, TextOptions, Widget};
+use rough_core::{Edges, Size, Vec2};
+use rough_theme::{radius, Space, TextSize, Theme};
+use rough_ui::{Align, SurfaceStyle, TextOptions, Widget};
 
 /// The three visual states of a [`Checkbox`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
@@ -92,7 +92,7 @@ impl Component for Checkbox {
 
     fn widget(&self) -> Widget {
         Widget::Flex(
-            cobbled_ui::FlexStyle::row()
+            rough_ui::FlexStyle::row()
                 .align(Align::Center)
                 .padding(Edges::ZERO)
                 .gap(self.theme.spacing(Space::SM)),
@@ -131,7 +131,7 @@ impl Component for Checkbox {
                     } else {
                         theme.palette().border
                     };
-                    cobbled_ui::surface(
+                    rough_ui::surface(
                         ctx,
                         rect,
                         &SurfaceStyle::new(fill).border(border).radius(radius::SM),
@@ -145,7 +145,7 @@ impl Component for Checkbox {
                         paint_glyph(
                             glyph,
                             ctx,
-                            cobbled_ui::inset(rect, 2.0),
+                            rough_ui::inset(rect, 2.0),
                             theme.palette().on_accent,
                             1.8,
                         );
@@ -234,7 +234,7 @@ impl Component for Switch {
 
     fn widget(&self) -> Widget {
         Widget::Flex(
-            cobbled_ui::FlexStyle::row()
+            rough_ui::FlexStyle::row()
                 .align(Align::Center)
                 .gap(self.theme.spacing(Space::SM)),
         )
@@ -269,7 +269,7 @@ impl Component for Switch {
                     } else {
                         theme.palette().border
                     };
-                    cobbled_ui::surface(
+                    rough_ui::surface(
                         ctx,
                         rect,
                         &SurfaceStyle::new(track_color)
@@ -324,10 +324,10 @@ crate::impl_scene_child!(Checkbox, Switch);
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cobbled_core::ViewportSize;
-    use cobbled_render::{DrawCommand, PaintContext};
-    use cobbled_scene::SceneTree;
-    use cobbled_theme::{default_theme, Mode};
+    use rough_core::ViewportSize;
+    use rough_render::{DrawCommand, PaintContext};
+    use rough_scene::SceneTree;
+    use rough_theme::{default_theme, Mode};
 
     /// Paints one mounted control and returns the emitted commands.
     fn painted(component: impl Component + 'static) -> Vec<DrawCommand> {
@@ -339,9 +339,9 @@ mod tests {
                 .padding(Edges::ZERO)
                 .child(component),
         );
-        cobbled_ui::layout(&mut tree, ViewportSize::new(Size::new(240.0, 48.0)));
+        rough_ui::layout(&mut tree, ViewportSize::new(Size::new(240.0, 48.0)));
         let mut ctx = PaintContext::new();
-        cobbled_ui::paint(&tree, &mut ctx);
+        rough_ui::paint(&tree, &mut ctx);
         ctx.into_draw_list().commands().to_vec()
     }
 

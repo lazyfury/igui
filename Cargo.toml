@@ -2,34 +2,34 @@
 resolver = "2"
 members = [
     # backend-neutral core
-    "crates/core/cobbled_core",
-    "crates/core/cobbled_scene",
-    "crates/core/cobbled_ui",
-    "crates/core/cobbled_theme",
-    "crates/core/cobbled_components",
-    "crates/core/cobbled_render",
-    "crates/core/cobbled_font",
-    "crates/core/cobbled_svg",
-    "crates/core/cobbled_assets",
-    "crates/core/cobbled_anim",
-    "crates/core/cobbled_game",
+    "crates/core/rough_core",
+    "crates/core/rough_scene",
+    "crates/core/rough_ui",
+    "crates/core/rough_theme",
+    "crates/core/rough_components",
+    "crates/core/rough_render",
+    "crates/core/rough_font",
+    "crates/core/rough_svg",
+    "crates/core/rough_assets",
+    "crates/core/rough_anim",
+    "crates/core/rough_game",
     # concrete backends
-    "crates/platform/canvas/cobbled_backend_canvas",
-    "crates/platform/recording/cobbled_backend_recording",
-    "crates/platform/wgpu/cobbled_backend_wgpu",
-    "crates/platform/wasm/cobbled_wasm",
+    "crates/platform/canvas/rough_backend_canvas",
+    "crates/platform/recording/rough_backend_recording",
+    "crates/platform/wgpu/rough_backend_wgpu",
+    "crates/platform/wasm/rough_wasm",
     # C ABI
-    "crates/ffi/cobbled_ffi",
+    "crates/ffi/rough_ffi",
     # observability
-    "crates/debug/cobbled_profile",
-    "crates/debug/cobbled_debug_ui",
+    "crates/debug/rough_profile",
+    "crates/debug/rough_debug_ui",
     # benchmarking
-    "crates/bench/cobbled_bench",
-    "crates/bench/cobbled_bench_suite",
+    "crates/bench/rough_bench",
+    "crates/bench/rough_bench_suite",
     # window hosts / application runtime
-    "crates/window/cobbled_winit",
-    "crates/app/cobbled_app",
-    "crates/app/cobbled_headless",
+    "crates/window/rough_winit",
+    "crates/app/rough_app",
+    "crates/app/rough_headless",
     "quill",
     "examples/web_demo",
     "examples/demo_app",
@@ -48,29 +48,29 @@ license = "MIT OR Apache-2.0"
 repository = ""
 
 [workspace.dependencies]
-cobbled_core = { path = "crates/core/cobbled_core" }
-cobbled_scene = { path = "crates/core/cobbled_scene" }
-cobbled_ui = { path = "crates/core/cobbled_ui" }
-cobbled_theme = { path = "crates/core/cobbled_theme" }
-cobbled_components = { path = "crates/core/cobbled_components" }
-cobbled_render = { path = "crates/core/cobbled_render" }
-cobbled_font = { path = "crates/core/cobbled_font" }
-cobbled_svg = { path = "crates/core/cobbled_svg" }
-cobbled_assets = { path = "crates/core/cobbled_assets" }
-cobbled_anim = { path = "crates/core/cobbled_anim" }
-cobbled_game = { path = "crates/core/cobbled_game" }
-cobbled_backend_canvas = { path = "crates/platform/canvas/cobbled_backend_canvas" }
-cobbled_backend_recording = { path = "crates/platform/recording/cobbled_backend_recording" }
-cobbled_backend_wgpu = { path = "crates/platform/wgpu/cobbled_backend_wgpu" }
-cobbled_wasm = { path = "crates/platform/wasm/cobbled_wasm" }
-cobbled_ffi = { path = "crates/ffi/cobbled_ffi" }
-cobbled_profile = { path = "crates/debug/cobbled_profile" }
-cobbled_debug_ui = { path = "crates/debug/cobbled_debug_ui" }
-cobbled_bench = { path = "crates/bench/cobbled_bench" }
-cobbled_bench_suite = { path = "crates/bench/cobbled_bench_suite" }
-cobbled_winit = { path = "crates/window/cobbled_winit" }
-cobbled_app = { path = "crates/app/cobbled_app" }
-cobbled_headless = { path = "crates/app/cobbled_headless" }
+rough_core = { path = "crates/core/rough_core" }
+rough_scene = { path = "crates/core/rough_scene" }
+rough_ui = { path = "crates/core/rough_ui" }
+rough_theme = { path = "crates/core/rough_theme" }
+rough_components = { path = "crates/core/rough_components" }
+rough_render = { path = "crates/core/rough_render" }
+rough_font = { path = "crates/core/rough_font" }
+rough_svg = { path = "crates/core/rough_svg" }
+rough_assets = { path = "crates/core/rough_assets" }
+rough_anim = { path = "crates/core/rough_anim" }
+rough_game = { path = "crates/core/rough_game" }
+rough_backend_canvas = { path = "crates/platform/canvas/rough_backend_canvas" }
+rough_backend_recording = { path = "crates/platform/recording/rough_backend_recording" }
+rough_backend_wgpu = { path = "crates/platform/wgpu/rough_backend_wgpu" }
+rough_wasm = { path = "crates/platform/wasm/rough_wasm" }
+rough_ffi = { path = "crates/ffi/rough_ffi" }
+rough_profile = { path = "crates/debug/rough_profile" }
+rough_debug_ui = { path = "crates/debug/rough_debug_ui" }
+rough_bench = { path = "crates/bench/rough_bench" }
+rough_bench_suite = { path = "crates/bench/rough_bench_suite" }
+rough_winit = { path = "crates/window/rough_winit" }
+rough_app = { path = "crates/app/rough_app" }
+rough_headless = { path = "crates/app/rough_headless" }
 demo_app = { path = "examples/demo_app" }
 
 [profile.release]

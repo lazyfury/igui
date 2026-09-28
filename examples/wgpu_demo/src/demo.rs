@@ -1,16 +1,16 @@
 //! The wgpu demo: the shared [`demo_app::DemoApp`] plus a text measurer injected
-//! by [`cobbled_winit::TextMeasurePlugin`].
+//! by [`rough_winit::TextMeasurePlugin`].
 //!
 //! The shared app owns scene/UI/layout/input. Here we only wrap the backend's
-//! `FontMetrics` in a `cobbled_ui::TextMeasurer` (via the plugin), so the layout
+//! `FontMetrics` in a `rough_ui::TextMeasurer` (via the plugin), so the layout
 //! engine measures text with the exact advances the backend renders with.
 
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use cobbled_core::{EventResult, InputEvent, ViewportSize};
-use cobbled_render::PaintContext;
-use cobbled_ui::TextMeasurer;
+use rough_core::{EventResult, InputEvent, ViewportSize};
+use rough_render::PaintContext;
+use rough_ui::TextMeasurer;
 
 use demo_app::DemoApp;
 
@@ -45,7 +45,7 @@ impl Demo {
     }
 
     /// Installs the host clipboard for the gallery's text fields.
-    pub fn set_clipboard(&mut self, clipboard: Rc<RefCell<dyn cobbled_ui::Clipboard>>) {
+    pub fn set_clipboard(&mut self, clipboard: Rc<RefCell<dyn rough_ui::Clipboard>>) {
         self.app.set_clipboard(clipboard);
     }
 
@@ -73,7 +73,7 @@ impl Demo {
     }
 
     /// The scene tree shared by world and UI nodes.
-    pub fn tree(&self) -> &cobbled_scene::SceneTree {
+    pub fn tree(&self) -> &rough_scene::SceneTree {
         self.app.tree()
     }
 
@@ -83,7 +83,7 @@ impl Demo {
     }
 
     /// Cursor the host should show for the current pointer position.
-    pub fn cursor(&self) -> cobbled_core::Cursor {
+    pub fn cursor(&self) -> rough_core::Cursor {
         self.app.cursor()
     }
 

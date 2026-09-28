@@ -8,9 +8,9 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use cobbled_core::Edges;
-use cobbled_theme::{radius, ControlSize, SurfaceLevel, Theme};
-use cobbled_ui::{Align, FlexStyle, Justify, SurfaceStyle, TextEdit, TextMeasurer, Widget};
+use rough_core::Edges;
+use rough_theme::{radius, ControlSize, SurfaceLevel, Theme};
+use rough_ui::{Align, FlexStyle, Justify, SurfaceStyle, TextEdit, TextMeasurer, Widget};
 
 use crate::base::{Component, Spec};
 use crate::components::text_field::{self, FieldState};
@@ -96,9 +96,9 @@ impl Component for TextArea {
         )
     }
 
-    fn bind(&mut self, tree: &mut cobbled_scene::SceneTree) {
+    fn bind(&mut self, tree: &mut rough_scene::SceneTree) {
         if self.measurer.is_none() {
-            self.measurer = Some(cobbled_ui::text_measurer_handle(tree));
+            self.measurer = Some(rough_ui::text_measurer_handle(tree));
         }
     }
 
@@ -107,7 +107,7 @@ impl Component for TextArea {
         let line_height = match self.measurer.as_ref() {
             Some(handle) => handle
                 .borrow()
-                .line_height(theme.font_size(cobbled_theme::TextSize::Small)),
+                .line_height(theme.font_size(rough_theme::TextSize::Small)),
             None => theme.row_height(),
         };
         if self.spec.data.min_size.height <= 0.0 {
@@ -126,7 +126,7 @@ impl Component for TextArea {
         let measurer = self
             .measurer
             .clone()
-            .unwrap_or_else(|| Rc::new(RefCell::new(Rc::new(cobbled_ui::ApproxTextMeasurer))));
+            .unwrap_or_else(|| Rc::new(RefCell::new(Rc::new(rough_ui::ApproxTextMeasurer))));
         text_field::wire(
             &mut self.spec,
             theme,
@@ -145,12 +145,12 @@ crate::impl_scene_child!(TextArea);
 mod tests {
     use super::*;
     use crate::Flex;
-    use cobbled_core::{Edges, InputEvent, Key, Size, ViewportSize};
-    use cobbled_scene::SceneTree;
-    use cobbled_theme::{default_theme, Mode};
-    use cobbled_ui::MouseFilter;
+    use rough_core::{Edges, InputEvent, Key, Size, ViewportSize};
+    use rough_scene::SceneTree;
+    use rough_theme::{default_theme, Mode};
+    use rough_ui::MouseFilter;
 
-    fn mount(tree: &mut SceneTree, area: TextArea) -> cobbled_core::NodeId {
+    fn mount(tree: &mut SceneTree, area: TextArea) -> rough_core::NodeId {
         tree.add_child(
             tree.root(),
             Flex::column()
@@ -162,14 +162,14 @@ mod tests {
         tree.iter().last().unwrap()
     }
 
-    fn focus(tree: &mut SceneTree, id: cobbled_core::NodeId) {
-        cobbled_ui::layout(tree, ViewportSize::new(Size::new(400.0, 300.0)));
-        let rect = tree.data::<cobbled_ui::Control>(id).unwrap().data.rect;
-        cobbled_ui::handle_input(
+    fn focus(tree: &mut SceneTree, id: rough_core::NodeId) {
+        rough_ui::layout(tree, ViewportSize::new(Size::new(400.0, 300.0)));
+        let rect = tree.data::<rough_ui::Control>(id).unwrap().data.rect;
+        rough_ui::handle_input(
             tree,
             &InputEvent::PointerDown {
                 position: rect.center(),
-                button: cobbled_core::PointerButton::Left,
+                button: rough_core::PointerButton::Left,
             },
         );
     }
@@ -182,9 +182,9 @@ mod tests {
         let shared = area.shared();
         let id = mount(&mut tree, area);
         focus(&mut tree, id);
-        cobbled_ui::handle_input(&mut tree, &InputEvent::TextInput { text: "a".into() });
-        cobbled_ui::handle_input(&mut tree, &InputEvent::KeyDown { key: Key::Enter });
-        cobbled_ui::handle_input(&mut tree, &InputEvent::TextInput { text: "b".into() });
+        rough_ui::handle_input(&mut tree, &InputEvent::TextInput { text: "a".into() });
+        rough_ui::handle_input(&mut tree, &InputEvent::KeyDown { key: Key::Enter });
+        rough_ui::handle_input(&mut tree, &InputEvent::TextInput { text: "b".into() });
         assert_eq!(shared.borrow().text(), "a\nb");
         assert_eq!(shared.borrow().line_count(), 2);
     }
@@ -199,7 +199,7 @@ mod tests {
         focus(&mut tree, id);
         // Caret starts at the end; move to the first line, column 1.
         shared.borrow_mut().set_caret(1);
-        cobbled_ui::handle_input(
+        rough_ui::handle_input(
             &mut tree,
             &InputEvent::KeyDown {
                 key: Key::ArrowDown,

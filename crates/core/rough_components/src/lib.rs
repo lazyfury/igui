@@ -1,22 +1,22 @@
-//! `cobbled_components` — the component library: base builders + themed widgets.
+//! `rough_components` — the component library: base builders + themed widgets.
 //!
-//! The single widget API on top of `cobbled_ui` (layout / paint / input). It ships
+//! The single widget API on top of `rough_ui` (layout / paint / input). It ships
 //! two layers:
 //!
 //! - **[`base`]** — the [`Component`] trait, [`Spec`] and the unstyled
 //!   primitives ([`Flex`], [`Panel`], [`Label`],
 //!   [`Button`](base::Button), [`Grid`], ...). Compose with `.child()` and
-//!   attach with [`SceneTree::add_child`](cobbled_scene::SceneTree::add_child).
+//!   attach with [`SceneTree::add_child`](rough_scene::SceneTree::add_child).
 //! - **themed** — [`Text`], [`Card`], [`Button`], [`Checkbox`], [`Switch`],
 //!   [`Divider`], [`Badge`], [`CodeBlock`], [`Terminal`], [`EmptyState`] and the
 //!   [`Overlays`] layer. These read the active [`Theme`] as a value and attach
-//!   their chrome with the `cobbled_ui` styling primitives. There is no runtime
+//!   their chrome with the `rough_ui` styling primitives. There is no runtime
 //!   object, no theme on the tree and no second paint pass.
 //!
 //! ```ignore
-//! use cobbled_components::{Card, Checkbox, Text};
-//! use cobbled_scene::SceneTree;
-//! use cobbled_theme::{space, Theme};
+//! use rough_components::{Card, Checkbox, Text};
+//! use rough_scene::SceneTree;
+//! use rough_theme::{space, Theme};
 //!
 //! let theme = Theme::dark();
 //! let mut tree = SceneTree::new();
@@ -26,9 +26,9 @@
 //!     .child(Text::heading("Settings", theme))
 //!     .child(Checkbox::new("Verbose output", theme)));
 //!
-//! cobbled_ui::layout(&mut tree, viewport);
-//! cobbled_ui::paint(&tree, &mut ctx);      // surfaces + content + marks, in tree order
-//! cobbled_ui::route_input(&mut tree, &event);
+//! rough_ui::layout(&mut tree, viewport);
+//! rough_ui::paint(&tree, &mut ctx);      // surfaces + content + marks, in tree order
+//! rough_ui::route_input(&mut tree, &event);
 //! ```
 //!
 //! ## Implemented
@@ -46,7 +46,7 @@
 //! Inputs, selects, tabs and tables are staged next.
 
 /// Crate name, kept for lightweight smoke checks.
-pub const CRATE: &str = "cobbled_components";
+pub const CRATE: &str = "rough_components";
 
 /// The unstyled construction layer: [`Component`], [`Spec`] and the base
 /// primitives. See the [crate docs](crate) for the themed layer.
@@ -74,13 +74,13 @@ pub use node_ref::{NodeRef, Ref};
 pub use overlay::{OverlayId, Overlays, Placement};
 pub use router::Router;
 
-pub use cobbled_core::FontWeight;
-pub use cobbled_render::CornerRadii;
-pub use cobbled_theme::{self as theme, SurfaceTone, Theme, Tone};
+pub use rough_core::FontWeight;
+pub use rough_render::CornerRadii;
+pub use rough_theme::{self as theme, SurfaceTone, Theme, Tone};
 
-use cobbled_core::NodeId;
-use cobbled_scene::SceneTree;
-use cobbled_ui::{ButtonState, Control, Widget};
+use rough_core::NodeId;
+use rough_scene::SceneTree;
+use rough_ui::{ButtonState, Control, Widget};
 
 /// Runtime state of a button control.
 pub fn button_state(tree: &SceneTree, id: NodeId) -> Option<ButtonState> {
@@ -101,12 +101,12 @@ mod tests {
     use std::cell::Cell;
     use std::rc::Rc;
 
-    use cobbled_core::{
+    use rough_core::{
         Cursor, Edges, EventResult, InputEvent, PointerButton, Rect, Size, Vec2, ViewportSize,
     };
-    use cobbled_scene::Visual;
-    use cobbled_ui::{focused, handle_input, hovered_cursor, route_input};
-    use cobbled_ui::{MouseFilter, SizeBasis};
+    use rough_scene::Visual;
+    use rough_ui::{focused, handle_input, hovered_cursor, route_input};
+    use rough_ui::{MouseFilter, SizeBasis};
 
     // The tests exercise the unstyled primitives; the themed `Button` is a
     // different, theme-aware type at the crate root.
@@ -154,25 +154,25 @@ mod tests {
         let vbox = tree.children(panel).unwrap()[0];
         let label = tree.children(vbox).unwrap()[0];
         let button = tree.children(vbox).unwrap()[1];
-        cobbled_ui::layout(&mut tree, viewport(800.0, 600.0));
+        rough_ui::layout(&mut tree, viewport(800.0, 600.0));
         tree.update();
 
         assert_eq!(
-            cobbled_ui::control(&tree, panel).unwrap().rect.size,
+            rough_ui::control(&tree, panel).unwrap().rect.size,
             Size::new(800.0, 600.0)
         );
         assert!(
-            cobbled_ui::control(&tree, label).unwrap().rect.top()
-                < cobbled_ui::control(&tree, button).unwrap().rect.top()
+            rough_ui::control(&tree, label).unwrap().rect.top()
+                < rough_ui::control(&tree, button).unwrap().rect.top()
         );
 
-        let mut ctx = cobbled_render::PaintContext::new();
-        cobbled_ui::paint(&tree, &mut ctx);
+        let mut ctx = rough_render::PaintContext::new();
+        rough_ui::paint(&tree, &mut ctx);
         let list = ctx.into_draw_list();
         assert!(list
             .commands()
             .iter()
-            .any(|c| matches!(c, cobbled_render::DrawCommand::DrawText { .. })));
+            .any(|c| matches!(c, rough_render::DrawCommand::DrawText { .. })));
     }
 
     #[test]
@@ -180,17 +180,17 @@ mod tests {
         let (mut tree, root) = host();
         let row = tree.add_child(
             root,
-            Flex::row().gap(0.0).padding(cobbled_core::Edges::ZERO),
+            Flex::row().gap(0.0).padding(rough_core::Edges::ZERO),
         );
         let a = tree.add_child(row, Panel::new().basis(SizeBasis::Px(100.0)).shrink(0.0));
         let b = tree.add_child(row, Panel::new().basis(SizeBasis::Px(100.0)).grow(1.0));
-        cobbled_ui::layout(&mut tree, viewport(300.0, 100.0));
+        rough_ui::layout(&mut tree, viewport(300.0, 100.0));
         assert_eq!(
-            cobbled_ui::control(&tree, a).unwrap().rect.size.width,
+            rough_ui::control(&tree, a).unwrap().rect.size.width,
             100.0
         );
         assert_eq!(
-            cobbled_ui::control(&tree, b).unwrap().rect.size.width,
+            rough_ui::control(&tree, b).unwrap().rect.size.width,
             200.0
         );
     }
@@ -204,10 +204,10 @@ mod tests {
             root,
             Button::new("Click me").on_click(move || counter.set(counter.get() + 1)),
         );
-        cobbled_ui::layout(&mut tree, viewport(400.0, 200.0));
+        rough_ui::layout(&mut tree, viewport(400.0, 200.0));
         tree.update();
 
-        let center = cobbled_ui::control(&tree, button).unwrap().rect.center();
+        let center = rough_ui::control(&tree, button).unwrap().rect.center();
         click(&mut tree, center);
         assert_eq!(clicks.get(), 1);
         assert_eq!(click_count(&tree, button), 1);
@@ -228,7 +228,7 @@ mod tests {
         set_on_drag(&mut tree, handle, move |_tree, _phase, delta| {
             acc.set(acc.get() + delta.x);
         });
-        cobbled_ui::layout(&mut tree, viewport(200.0, 200.0));
+        rough_ui::layout(&mut tree, viewport(200.0, 200.0));
         tree.update();
 
         handle_input(
@@ -275,7 +275,7 @@ mod tests {
         );
         let s = state.clone();
         set_cursor_provider(&mut tree, handle, move || s.get());
-        cobbled_ui::layout(&mut tree, viewport(200.0, 200.0));
+        rough_ui::layout(&mut tree, viewport(200.0, 200.0));
         tree.update();
 
         handle_input(
@@ -309,7 +309,7 @@ mod tests {
             root,
             Button::new("Hit").on_click(move || counter.set(counter.get() + 1)),
         );
-        cobbled_ui::layout(&mut tree, viewport(200.0, 200.0));
+        rough_ui::layout(&mut tree, viewport(200.0, 200.0));
         tree.update();
 
         let world = tree.add_node2d(tree.root(), "World");
@@ -317,7 +317,7 @@ mod tests {
             world,
             Visual::Rect {
                 size: Size::splat(200.0),
-                color: cobbled_core::Color::RED,
+                color: rough_core::Color::RED,
             },
         );
         let hits = Rc::new(Cell::new(0));
@@ -328,7 +328,7 @@ mod tests {
         });
         tree.update();
 
-        let center = cobbled_ui::control(&tree, button).unwrap().rect.center();
+        let center = rough_ui::control(&tree, button).unwrap().rect.center();
         let down = InputEvent::PointerDown {
             position: center,
             button: PointerButton::Left,
@@ -346,15 +346,15 @@ mod tests {
     #[test]
     fn layout_cache_lives_on_the_tree() {
         let (mut tree, _root) = host();
-        cobbled_ui::layout(&mut tree, viewport(100.0, 100.0));
-        assert_eq!(cobbled_ui::layout_count(&tree), 1);
-        cobbled_ui::layout(&mut tree, viewport(100.0, 100.0));
-        assert_eq!(cobbled_ui::layout_count(&tree), 1, "cache hit");
+        rough_ui::layout(&mut tree, viewport(100.0, 100.0));
+        assert_eq!(rough_ui::layout_count(&tree), 1);
+        rough_ui::layout(&mut tree, viewport(100.0, 100.0));
+        assert_eq!(rough_ui::layout_count(&tree), 1, "cache hit");
     }
 
     #[test]
     fn decor_paints_around_nodes_in_tree_order() {
-        use cobbled_ui::{InteractState, NodeDecor};
+        use rough_ui::{InteractState, NodeDecor};
         use std::cell::RefCell;
 
         struct Marker {
@@ -364,7 +364,7 @@ mod tests {
         impl NodeDecor for Marker {
             fn paint_behind(
                 &self,
-                _ctx: &mut cobbled_render::PaintContext,
+                _ctx: &mut rough_render::PaintContext,
                 _rect: Rect,
                 _state: InteractState,
             ) {
@@ -372,7 +372,7 @@ mod tests {
             }
             fn paint_front(
                 &self,
-                _ctx: &mut cobbled_render::PaintContext,
+                _ctx: &mut rough_render::PaintContext,
                 _rect: Rect,
                 _state: InteractState,
             ) {
@@ -384,7 +384,7 @@ mod tests {
         let a = tree.add_child(root, Label::new("A"));
         let b = tree.add_child(root, Label::new("B"));
         let log = Rc::new(RefCell::new(Vec::new()));
-        cobbled_ui::add_decor(
+        rough_ui::add_decor(
             &mut tree,
             a,
             Rc::new(Marker {
@@ -392,7 +392,7 @@ mod tests {
                 log: log.clone(),
             }),
         );
-        cobbled_ui::add_decor(
+        rough_ui::add_decor(
             &mut tree,
             b,
             Rc::new(Marker {
@@ -400,10 +400,10 @@ mod tests {
                 log: log.clone(),
             }),
         );
-        cobbled_ui::layout(&mut tree, viewport(200.0, 200.0));
+        rough_ui::layout(&mut tree, viewport(200.0, 200.0));
         tree.update();
-        let mut ctx = cobbled_render::PaintContext::new();
-        cobbled_ui::paint(&tree, &mut ctx);
+        let mut ctx = rough_render::PaintContext::new();
+        rough_ui::paint(&tree, &mut ctx);
         assert_eq!(&*log.borrow(), &["a", "a", "b", "b"]);
     }
 }

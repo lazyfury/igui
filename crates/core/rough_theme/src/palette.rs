@@ -1,6 +1,6 @@
 //! Monochrome surface palette plus a small set of semantic accents.
 
-use cobbled_core::Color;
+use rough_core::Color;
 
 /// Semantic accent roles. Accents are used only for success/warning/error/
 /// information/selection/focus, never as decoration.

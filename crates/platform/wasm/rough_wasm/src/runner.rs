@@ -5,11 +5,11 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, PointerEvent, WheelEvent, Window};
 
-use cobbled_backend_canvas::Canvas2dBackend;
-use cobbled_core::{
+use rough_backend_canvas::Canvas2dBackend;
+use rough_core::{
     Cursor, EventResult, InputEvent, Key, Modifiers, PointerButton, Size, Vec2, ViewportSize,
 };
-use cobbled_render::{PaintContext, RenderBackend};
+use rough_render::{PaintContext, RenderBackend};
 
 use crate::wheel::wheel_pixels;
 

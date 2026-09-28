@@ -1,9 +1,9 @@
 //! Text components.
 
 use crate::base::{Component, Spec};
-use cobbled_core::{Color, FontWeight};
-use cobbled_theme::{TextSize, Theme, Tone};
-use cobbled_ui::{TextOptions, Widget, WordBreak};
+use rough_core::{Color, FontWeight};
+use rough_theme::{TextSize, Theme, Tone};
+use rough_ui::{TextOptions, Widget, WordBreak};
 
 /// A single block of text with a semantic size and color.
 ///
@@ -154,7 +154,7 @@ crate::impl_scene_child!(Text);
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cobbled_theme::{default_theme, DefaultTheme, Mode, Palette, Theme};
+    use rough_theme::{default_theme, DefaultTheme, Mode, Palette, Theme};
 
     fn weight_of(text: Text) -> FontWeight {
         match text.widget() {

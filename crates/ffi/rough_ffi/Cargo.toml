@@ -1,6 +1,6 @@
 [package]
-name = "cobbled_ffi"
-description = "C ABI over the backend-neutral core: cobbled_core value types plus a cobbled_render::DrawList builder/iterator, so a foreign-language host can build a scene and drive its own backend."
+name = "rough_ffi"
+description = "C ABI over the backend-neutral core: rough_core value types plus a rough_render::DrawList builder/iterator, so a foreign-language host can build a scene and drive its own backend."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -14,5 +14,5 @@ publish = false
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [dependencies]
-cobbled_core = { workspace = true }
-cobbled_render = { workspace = true }
+rough_core = { workspace = true }
+rough_render = { workspace = true }

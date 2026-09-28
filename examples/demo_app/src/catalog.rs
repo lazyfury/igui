@@ -59,11 +59,11 @@ pub const GROUPS: &[Group] = &[
     },
     Group {
         name: "Animation",
-        blurb: "Time-driven tweens from cobbled_anim.",
+        blurb: "Time-driven tweens from rough_anim.",
     },
 ];
 
-/// Index of the animation group, whose live cards are driven by `cobbled_anim`.
+/// Index of the animation group, whose live cards are driven by `rough_anim`.
 /// `DemoApp` runs the tween only while this page is visible.
 pub fn animation_group() -> usize {
     GROUPS.len() - 1
@@ -290,7 +290,7 @@ pub const ITEMS: &[&[Item]] = &[
         Item {
             name: "Input & cursor",
             blurb: "Hit-testing and hover cursor feedback.",
-            snippet: "cobbled_ui::hovered_cursor(&tree)",
+            snippet: "rough_ui::hovered_cursor(&tree)",
         },
     ],
     // Animation

@@ -1,7 +1,7 @@
 //! Keyboard input: named keys, modifiers and committed text.
 
-use cobbled_app::{AppBuilder, PlatformEvent, PlatformObserver, Plugin};
-use cobbled_core::InputEvent;
+use rough_app::{AppBuilder, PlatformEvent, PlatformObserver, Plugin};
+use rough_core::InputEvent;
 use winit::event::{ElementState, WindowEvent};
 
 use crate::input;

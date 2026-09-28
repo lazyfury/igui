@@ -1,6 +1,6 @@
 use super::*;
 use crate::node::{AnchorMode, CanvasLayerData, NodeKind};
-use cobbled_core::{Transform2D, Vec2};
+use rough_core::{Transform2D, Vec2};
 use std::f32::consts::FRAC_PI_2;
 
 const EPS: f32 = 1e-5;
@@ -436,7 +436,7 @@ fn canvas_layer_default_transform_is_identity() {
 
 fn camera_scene(size: Vec2, camera_pos: Vec2) -> (SceneTree, NodeId) {
     let mut tree = SceneTree::new();
-    tree.set_viewport_size(cobbled_core::Size::new(size.x, size.y));
+    tree.set_viewport_size(rough_core::Size::new(size.x, size.y));
     let root = tree.root();
     let camera = tree.add_camera_2d(root, "Camera");
     tree.set_camera_current(camera, true);
@@ -448,7 +448,7 @@ fn camera_scene(size: Vec2, camera_pos: Vec2) -> (SceneTree, NodeId) {
 #[test]
 fn no_camera_leaves_identity_transform() {
     let mut tree = SceneTree::new();
-    tree.set_viewport_size(cobbled_core::Size::new(100.0, 100.0));
+    tree.set_viewport_size(rough_core::Size::new(100.0, 100.0));
     tree.update();
     assert_eq!(tree.canvas_transform(), Transform2D::IDENTITY);
     assert!(approx(
@@ -486,7 +486,7 @@ fn current_camera_centers_on_its_position() {
 #[test]
 fn camera_zoom_scales_around_center() {
     let mut tree = SceneTree::new();
-    tree.set_viewport_size(cobbled_core::Size::new(100.0, 100.0));
+    tree.set_viewport_size(rough_core::Size::new(100.0, 100.0));
     let root = tree.root();
     let camera = tree.add_camera_2d(root, "Camera");
     tree.set_camera_current(camera, true);
@@ -508,7 +508,7 @@ fn camera_zoom_scales_around_center() {
 #[test]
 fn camera_anchor_fixed_top_left() {
     let mut tree = SceneTree::new();
-    tree.set_viewport_size(cobbled_core::Size::new(100.0, 100.0));
+    tree.set_viewport_size(rough_core::Size::new(100.0, 100.0));
     let root = tree.root();
     let camera = tree.add_camera_2d(root, "Camera");
     tree.set_camera_current(camera, true);
@@ -529,7 +529,7 @@ fn camera_anchor_fixed_top_left() {
 #[test]
 fn camera_offset_shifts_the_view() {
     let mut tree = SceneTree::new();
-    tree.set_viewport_size(cobbled_core::Size::new(100.0, 100.0));
+    tree.set_viewport_size(rough_core::Size::new(100.0, 100.0));
     let root = tree.root();
     let camera = tree.add_camera_2d(root, "Camera");
     tree.set_camera_current(camera, true);
@@ -546,7 +546,7 @@ fn camera_offset_shifts_the_view() {
 #[test]
 fn disabled_or_non_current_cameras_are_ignored() {
     let mut tree = SceneTree::new();
-    tree.set_viewport_size(cobbled_core::Size::new(100.0, 100.0));
+    tree.set_viewport_size(rough_core::Size::new(100.0, 100.0));
     let root = tree.root();
     let camera = tree.add_camera_2d(root, "Camera");
     tree.set_position(camera, Vec2::new(50.0, 50.0));
@@ -567,13 +567,13 @@ fn screen_to_world_inverts_world_to_screen() {
     let world = Vec2::new(123.0, 45.0);
     let screen = tree.world_to_screen(world);
     assert!(approx(tree.screen_to_world(screen), world));
-    assert_eq!(tree.viewport().size(), cobbled_core::Size::new(128.0, 96.0));
+    assert_eq!(tree.viewport().size(), rough_core::Size::new(128.0, 96.0));
 }
 
 #[test]
 fn viewport_transform_composes_camera_and_world() {
     let mut tree = SceneTree::new();
-    tree.set_viewport_size(cobbled_core::Size::new(100.0, 100.0));
+    tree.set_viewport_size(rough_core::Size::new(100.0, 100.0));
     let root = tree.root();
     // Camera at (10,10) with the default drag-center anchor.
     let camera = tree.add_camera_2d(root, "Camera");
@@ -593,7 +593,7 @@ fn viewport_transform_composes_camera_and_world() {
 #[test]
 fn canvas_transforms_are_layer_aware() {
     let mut tree = SceneTree::new();
-    tree.set_viewport_size(cobbled_core::Size::new(100.0, 100.0));
+    tree.set_viewport_size(rough_core::Size::new(100.0, 100.0));
     let root = tree.root();
     // Camera at (0,0) drag-center => canvas_transform = translate(50, 50).
     let camera = tree.add_camera_2d(root, "Camera");

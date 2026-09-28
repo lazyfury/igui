@@ -14,12 +14,12 @@ pub(super) fn create_render_pipeline(
     fragment_entry: &str,
 ) -> wgpu::RenderPipeline {
     let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-        label: Some("cobbled_backend_wgpu.pipeline_layout"),
+        label: Some("rough_backend_wgpu.pipeline_layout"),
         bind_group_layouts: &[bind_group_layout],
         push_constant_ranges: &[],
     });
     device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-        label: Some("cobbled_backend_wgpu.pipeline"),
+        label: Some("rough_backend_wgpu.pipeline"),
         layout: Some(&pipeline_layout),
         vertex: wgpu::VertexState {
             module: shader,

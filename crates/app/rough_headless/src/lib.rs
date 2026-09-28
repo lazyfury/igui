@@ -1,21 +1,21 @@
-//! `cobbled_headless` — a recording [`Presenter`] for the `cobbled_app` runtime.
+//! `rough_headless` — a recording [`Presenter`] for the `rough_app` runtime.
 //!
 //! It runs the **same** application logic as a window host with no window and
 //! no `winit`: each frame's `DrawList` is captured by
-//! [`cobbled_backend_recording::RecordingBackend`], which is how a `--selfcheck`
+//! [`rough_backend_recording::RecordingBackend`], which is how a `--selfcheck`
 //! verifies real rendering without a screenshot.
 //!
 //! ```no_run
-//! # use cobbled_app::{App, AppConfig};
+//! # use rough_app::{App, AppConfig};
 //! # struct MyApp;
-//! # impl cobbled_app::AppLogic for MyApp {}
+//! # impl rough_app::AppLogic for MyApp {}
 //! let mut app = App::new(AppConfig::default())
-//!     .plugin(cobbled_headless::HeadlessPlugin::new(1280.0, 800.0))
+//!     .plugin(rough_headless::HeadlessPlugin::new(1280.0, 800.0))
 //!     .logic(MyApp)
 //!     .build();
 //! let recording = app
 //!     .services()
-//!     .get::<cobbled_headless::RecordingHandle>()
+//!     .get::<rough_headless::RecordingHandle>()
 //!     .unwrap()
 //!     .0
 //!     .clone();
@@ -29,10 +29,10 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use cobbled_app::{AppBuilder, Plugin, PresentOutcome, Presenter};
-use cobbled_backend_recording::RecordingBackend;
-use cobbled_core::{Size, ViewportSize};
-use cobbled_render::{DrawList, RenderBackend};
+use rough_app::{AppBuilder, Plugin, PresentOutcome, Presenter};
+use rough_backend_recording::RecordingBackend;
+use rough_core::{Size, ViewportSize};
+use rough_render::{DrawList, RenderBackend};
 
 /// Shared handle to the frames the headless presenter recorded.
 ///
@@ -99,9 +99,9 @@ impl Presenter for HeadlessPresenter {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cobbled_app::{App, AppConfig, AppLogic, FrameContext};
-    use cobbled_core::Vec2;
-    use cobbled_render::{Paint, PaintContext};
+    use rough_app::{App, AppConfig, AppLogic, FrameContext};
+    use rough_core::Vec2;
+    use rough_render::{Paint, PaintContext};
 
     struct OneLine;
 

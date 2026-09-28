@@ -1,12 +1,12 @@
 //! `Sprite`: a `Node2D` carrying a sprite visual.
 
-use cobbled_core::{NodeId, Rect, Size, Vec2};
-use cobbled_render::TextureId;
-use cobbled_scene::{SceneChild, SceneTree, Visual};
+use rough_core::{NodeId, Rect, Size, Vec2};
+use rough_render::TextureId;
+use rough_scene::{SceneChild, SceneTree, Visual};
 
 /// A 2D sprite component.
 ///
-/// Mounts a [`cobbled_scene::NodeKind::Node2D`] with a [`Visual::Sprite`] under a
+/// Mounts a [`rough_scene::NodeKind::Node2D`] with a [`Visual::Sprite`] under a
 /// parent. It composes with the rest of the scene (`Node2D` transforms, camera,
 /// `CanvasLayer`) for free, so `SceneTree::paint` draws it with no extra pass.
 ///
@@ -112,7 +112,7 @@ impl SceneChild for Sprite {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cobbled_render::PaintContext;
+    use rough_render::PaintContext;
 
     #[test]
     fn a_sprite_mounts_a_node2d_with_a_sprite_visual() {
@@ -160,7 +160,7 @@ mod tests {
         let list = ctx.into_draw_list();
         assert!(list.commands().iter().any(|command| matches!(
             command,
-            cobbled_render::DrawCommand::DrawImage { texture: t, .. } if *t == texture
+            rough_render::DrawCommand::DrawImage { texture: t, .. } if *t == texture
         )));
     }
 }

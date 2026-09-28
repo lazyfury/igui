@@ -6,8 +6,8 @@
 //! resulting textured quads.
 
 use super::*;
-use cobbled_core::{FontWeight, Size};
-use cobbled_render::{CornerRadii, DrawCommand, TextAlign};
+use rough_core::{FontWeight, Size};
+use rough_render::{CornerRadii, DrawCommand, TextAlign};
 
 impl WgpuBackend {
     pub(super) fn bind_group_for(&self, surface: Surface) -> &wgpu::BindGroup {

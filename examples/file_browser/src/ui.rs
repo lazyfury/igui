@@ -1,7 +1,7 @@
 //! 文件浏览器视图：左边一个虚拟列表，右边一个可拖拽的预览栏。
 //!
-//! 全部后端无关 —— 视图是一棵 `SceneTree`，由 `cobbled_components` 搭起来、
-//! `cobbled_ui` 排布。宿主（[`crate::host`]）拥有窗口、wgpu 后端和读盘的工作
+//! 全部后端无关 —— 视图是一棵 `SceneTree`，由 `rough_components` 搭起来、
+//! `rough_ui` 排布。宿主（[`crate::host`]）拥有窗口、wgpu 后端和读盘的工作
 //! 线程，跟 `demo_app` / `BalanceApp` 的分工一样。
 //!
 //! ```text
@@ -19,7 +19,7 @@
 //! ## 两栏怎么分
 //!
 //! 照 `demo_app` 的形状：一行 flex 里 **主栏 | 分隔条 | 预览栏**，分隔条的
-//! `target` 是主栏（`cobbled_components::ResizeHandle`），拖动它改的是主栏的 flex
+//! `target` 是主栏（`rough_components::ResizeHandle`），拖动它改的是主栏的 flex
 //! basis，预览栏 `grow(1.0)` 吃掉剩下的 —— 所以"拖中间那条"就是在调右栏宽度，
 //! 不需要第二个手柄。
 //!
@@ -48,17 +48,17 @@ use std::cell::{Cell, RefCell};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
-use cobbled_components::{
+use rough_components::{
     set_text, update_control, Component, Divider, Flex, List, ListColumn, ListState, NodeRef,
     ResizeHandle, Text,
 };
-use cobbled_core::{Edges, EventResult, InputEvent, Key, NodeId, Vec2, ViewportSize};
-use cobbled_render::PaintContext;
-use cobbled_scene::{SceneChild, SceneTree};
+use rough_core::{Edges, EventResult, InputEvent, Key, NodeId, Vec2, ViewportSize};
+use rough_render::PaintContext;
+use rough_scene::{SceneChild, SceneTree};
 #[cfg(test)]
-use cobbled_theme::{default_theme, Mode};
-use cobbled_theme::{space, SurfaceLevel, Theme, Tone};
-use cobbled_ui::{MouseFilter, SizeBasis, SurfaceStyle, TextMeasurer};
+use rough_theme::{default_theme, Mode};
+use rough_theme::{space, SurfaceLevel, Theme, Tone};
+use rough_ui::{MouseFilter, SizeBasis, SurfaceStyle, TextMeasurer};
 
 use crate::preview::{Preview, PreviewMode};
 use crate::scan::{self, Entry, Listing};
@@ -361,7 +361,7 @@ impl Browser {
             pending: Some(path_clone),
             hidden,
             status: Status::Loading,
-            viewport: ViewportSize::new(cobbled_core::Size::new(1100.0, 680.0)),
+            viewport: ViewportSize::new(rough_core::Size::new(1100.0, 680.0)),
         };
         // 两个列表都在树上，但只有一个在用：藏起来的那个容器高度是 0，
         // `ListState::sync` 直接返回，连行池都不挂。
@@ -375,7 +375,7 @@ impl Browser {
 
     /// 用后端真实字体的度量，让排版量到的宽度跟画出来的宽度一致。
     pub fn set_text_measurer(&mut self, measurer: Rc<dyn TextMeasurer>) {
-        cobbled_ui::set_text_measurer(&mut self.tree, measurer);
+        rough_ui::set_text_measurer(&mut self.tree, measurer);
     }
 
     /// 处理点击转交过来的两件事："打开某一行"和"换个预览模式"。
@@ -397,7 +397,7 @@ impl Browser {
         self.viewport = viewport;
         // 窗口变窄时先把主栏收回来，否则预览栏会被挤成 0 宽。
         self.clamp_main_width();
-        cobbled_ui::layout(&mut self.tree, viewport);
+        rough_ui::layout(&mut self.tree, viewport);
         let mut changed = self.state.sync(&mut self.tree);
         if self.hex_state.sync(&mut self.tree) {
             changed = true;
@@ -406,19 +406,19 @@ impl Browser {
             changed = true;
         }
         if changed {
-            cobbled_ui::layout(&mut self.tree, viewport);
+            rough_ui::layout(&mut self.tree, viewport);
         }
     }
 
     /// 发出这一帧的绘制命令。
     pub fn paint(&self, ctx: &mut PaintContext) {
-        cobbled_ui::paint(&self.tree, ctx);
+        rough_ui::paint(&self.tree, ctx);
     }
 
     /// 路由一个后端无关的输入事件。
     ///
     /// 键盘由视图自己处理（列表没有焦点概念），指针和滚轮交给
-    /// `cobbled_ui::handle_input` —— 滚轮会沿着祖先链找到列表的滚动回调，拖动
+    /// `rough_ui::handle_input` —— 滚轮会沿着祖先链找到列表的滚动回调，拖动
     /// 会交给分隔条的 `on_drag`。
     pub fn event(&mut self, event: &InputEvent) -> EventResult {
         if let InputEvent::KeyDown { key } = event {
@@ -426,7 +426,7 @@ impl Browser {
                 return EventResult::Handled;
             }
         }
-        cobbled_ui::handle_input(&mut self.tree, event)
+        rough_ui::handle_input(&mut self.tree, event)
     }
 
     // -- 数据进出 --------------------------------------------------------
@@ -756,7 +756,7 @@ impl Browser {
             PreviewMode::Text => self.text_tab,
             PreviewMode::Binary => self.binary_tab,
         };
-        cobbled_ui::control(&self.tree, id).map(|data| {
+        rough_ui::control(&self.tree, id).map(|data| {
             Vec2::new(
                 (data.rect.left() + data.rect.right()) / 2.0,
                 (data.rect.top() + data.rect.bottom()) / 2.0,
@@ -801,7 +801,7 @@ impl Browser {
 
     /// 控件数：跟数据量无关，这是虚拟化的证据。
     pub fn control_count(&self) -> usize {
-        cobbled_ui::control_count(&self.tree)
+        rough_ui::control_count(&self.tree)
     }
 
     pub fn theme(&self) -> &'static dyn Theme {
@@ -830,7 +830,7 @@ fn mode_tab(
             if flag.get() == mode {
                 SurfaceStyle::new(theme.surface(SurfaceLevel::Raised))
             } else {
-                SurfaceStyle::new(cobbled_core::Color::TRANSPARENT)
+                SurfaceStyle::new(rough_core::Color::TRANSPARENT)
             }
         })
         .child(Text::small(mode.label(), theme))
@@ -839,7 +839,7 @@ fn mode_tab(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cobbled_core::{PointerButton, Size, Vec2};
+    use rough_core::{PointerButton, Size, Vec2};
 
     /// 一份不碰磁盘的清单：10 个目录 + `n` 个文件。
     fn fixture(count: usize) -> Listing {

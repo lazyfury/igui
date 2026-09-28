@@ -4,7 +4,7 @@
 //!
 //! Pure geometry (no `Ui`/theme), so it is unit-testable on its own.
 
-use cobbled_core::{Rect, Size};
+use rough_core::{Rect, Size};
 
 /// Where an overlay is placed relative to its anchor.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -82,13 +82,13 @@ pub fn place(
         min_y
     };
 
-    Rect::from_min_size(cobbled_core::Vec2::new(x, y), content)
+    Rect::from_min_size(rough_core::Vec2::new(x, y), content)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cobbled_core::Vec2;
+    use rough_core::Vec2;
 
     fn viewport() -> Rect {
         Rect::from_min_size(Vec2::ZERO, Size::new(400.0, 300.0))

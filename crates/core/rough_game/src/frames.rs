@@ -1,12 +1,12 @@
 //! Sprite-sheet frame data: which atlas regions to show, and when.
 
-use cobbled_core::{Rect, Size, Vec2};
+use rough_core::{Rect, Size, Vec2};
 
 /// A sprite-sheet animation's frame list plus its playback rate.
 ///
 /// Pure data: [`SpriteFrames::region_at`] maps an elapsed time to a region, and
 /// [`crate::SpriteAnimations`] applies that to a node each frame. A host that
-/// drives the clock itself (for example a `cobbled_anim` playhead) can also call
+/// drives the clock itself (for example a `rough_anim` playhead) can also call
 /// `region_at` directly.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SpriteFrames {

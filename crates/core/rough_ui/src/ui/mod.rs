@@ -1,11 +1,11 @@
 //! The crate-internal UI implementation namespace.
 //!
-//! `cobbled_ui` owns layout, paint and input. Every `Control`'s drawing/layout
+//! `rough_ui` owns layout, paint and input. Every `Control`'s drawing/layout
 //! runtime — layout data and [`Widget`] — lives in the [`SceneTree`] node's
 //! extension slot ([`Control`]); the text measurer, GUI interaction state and
 //! layout cache live in the root node's [`UiRootState`]. The theme is not
 //! stored here: it is a value passed to component constructors. Application
-//! concerns (construction, backend submission) live in `cobbled_components`.
+//! concerns (construction, backend submission) live in `rough_components`.
 //!
 //! The logic is split so each file stays small:
 //!
@@ -18,8 +18,8 @@ mod paint;
 
 use std::rc::Rc;
 
-use cobbled_core::NodeId;
-use cobbled_scene::SceneTree;
+use rough_core::NodeId;
+use rough_scene::SceneTree;
 
 use crate::control::{
     bump_paint_generation, control_mut, control_of, control_visible, gui_state, root_state,

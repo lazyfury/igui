@@ -4,10 +4,10 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Instant;
 
-use cobbled_backend_wgpu::{wgpu, FontConfig, FontMetrics, FontMode, WgpuBackend};
-use cobbled_core::{FontWeight, InputEvent, Key, Size, ViewportSize};
-use cobbled_render::{PaintContext, RenderBackend};
-use cobbled_ui::TextMeasurer;
+use rough_backend_wgpu::{wgpu, FontConfig, FontMetrics, FontMode, WgpuBackend};
+use rough_core::{FontWeight, InputEvent, Key, Size, ViewportSize};
+use rough_render::{PaintContext, RenderBackend};
+use rough_ui::TextMeasurer;
 use game_demo::Game;
 use winit::application::ApplicationHandler;
 use winit::dpi::LogicalSize;
@@ -128,7 +128,7 @@ impl App {
 
         self.scale = window.scale_factor();
         backend.set_scale_factor(self.scale as f32);
-        backend.set_clear_color(cobbled_core::Color::new(0.05, 0.06, 0.08, 1.0));
+        backend.set_clear_color(rough_core::Color::new(0.05, 0.06, 0.08, 1.0));
         if let Err(error) = backend.set_font_config(FontConfig {
             mode: self.font_mode,
             device_pixel_rasterization: true,

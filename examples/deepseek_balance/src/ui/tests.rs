@@ -2,8 +2,8 @@ use super::build::*;
 use super::*;
 use crate::api::BalanceInfo;
 use crate::go;
-use cobbled_core::PointerButton;
-use cobbled_render::DrawCommand;
+use rough_core::PointerButton;
+use rough_render::DrawCommand;
 
 /// Endpoint used by the headless tests (never fetched).
 const TEST_ENDPOINT: &str = "https://api.deepseek.com/user/balance";
@@ -543,7 +543,7 @@ fn the_panel_fits_its_window() {
         "the refresh button overflows the panel: {button:?}"
     );
     for slot in &app.slots {
-        let card = cobbled_ui::control(&app.tree, slot.card)
+        let card = rough_ui::control(&app.tree, slot.card)
             .expect("card control")
             .rect;
         assert!(
@@ -568,10 +568,10 @@ fn the_countdown_line_sits_inside_the_panel() {
         Vec2::ZERO,
         Size::new(PANEL_WIDTH_TEST, PANEL_HEIGHT_TEST + ARROW_HEIGHT),
     );
-    let line = cobbled_ui::control(&app.tree, app.countdown)
+    let line = rough_ui::control(&app.tree, app.countdown)
         .expect("countdown control")
         .rect;
-    let card = cobbled_ui::control(&app.tree, app.slots[0].card)
+    let card = rough_ui::control(&app.tree, app.slots[0].card)
         .expect("card control")
         .rect;
 
@@ -601,7 +601,7 @@ fn the_layout_fits_the_viewport() {
     // The page column must actually arrange its children: the cards sit
     // below the endpoint line and above the footer's button, not on top of
     // either (the flex-vs-anchor regression).
-    let first = cobbled_ui::control(&app.tree, app.slots[0].card)
+    let first = rough_ui::control(&app.tree, app.slots[0].card)
         .expect("card control")
         .rect;
     assert!(
@@ -610,7 +610,7 @@ fn the_layout_fits_the_viewport() {
     );
 
     for (index, slot) in app.slots.iter().enumerate() {
-        let card = cobbled_ui::control(&app.tree, slot.card)
+        let card = rough_ui::control(&app.tree, slot.card)
             .expect("card control")
             .rect;
         assert!(
@@ -628,7 +628,7 @@ fn the_layout_fits_the_viewport() {
 fn a_narrow_viewport_keeps_the_cards_inside() {
     let app = laid_out(360.0, 420.0);
     for slot in &app.slots {
-        let card = cobbled_ui::control(&app.tree, slot.card)
+        let card = rough_ui::control(&app.tree, slot.card)
             .expect("card control")
             .rect;
         assert!(card.right() <= 360.5, "{card:?}");

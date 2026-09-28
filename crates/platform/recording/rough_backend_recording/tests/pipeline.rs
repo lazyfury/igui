@@ -1,9 +1,9 @@
 //! End-to-end headless pipeline test: `Scene -> DrawList -> RecordingBackend`.
 
-use cobbled_backend_recording::{CommandAsserts, RecordingBackend};
-use cobbled_core::{Color, Size, Transform2D, Vec2, ViewportSize};
-use cobbled_render::{DrawCommand, Paint, PaintContext, RenderBackend};
-use cobbled_scene::{SceneTree, Visual};
+use rough_backend_recording::{CommandAsserts, RecordingBackend};
+use rough_core::{Color, Size, Transform2D, Vec2, ViewportSize};
+use rough_render::{DrawCommand, Paint, PaintContext, RenderBackend};
+use rough_scene::{SceneTree, Visual};
 
 fn build_scene() -> SceneTree {
     let mut tree = SceneTree::new();

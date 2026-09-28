@@ -16,7 +16,7 @@
 //! - `max_lines` truncates to the last line; with `ellipsis` the last line gets
 //!   an `…` that fits the available width.
 
-use cobbled_core::{FontWeight, Size};
+use rough_core::{FontWeight, Size};
 
 /// Measures glyph advances and line height.
 ///

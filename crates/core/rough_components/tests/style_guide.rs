@@ -1,21 +1,21 @@
 //! End-to-end check that the themed component library builds, lays out and
 //! paints a representative screen through the headless recording backend.
 
-use cobbled_backend_recording::RecordingBackend;
-use cobbled_components::{
+use rough_backend_recording::RecordingBackend;
+use rough_components::{
     Badge, Card, Checkbox, CodeBlock, Component, Divider, EmptyState, Switch, Terminal, Text,
 };
-use cobbled_core::{Edges, Size, ViewportSize};
-use cobbled_render::{DrawCommand, PaintContext, RenderBackend};
-use cobbled_scene::SceneTree;
-use cobbled_theme::{default_theme, Mode, Theme, Tone};
+use rough_core::{Edges, Size, ViewportSize};
+use rough_render::{DrawCommand, PaintContext, RenderBackend};
+use rough_scene::SceneTree;
+use rough_theme::{default_theme, Mode, Theme, Tone};
 
 fn build(theme: &'static dyn Theme) -> SceneTree {
     let mut tree = SceneTree::new();
     let tree_root = tree.root();
     let root = tree.add_child(
         tree_root,
-        cobbled_components::Flex::column().mouse_filter(cobbled_ui::MouseFilter::Ignore),
+        rough_components::Flex::column().mouse_filter(rough_ui::MouseFilter::Ignore),
     );
 
     let card = tree.add_child(
@@ -49,11 +49,11 @@ fn build(theme: &'static dyn Theme) -> SceneTree {
 fn render(theme: &'static dyn Theme) -> Vec<DrawCommand> {
     let mut tree = build(theme);
     let viewport = ViewportSize::new(Size::new(560.0, 1000.0));
-    cobbled_ui::layout(&mut tree, viewport);
+    rough_ui::layout(&mut tree, viewport);
     tree.update();
 
     let mut ctx = PaintContext::new();
-    cobbled_ui::paint(&tree, &mut ctx);
+    rough_ui::paint(&tree, &mut ctx);
     let list = ctx.into_draw_list();
 
     let mut backend = RecordingBackend::new();

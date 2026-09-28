@@ -1,12 +1,12 @@
-//! `cobbled_svg` — backend-neutral SVG (vector) rendering for quill.
+//! `rough_svg` — backend-neutral SVG (vector) rendering for quill.
 //!
 //! Strategy ("option C"): parse a small SVG subset down to **flattened polylines**
-//! and stroke them with the existing [`cobbled_render`] primitives — [`Line`] for
+//! and stroke them with the existing [`rough_render`] primitives — [`Line`] for
 //! segments and [`FillCircle`] for round joins/caps. No external dependency, no
 //! GPU/DOM/browser types, so the same document can be painted by any backend.
 //!
-//! [`Line`]: cobbled_render::DrawCommand::Line
-//! [`FillCircle`]: cobbled_render::DrawCommand::FillCircle
+//! [`Line`]: rough_render::DrawCommand::Line
+//! [`FillCircle`]: rough_render::DrawCommand::FillCircle
 //!
 //! ```text
 //! SVG text -> SvgDocument (flattened polylines) -> PaintContext -> DrawList -> any backend
@@ -33,10 +33,10 @@
 //! # Example
 //!
 //! ```
-//! use cobbled_render::PaintContext;
-//! use cobbled_core::{Color, Rect, Size, Vec2};
+//! use rough_render::PaintContext;
+//! use rough_core::{Color, Rect, Size, Vec2};
 //!
-//! let svg = cobbled_svg::SvgDocument::parse(
+//! let svg = rough_svg::SvgDocument::parse(
 //!     r#"<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 //!          <path d="M4 12h16" />
 //!        </svg>"#,
@@ -51,7 +51,7 @@
 
 use std::fmt;
 
-use cobbled_core::{Color, Rect, Size, Vec2};
+use rough_core::{Color, Rect, Size, Vec2};
 
 mod draw;
 mod pack;

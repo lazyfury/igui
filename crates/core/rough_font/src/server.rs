@@ -6,7 +6,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::PathBuf;
 use std::rc::Rc;
 
-use cobbled_core::FontWeight;
+use rough_core::FontWeight;
 
 use crate::atlas::{Atlas, ATLAS_HEIGHT, ATLAS_WIDTH};
 use crate::bitmap;
@@ -555,7 +555,7 @@ impl FontServer {
 
 /// A cloneable handle to a [`FontServer`]'s metrics.
 ///
-/// Hosts wrap this in a `cobbled_ui::TextMeasurer` so layout measures text with
+/// Hosts wrap this in a `rough_ui::TextMeasurer` so layout measures text with
 /// the exact metrics the backend renders with.
 #[derive(Clone)]
 pub struct FontMetrics {

@@ -2,7 +2,7 @@
 name = "file_browser"
 version = "0.1.0"
 edition = "2021"
-# `winit` / `wgpu` (pulled in by `cobbled_backend_wgpu`) need newer Rust than the
+# `winit` / `wgpu` (pulled in by `rough_backend_wgpu`) need newer Rust than the
 # workspace default, exactly like `examples/wgpu_demo`.
 rust-version = "1.76"
 publish = false
@@ -13,17 +13,17 @@ path = "src/main.rs"
 
 [dependencies]
 # The UI is built with the workspace's own layers (see AGENTS.md).
-cobbled_core = { path = "../../crates/core/cobbled_core" }
-cobbled_render = { path = "../../crates/core/cobbled_render" }
-cobbled_scene = { path = "../../crates/core/cobbled_scene" }
-cobbled_theme = { path = "../../crates/core/cobbled_theme" }
-cobbled_ui = { path = "../../crates/core/cobbled_ui" }
-cobbled_components = { path = "../../crates/core/cobbled_components" }
-cobbled_backend_wgpu = { path = "../../crates/platform/wgpu/cobbled_backend_wgpu" }
+rough_core = { path = "../../crates/core/rough_core" }
+rough_render = { path = "../../crates/core/rough_render" }
+rough_scene = { path = "../../crates/core/rough_scene" }
+rough_theme = { path = "../../crates/core/rough_theme" }
+rough_ui = { path = "../../crates/core/rough_ui" }
+rough_components = { path = "../../crates/core/rough_components" }
+rough_backend_wgpu = { path = "../../crates/platform/wgpu/rough_backend_wgpu" }
 # Headless self-check (`--selfcheck`): record draw lists + inspect them,
 # so the UI can be verified without a window or a screenshot.
-cobbled_backend_recording = { path = "../../crates/platform/recording/cobbled_backend_recording" }
-cobbled_profile = { path = "../../crates/debug/cobbled_profile" }
+rough_backend_recording = { path = "../../crates/platform/recording/rough_backend_recording" }
+rough_profile = { path = "../../crates/debug/rough_profile" }
 winit = "0.30"
 
 # 独立的小工具：不加入主 workspace，避免影响 cargo check --workspace 关卡。

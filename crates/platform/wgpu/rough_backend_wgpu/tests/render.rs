@@ -7,11 +7,11 @@
 //! If no adapter is available (e.g. a GPU-less CI box) the tests skip rather
 //! than fail, so the rest of the workspace still builds and tests.
 
-use cobbled_backend_wgpu::{
+use rough_backend_wgpu::{
     wgpu, FontConfig, FontMode, PixelBuffer, TextureFilter, WgpuBackend, PIXEL_GLYPH_RATIO,
 };
-use cobbled_core::{Color, FontWeight, Rect, Size, Vec2, ViewportSize};
-use cobbled_render::{
+use rough_core::{Color, FontWeight, Rect, Size, Vec2, ViewportSize};
+use rough_render::{
     CornerRadii, Paint, PaintContext, RenderBackend, RenderTargetId, TextAlign, TextureId,
 };
 
@@ -169,7 +169,7 @@ fn transform_is_baked_into_the_geometry() {
     };
 
     let mut ctx = PaintContext::new();
-    ctx.set_transform(cobbled_core::Transform2D::from_translation(Vec2::new(
+    ctx.set_transform(rough_core::Transform2D::from_translation(Vec2::new(
         8.0, 8.0,
     )));
     ctx.fill_rect(
@@ -764,7 +764,7 @@ fn text_alignment_shifts_the_glyph() {
 
 #[test]
 fn scene_tree_renders_through_the_backend_unchanged() {
-    use cobbled_scene::{SceneTree, Visual};
+    use rough_scene::{SceneTree, Visual};
 
     let Some(mut backend) = backend() else {
         return;
@@ -846,7 +846,7 @@ fn frame_lifecycle_reports_misuse() {
     let Some(mut backend) = backend() else {
         return;
     };
-    assert!(backend.submit(&cobbled_render::DrawList::new()).is_err());
+    assert!(backend.submit(&rough_render::DrawList::new()).is_err());
     assert!(backend.end_frame().is_err());
 
     backend.begin_frame(viewport(8.0, 8.0)).unwrap();

@@ -5,19 +5,19 @@
 //! `Node2D` pick (`CanvasItem::_input_event`, delivered through physics object
 //! picking) sits with the capture/world pass, before GUI. [`SceneTree`] owns the
 //! whole order and the per-frame `process` lifecycle; the GUI middle stage is
-//! supplied by the host through the [`GuiInput`] trait, so `cobbled_scene` stays
+//! supplied by the host through the [`GuiInput`] trait, so `rough_scene` stays
 //! UI-agnostic and a UI-less game uses [`SceneTree::route_input`] directly.
 
-use cobbled_core::{EventResult, InputEvent, NodeId, Vec2};
+use rough_core::{EventResult, InputEvent, NodeId, Vec2};
 
 use crate::node::Visual;
 use crate::tree::SceneTree;
 
 /// A GUI/`Control` input stage plugged into scene input routing.
 ///
-/// `cobbled_scene` owns the Godot `Viewport::push_input` order but is
+/// `rough_scene` owns the Godot `Viewport::push_input` order but is
 /// backend-neutral and UI-agnostic: the GUI middle stage is supplied by the
-/// host. `cobbled_ui::route_input` uses this trait via an internal GUI stage; a UI-less game simply uses
+/// host. `rough_ui::route_input` uses this trait via an internal GUI stage; a UI-less game simply uses
 /// [`SceneTree::route_input`].
 pub trait GuiInput {
     /// Handles a GUI-stage event (Godot `Control::_gui_input`). Return
@@ -304,7 +304,7 @@ mod tests {
     use std::rc::Rc;
 
     use crate::node::NodeKind;
-    use cobbled_core::{Color, InputEvent, PointerButton, Size, Transform2D};
+    use rough_core::{Color, InputEvent, PointerButton, Size, Transform2D};
 
     fn rect() -> Visual {
         Visual::Rect {

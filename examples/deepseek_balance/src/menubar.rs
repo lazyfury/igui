@@ -48,7 +48,7 @@
 //!
 //! [`ControlFlow::Wait`]: winit::event_loop::ControlFlow::Wait
 
-use cobbled_core::{Rect, Size, Vec2};
+use rough_core::{Rect, Size, Vec2};
 use tray_icon::menu::{Menu, MenuEvent, MenuItem, PredefinedMenuItem};
 use tray_icon::{TrayIcon, TrayIconBuilder, TrayIconEvent};
 use winit::event_loop::EventLoopProxy;

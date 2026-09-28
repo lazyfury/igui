@@ -3,7 +3,7 @@
 
 use std::f32::consts::TAU;
 
-use cobbled_core::Vec2;
+use rough_core::Vec2;
 
 use crate::Subpath;
 

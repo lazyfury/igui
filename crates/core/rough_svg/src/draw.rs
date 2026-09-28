@@ -5,8 +5,8 @@
 //! each subpath is stroked with `Line` segments plus `FillCircle` for round
 //! joins/caps.
 
-use cobbled_core::{Color, Rect, Vec2};
-use cobbled_render::{Paint, PaintContext};
+use rough_core::{Color, Rect, Vec2};
+use rough_render::{Paint, PaintContext};
 
 use crate::{LineCap, LineJoin, SvgDocument, ViewBox};
 
@@ -140,8 +140,8 @@ fn emit(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cobbled_core::Size;
-    use cobbled_render::DrawCommand;
+    use rough_core::Size;
+    use rough_render::DrawCommand;
 
     fn draw(svg: &str, target: Rect, color: Color) -> Vec<DrawCommand> {
         let document = SvgDocument::parse(svg).unwrap();

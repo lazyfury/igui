@@ -1,14 +1,14 @@
 //! Host-owned runner for [`SpriteFrames`] animations.
 //!
 //! Frame stepping is discrete, not interpolated, so it is a small dedicated
-//! runner rather than a `cobbled_anim` tween: the host calls
-//! [`SpriteAnimations::update`] in the same frame step as its `cobbled_anim`
+//! runner rather than a `rough_anim` tween: the host calls
+//! [`SpriteAnimations::update`] in the same frame step as its `rough_anim`
 //! `Animator` (that one drives transforms / colours, this one drives the atlas
 //! region). [`SpriteAnimations::is_animating`] is part of a host's `needs_frame`
 //! signal, like `Animator::is_animating`.
 
-use cobbled_core::{NodeId, Rect};
-use cobbled_scene::{SceneTree, Visual};
+use rough_core::{NodeId, Rect};
+use rough_scene::{SceneTree, Visual};
 
 use crate::frames::SpriteFrames;
 
@@ -128,8 +128,8 @@ fn apply_region(tree: &mut SceneTree, node: NodeId, region: Rect) {
 
 #[cfg(test)]
 mod tests {
-    use cobbled_core::{Size, Vec2};
-    use cobbled_render::TextureId;
+    use rough_core::{Size, Vec2};
+    use rough_render::TextureId;
 
     use super::*;
     use crate::Sprite;

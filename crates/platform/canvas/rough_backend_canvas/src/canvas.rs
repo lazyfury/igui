@@ -3,8 +3,8 @@ use std::fmt;
 
 use web_sys::{CanvasRenderingContext2d, HtmlImageElement};
 
-use cobbled_core::{Color, FontWeight, Transform2D, ViewportSize};
-use cobbled_render::{
+use rough_core::{Color, FontWeight, Transform2D, ViewportSize};
+use rough_render::{
     CornerRadii, DrawCommand, DrawList, Paint, RenderBackend, TextAlign, TextureId,
 };
 
@@ -253,7 +253,7 @@ impl Canvas2dBackend {
         }
     }
 
-    fn path_circle(&self, center: cobbled_core::Vec2, radius: f32) {
+    fn path_circle(&self, center: rough_core::Vec2, radius: f32) {
         self.ctx.begin_path();
         let _ = self.ctx.arc(
             center.x as f64,
@@ -265,7 +265,7 @@ impl Canvas2dBackend {
     }
 
     /// Builds a rounded-rectangle path with per-corner quarter-circle corners.
-    fn path_rounded_rect(&self, rect: cobbled_core::Rect, corners: CornerRadii) {
+    fn path_rounded_rect(&self, rect: rough_core::Rect, corners: CornerRadii) {
         let half_pi = std::f64::consts::FRAC_PI_2;
         let (left, top) = (rect.left() as f64, rect.top() as f64);
         let (right, bottom) = (rect.right() as f64, rect.bottom() as f64);

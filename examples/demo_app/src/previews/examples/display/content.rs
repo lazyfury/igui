@@ -1,11 +1,11 @@
 //! Surface and content previews: cards, dividers, badges, code, terminal and
 //! empty states.
 
-use cobbled_components::{
+use rough_components::{
     Badge, Card, CodeBlock, Column, Component, Divider, EmptyState, Row, Terminal, Text,
 };
-use cobbled_core::Edges;
-use cobbled_theme::{space, Tone};
+use rough_core::Edges;
+use rough_theme::{space, Tone};
 
 use super::super::Ctx;
 

@@ -1,15 +1,15 @@
-//! `cobbled_anim` — backend-neutral, time-driven animation for quill.
+//! `rough_anim` — backend-neutral, time-driven animation for quill.
 //!
 //! A host measures time and calls [`Animator::update(dt, tree)`](Animator::update);
 //! the animator advances its tweens and writes the interpolated values either to
-//! external state through a closure or to a [`cobbled_scene::SceneTree`] node
+//! external state through a closure or to a [`rough_scene::SceneTree`] node
 //! property. [`Animator::is_animating`] is the "needs another frame" signal that
 //! lets a host sleep (`ControlFlow::Wait`) while nothing moves and wake while a
 //! tween is in flight.
 //!
 //! ```ignore
-//! use cobbled_anim::{Animator, TweenSpec};
-//! use cobbled_core::Vec2;
+//! use rough_anim::{Animator, TweenSpec};
+//! use rough_core::Vec2;
 //!
 //! let mut anim = Animator::new();
 //! anim.tween_position(actor, Vec2::new(120.0, 0.0), TweenSpec::new(0.3));
@@ -22,13 +22,13 @@
 //! # Scope
 //!
 //! This crate is deliberately small and pure: no clock, no threads, no backend,
-//! no UI dependency. It depends on `cobbled_core` for value types and on
-//! `cobbled_scene` so node-property tweens can target a `SceneTree`; a value-only
+//! no UI dependency. It depends on `rough_core` for value types and on
+//! `rough_scene` so node-property tweens can target a `SceneTree`; a value-only
 //! user still passes a tree (hosts always have one). Sequencing, animation
 //! clips/keyframes and UI-widget animation are later work.
 
 /// Crate name, kept for lightweight smoke checks.
-pub const CRATE: &str = "cobbled_anim";
+pub const CRATE: &str = "rough_anim";
 
 mod animator;
 mod easing;
@@ -42,6 +42,6 @@ mod tests {
 
     #[test]
     fn crate_identity() {
-        assert_eq!(CRATE, "cobbled_anim");
+        assert_eq!(CRATE, "rough_anim");
     }
 }

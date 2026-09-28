@@ -1,13 +1,13 @@
 //! The quill CPU pipeline benchmark suite.
 //!
-//! Run with `cargo bench -p cobbled_bench_suite`. Every benchmark is named
+//! Run with `cargo bench -p rough_bench_suite`. Every benchmark is named
 //! `<group>/<scenario>/<size>` so `--filter` can select a slice:
 //!
 //! ```bash
-//! cargo bench -p cobbled_bench_suite -- --filter scene/update
-//! cargo bench -p cobbled_bench_suite -- --filter list/
-//! cargo bench -p cobbled_bench_suite -- --save-baseline benches/baseline.txt
-//! cargo bench -p cobbled_bench_suite -- --baseline benches/baseline.txt
+//! cargo bench -p rough_bench_suite -- --filter scene/update
+//! cargo bench -p rough_bench_suite -- --filter list/
+//! cargo bench -p rough_bench_suite -- --save-baseline benches/baseline.txt
+//! cargo bench -p rough_bench_suite -- --baseline benches/baseline.txt
 //! ```
 //!
 //! `--baseline` exits with code 1 when any benchmark regresses beyond
@@ -20,16 +20,16 @@
 
 use std::fmt::Write as _;
 
-use cobbled_bench::{
+use rough_bench::{
     black_box, finish, format_count, format_time, BenchResult, BenchRunner, RunConfig,
 };
-use cobbled_bench_suite::scenarios::{
+use rough_bench_suite::scenarios::{
     ListFullFixture, ListVirtualFixture, SceneFixture, UiFixture, LIST_SCROLL_STEP, LIST_SIZES,
     SIZES,
 };
-use cobbled_bench_suite::SinkBackend;
-use cobbled_core::Vec2;
-use cobbled_render::{PaintContext, RenderBackend};
+use rough_bench_suite::SinkBackend;
+use rough_core::Vec2;
+use rough_render::{PaintContext, RenderBackend};
 
 fn main() {
     let config = RunConfig::from_env();

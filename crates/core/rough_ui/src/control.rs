@@ -2,10 +2,10 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use cobbled_core::{
+use rough_core::{
     Cursor, Edges, EventResult, ImeEvent, Key, Modifiers, NodeId, Rect, Size, Vec2, ViewportSize,
 };
-use cobbled_scene::SceneTree;
+use rough_scene::SceneTree;
 
 use crate::decor::DecorRef;
 use crate::layout::{ApproxTextMeasurer, ContentSize, LayoutStyle, TextMeasurer, TextOptions};
@@ -52,8 +52,8 @@ pub struct ControlData {
     pub layout: LayoutStyle,
     /// Whether this control clips its subtree to its own rectangle.
     ///
-    /// Opt-in, and the only reason `cobbled_ui` ever emits
-    /// [`DrawCommand::ClipRect`](cobbled_render::DrawCommand::ClipRect): a
+    /// Opt-in, and the only reason `rough_ui` ever emits
+    /// [`DrawCommand::ClipRect`](rough_render::DrawCommand::ClipRect): a
     /// scrolling list needs its rows cut at the viewport edge, and a label
     /// whose text overflows its control should stop at the control's bounds.
     pub clip: bool,
@@ -159,7 +159,7 @@ pub enum PointerPhase {
 
 /// Like [`PointerCallback`] but receives the owning tree and the interaction
 /// [`PointerPhase`], so the control can mark itself for repaint
-/// ([`cobbled_ui::request_paint`](crate::request_paint)) and implement selection.
+/// ([`rough_ui::request_paint`](crate::request_paint)) and implement selection.
 ///
 /// Additive: [`Control::pointer_callback`] keeps its original signature, so
 /// existing components are unaffected. The router dispatches this one first
@@ -322,26 +322,26 @@ impl Control {
 /// ownership belongs to the scene tree rather than to the UI namespace.
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct GuiState {
-    pub hovered: Option<cobbled_core::NodeId>,
-    pub pressed: Option<cobbled_core::NodeId>,
-    pub focused: Option<cobbled_core::NodeId>,
+    pub hovered: Option<rough_core::NodeId>,
+    pub pressed: Option<rough_core::NodeId>,
+    pub focused: Option<rough_core::NodeId>,
     /// Node that owns the current pointer drag (pointer capture).
-    pub dragging: Option<cobbled_core::NodeId>,
+    pub dragging: Option<rough_core::NodeId>,
     /// Last pointer position observed while dragging (logical pixels).
     pub drag_last: Vec2,
     /// Held keyboard modifiers, kept here so the router can consult them while
     /// dispatching clicks and keys (the host owns the authoritative
-    /// `cobbled_core::InputState`).
+    /// `rough_core::InputState`).
     pub modifiers: Modifiers,
 }
 
 /// Reads the UI runtime bundle from a node's extension slot.
-pub(crate) fn control_of(tree: &SceneTree, id: cobbled_core::NodeId) -> Option<&Control> {
+pub(crate) fn control_of(tree: &SceneTree, id: rough_core::NodeId) -> Option<&Control> {
     tree.get(id).and_then(|node| node.data::<Control>())
 }
 
 /// Mutably borrows the UI runtime bundle from a node's extension slot.
-pub(crate) fn control_mut(tree: &mut SceneTree, id: cobbled_core::NodeId) -> Option<&mut Control> {
+pub(crate) fn control_mut(tree: &mut SceneTree, id: rough_core::NodeId) -> Option<&mut Control> {
     tree.get_mut(id).and_then(|node| node.data_mut::<Control>())
 }
 
@@ -351,7 +351,7 @@ pub(crate) fn control_mut(tree: &mut SceneTree, id: cobbled_core::NodeId) -> Opt
 /// Unlike [`SceneTree::is_visible_in_tree`] this does not depend on a prior
 /// [`SceneTree::update`], so it is safe to consult during layout, paint and
 /// input (a node hidden by a router switches immediately).
-pub(crate) fn control_visible(tree: &SceneTree, id: cobbled_core::NodeId) -> bool {
+pub(crate) fn control_visible(tree: &SceneTree, id: rough_core::NodeId) -> bool {
     let mut current = Some(id);
     while let Some(node) = current {
         if tree.is_visible(node) == Some(false) {

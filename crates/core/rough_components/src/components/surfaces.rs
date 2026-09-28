@@ -1,10 +1,10 @@
 //! Structural, presentational components.
 
 use crate::base::{Component, Flex, Label, Spec};
-use cobbled_core::{Color, Edges, Size, Vec2};
-use cobbled_render::PaintContext;
-use cobbled_theme::{radius, Space, SurfaceTone, TextSize, Theme, Tone};
-use cobbled_ui::{Align, Justify, SurfaceStyle, TextOptions, Widget};
+use rough_core::{Color, Edges, Size, Vec2};
+use rough_render::PaintContext;
+use rough_theme::{radius, Space, SurfaceTone, TextSize, Theme, Tone};
+use rough_ui::{Align, Justify, SurfaceStyle, TextOptions, Widget};
 
 use crate::Text;
 
@@ -93,7 +93,7 @@ impl Component for Card {
 
     fn widget(&self) -> Widget {
         Widget::Flex(
-            cobbled_ui::FlexStyle::column()
+            rough_ui::FlexStyle::column()
                 .gap(self.gap)
                 .padding(self.padding),
         )
@@ -154,7 +154,7 @@ impl Component for Divider {
     }
 
     fn widget(&self) -> Widget {
-        Widget::Flex(cobbled_ui::FlexStyle::default().padding(Edges::ZERO))
+        Widget::Flex(rough_ui::FlexStyle::default().padding(Edges::ZERO))
     }
 
     fn prepare(&mut self) {
@@ -259,7 +259,7 @@ impl Component for Badge {
 
     fn widget(&self) -> Widget {
         Widget::Flex(
-            cobbled_ui::FlexStyle::row()
+            rough_ui::FlexStyle::row()
                 .align(Align::Center)
                 .justify(Justify::Center)
                 .gap(0.0)
@@ -335,7 +335,7 @@ impl Component for CodeBlock {
 
     fn widget(&self) -> Widget {
         Widget::Flex(
-            cobbled_ui::FlexStyle::column()
+            rough_ui::FlexStyle::column()
                 .gap(self.theme.spacing(Space::SM))
                 .padding(Edges::all(self.theme.spacing(Space::LG))),
         )
@@ -424,7 +424,7 @@ impl Component for Terminal {
 
     fn widget(&self) -> Widget {
         Widget::Flex(
-            cobbled_ui::FlexStyle::column()
+            rough_ui::FlexStyle::column()
                 .gap(self.theme.spacing(Space::SM))
                 .padding(Edges::all(self.theme.spacing(Space::LG))),
         )
@@ -521,7 +521,7 @@ impl Component for EmptyState {
 
     fn widget(&self) -> Widget {
         Widget::Flex(
-            cobbled_ui::FlexStyle::column()
+            rough_ui::FlexStyle::column()
                 .align(Align::Center)
                 .gap(self.theme.spacing(Space::MD))
                 .padding(Edges::all(self.theme.spacing(Space::XXXL))),
@@ -537,7 +537,7 @@ impl Component for EmptyState {
                 .offsets(Edges::ZERO)
                 .min_size(32.0, 32.0)
                 .foreground(move |ctx, rect, _| {
-                    cobbled_ui::surface(
+                    rough_ui::surface(
                         ctx,
                         rect,
                         &SurfaceStyle::new(theme.palette().background)

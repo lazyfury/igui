@@ -3,7 +3,7 @@
 //! Split out of `mod.rs`: the view's state machine and the tree it builds are
 //! read separately.
 
-use cobbled_core::FontWeight;
+use rough_core::FontWeight;
 
 use super::*;
 use crate::go;
@@ -38,7 +38,7 @@ pub(super) fn tab_button(theme: &'static dyn Theme, tab: Tab, feed: &Feed) -> Fl
         })
         .child(
             Text::small(tab.label(), theme)
-                .size(cobbled_theme::TextSize::Subheading)
+                .size(rough_theme::TextSize::Subheading)
                 .weight(FontWeight::BOLD),
         )
 }
@@ -155,10 +155,10 @@ pub(super) fn refresh_button(
 /// `paint_front` runs before the label child is painted, so the fill is dimmed
 /// and the text stays at full contrast.
 pub(super) fn dim_while_busy(tree: &mut SceneTree, button: NodeId, state: Rc<Cell<RefreshState>>) {
-    cobbled_ui::add_decor(
+    rough_ui::add_decor(
         tree,
         button,
-        cobbled_ui::foreground_decor(move |ctx, rect, _state| {
+        rough_ui::foreground_decor(move |ctx, rect, _state| {
             if state.get().is_idle() {
                 return;
             }

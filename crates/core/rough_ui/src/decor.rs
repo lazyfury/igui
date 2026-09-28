@@ -7,13 +7,13 @@
 //! run separate surface/foreground passes.
 //!
 //! The factory functions at the bottom build the common decorators. They take
-//! resolved colors (the closures capture what they need), so `cobbled_ui` never
-//! reads a theme; `cobbled_components` keeps only the component builders.
+//! resolved colors (the closures capture what they need), so `rough_ui` never
+//! reads a theme; `rough_components` keeps only the component builders.
 
 use std::rc::Rc;
 
-use cobbled_core::Rect;
-use cobbled_render::PaintContext;
+use rough_core::Rect;
+use rough_render::PaintContext;
 
 use crate::paint::{self, SurfaceStyle};
 

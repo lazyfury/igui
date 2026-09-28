@@ -2,8 +2,8 @@
 //! directions. Kept apart from the ABI functions so the marshalling can be
 //! tested without touching raw pointers.
 
-use cobbled_core::{Color, Rect, Size, Transform2D, Vec2};
-use cobbled_render::{CornerRadii, DrawCommand, Paint};
+use rough_core::{Color, Rect, Size, Transform2D, Vec2};
+use rough_render::{CornerRadii, DrawCommand, Paint};
 
 use crate::types::*;
 

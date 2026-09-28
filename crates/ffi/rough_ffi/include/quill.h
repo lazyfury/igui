@@ -1,12 +1,12 @@
 /*
- * quill.h — C ABI over the quill core (`cobbled_ffi`).
+ * quill.h — C ABI over the quill core (`rough_ffi`).
  *
  * A foreign-language host builds its own scene/UI and uses this header to fill
  * a backend-neutral `DrawList`, then reads it back command by command and
  * rasterizes it with its own backend (the C++ `examples/cpp_ffi` OpenGL
- * renderer). Nothing from `cobbled_scene` / `cobbled_ui` crosses this boundary.
+ * renderer). Nothing from `rough_scene` / `rough_ui` crosses this boundary.
  *
- * The layout here is a hand-maintained mirror of `crates/ffi/cobbled_ffi/src/lib.rs`.
+ * The layout here is a hand-maintained mirror of `crates/ffi/rough_ffi/src/lib.rs`.
  * Every type is `#[repr(C)]` on the Rust side and made of `float` / a C enum /
  * an opaque pointer, so the two agree. If you change one, change the other and
  * bump `QUILL_ABI_VERSION`; a host should refuse to run when

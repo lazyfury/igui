@@ -1,7 +1,7 @@
-//! `cobbled_bench` — a tiny, dependency-free benchmarking harness for quill.
+//! `rough_bench` — a tiny, dependency-free benchmarking harness for quill.
 //!
 //! It exists because a profiler and a benchmark answer different questions:
-//! the profiler ([`cobbled_profile`]) tells you **where** frame time goes, while a
+//! the profiler ([`rough_profile`]) tells you **where** frame time goes, while a
 //! benchmark tells you **whether** a change made a path faster or slower against
 //! a stable baseline. This crate is the "stable baseline" half.
 //!
@@ -25,7 +25,7 @@
 //! # Example
 //!
 //! ```no_run
-//! use cobbled_bench::{finish, BenchRunner, RunConfig};
+//! use rough_bench::{finish, BenchRunner, RunConfig};
 //!
 //! fn main() {
 //!     let config = RunConfig::from_env();
@@ -33,7 +33,7 @@
 //!     let mut results = Vec::new();
 //!     if let Some(r) = runner.run("sum/1000", || (), |_| {
 //!         let sum: u64 = (0..1000).sum();
-//!         cobbled_bench::black_box(sum);
+//!         rough_bench::black_box(sum);
 //!     }) {
 //!         results.push(r);
 //!     }
@@ -42,7 +42,7 @@
 //! ```
 
 /// Crate name, kept for lightweight smoke checks.
-pub const CRATE: &str = "cobbled_bench";
+pub const CRATE: &str = "rough_bench";
 
 mod baseline;
 mod config;
@@ -118,6 +118,6 @@ mod tests {
 
     #[test]
     fn crate_identity() {
-        assert_eq!(CRATE, "cobbled_bench");
+        assert_eq!(CRATE, "rough_bench");
     }
 }

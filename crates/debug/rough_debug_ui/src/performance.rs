@@ -1,8 +1,8 @@
-use cobbled_components::{Component, Flex, Label, Panel, VBox};
-use cobbled_core::{Color, Edges, EventResult, InputEvent, NodeId, ViewportSize};
-use cobbled_profile::{InspectionReport, Phase, Profiler, Severity};
-use cobbled_render::PaintContext;
-use cobbled_scene::SceneTree;
+use rough_components::{Component, Flex, Label, Panel, VBox};
+use rough_core::{Color, Edges, EventResult, InputEvent, NodeId, ViewportSize};
+use rough_profile::{InspectionReport, Phase, Profiler, Severity};
+use rough_render::PaintContext;
+use rough_scene::SceneTree;
 
 /// Which viewport corner the overlay panel is pinned to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -165,7 +165,7 @@ impl PerformanceOverlay {
         let tree_root = tree.root();
         let root = tree.add_child(
             tree_root,
-            Flex::column().mouse_filter(cobbled_ui::MouseFilter::Ignore),
+            Flex::column().mouse_filter(rough_ui::MouseFilter::Ignore),
         );
 
         let (anchors, offsets) = config.placement();
@@ -285,48 +285,48 @@ impl PerformanceOverlay {
         let text = build_text(profiler, report, self.config.max_finding_rows);
         self.apply(&text);
         self.text = text;
-        cobbled_ui::layout(&mut self.tree, viewport);
+        rough_ui::layout(&mut self.tree, viewport);
         self.tree.update();
     }
 
     /// Paints the overlay into `ctx`. No-op while closed.
     pub fn paint(&self, ctx: &mut PaintContext) {
         if self.open {
-            cobbled_ui::paint(&self.tree, ctx);
+            rough_ui::paint(&self.tree, ctx);
         }
     }
 
     /// Routes an input event through the overlay. Closed overlays ignore input.
     pub fn handle_input(&mut self, event: &InputEvent) -> EventResult {
         if self.open {
-            cobbled_ui::handle_input(&mut self.tree, event)
+            rough_ui::handle_input(&mut self.tree, event)
         } else {
             EventResult::Ignored
         }
     }
 
     fn apply(&mut self, text: &OverlayText) {
-        cobbled_components::set_text(&mut self.tree, self.rows.title, text.title.clone());
-        cobbled_components::set_text(&mut self.tree, self.rows.fps, text.fps.clone());
-        cobbled_components::set_text(&mut self.tree, self.rows.frame, text.frame.clone());
-        cobbled_components::set_text(&mut self.tree, self.rows.profiler, text.profiler.clone());
-        cobbled_components::set_text(
+        rough_components::set_text(&mut self.tree, self.rows.title, text.title.clone());
+        rough_components::set_text(&mut self.tree, self.rows.fps, text.fps.clone());
+        rough_components::set_text(&mut self.tree, self.rows.frame, text.frame.clone());
+        rough_components::set_text(&mut self.tree, self.rows.profiler, text.profiler.clone());
+        rough_components::set_text(
             &mut self.tree,
             self.rows.update_layout,
             text.update_layout.clone(),
         );
-        cobbled_components::set_text(
+        rough_components::set_text(
             &mut self.tree,
             self.rows.paint_render,
             text.paint_render.clone(),
         );
-        cobbled_components::set_text(&mut self.tree, self.rows.commands, text.commands.clone());
-        cobbled_components::set_text(&mut self.tree, self.rows.entities, text.entities.clone());
-        cobbled_components::set_text(&mut self.tree, self.rows.findings, text.findings.clone());
+        rough_components::set_text(&mut self.tree, self.rows.commands, text.commands.clone());
+        rough_components::set_text(&mut self.tree, self.rows.entities, text.entities.clone());
+        rough_components::set_text(&mut self.tree, self.rows.findings, text.findings.clone());
         for (id, row) in self.rows.finding_rows.iter().zip(&text.finding_rows) {
-            cobbled_components::set_text(&mut self.tree, *id, row.clone());
+            rough_components::set_text(&mut self.tree, *id, row.clone());
         }
-        cobbled_components::set_text(&mut self.tree, self.rows.shortcuts, text.shortcuts.clone());
+        rough_components::set_text(&mut self.tree, self.rows.shortcuts, text.shortcuts.clone());
     }
 }
 

@@ -8,8 +8,8 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use cobbled_components::{Card, ListState, Router, ScrollViewState};
-use cobbled_theme::Theme;
+use rough_components::{Card, ListState, Router, ScrollViewState};
+use rough_theme::Theme;
 
 use crate::GalleryState;
 

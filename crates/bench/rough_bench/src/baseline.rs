@@ -7,7 +7,7 @@ use std::path::Path;
 
 use crate::runner::BenchResult;
 
-const HEADER: &str = "# cobbled_bench baseline v1";
+const HEADER: &str = "# rough_bench baseline v1";
 const SEP: char = '\t';
 
 /// How a current result compares to its baseline entry.
@@ -43,7 +43,7 @@ pub struct Comparison {
 /// The format is intentionally trivial and diff-friendly:
 ///
 /// ```text
-/// # cobbled_bench baseline v1
+/// # rough_bench baseline v1
 /// scene/update_clean/1000	1203.4
 /// ```
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -312,7 +312,7 @@ mod tests {
 
     #[test]
     fn save_and_load_round_trip() {
-        let dir = std::env::temp_dir().join(format!("cobbled_bench_{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("rough_bench_{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join("baseline.txt");
         let mut baseline = Baseline::new();

@@ -1,5 +1,5 @@
-use cobbled_core::{Rect, Transform2D};
-use cobbled_render::DrawCommand;
+use rough_core::{Rect, Transform2D};
+use rough_render::DrawCommand;
 
 /// Assertion helpers over a recorded command sequence.
 ///
@@ -115,8 +115,8 @@ impl CommandAsserts for [DrawCommand] {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cobbled_core::{Color, Size, Vec2};
-    use cobbled_render::{Paint, PaintContext};
+    use rough_core::{Color, Size, Vec2};
+    use rough_render::{Paint, PaintContext};
 
     fn rect(w: f32, h: f32) -> Rect {
         Rect::from_min_size(Vec2::ZERO, Size::new(w, h))

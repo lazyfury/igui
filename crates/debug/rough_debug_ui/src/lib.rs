@@ -1,4 +1,4 @@
-//! `cobbled_debug_ui` — backend-neutral debug visuals for quill.
+//! `rough_debug_ui` — backend-neutral debug visuals for quill.
 //!
 //! Two independent overlays, both drawn as ordinary backend-neutral
 //! `DrawCommand`s (no browser/backend/GPU dependency, verified with native
@@ -6,10 +6,10 @@
 //!
 //! - [`DebugOverlay`] — **component debug drawing**: a yellow border around
 //!   every visible `Control` plus a `Name #id` label in its top-left corner. It
-//!   wraps [`cobbled_ui::paint_debug`](cobbled_ui::paint_debug) and draws over the
+//!   wraps [`rough_ui::paint_debug`](rough_ui::paint_debug) and draws over the
 //!   application's own UI.
 //! - [`PerformanceOverlay`] — the frame-timing / inspection panel fed by
-//!   [`cobbled_profile`]; it owns its own `Ui` tree and is painted after the app UI.
+//!   [`rough_profile`]; it owns its own `Ui` tree and is painted after the app UI.
 //!
 //! ```ignore
 //! let mut debug = DebugOverlay::new();          // component bounds
@@ -22,7 +22,7 @@
 //! ```
 
 /// Crate name, kept for lightweight smoke checks.
-pub const CRATE: &str = "cobbled_debug_ui";
+pub const CRATE: &str = "rough_debug_ui";
 
 mod component;
 mod performance;

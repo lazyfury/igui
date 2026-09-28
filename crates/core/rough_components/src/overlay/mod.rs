@@ -5,10 +5,10 @@
 //! paints its main UI as usual and then layers this on top:
 //!
 //! ```ignore
-//! cobbled_ui::layout(&mut tree, viewport);
+//! rough_ui::layout(&mut tree, viewport);
 //! overlays.layout(&tree, viewport);   // anchor to laid-out targets
 //!
-//! cobbled_ui::paint(&tree, &mut ctx);    // main UI (decor + content)
+//! rough_ui::paint(&tree, &mut ctx);    // main UI (decor + content)
 //! overlays.paint(&mut ctx);           // scrim + overlay content, on top
 //! ```
 //!
@@ -31,22 +31,22 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::base::{Component, Flex, Label};
-use cobbled_core::{
+use rough_core::{
     Color, Edges, EventResult, InputEvent, Key, NodeId, Rect, Size, Vec2, ViewportSize,
 };
-use cobbled_render::PaintContext;
-use cobbled_scene::SceneTree;
-use cobbled_theme::{radius, Space, SurfaceLevel, TextSize, Theme, Tone};
-use cobbled_ui::{Align, Justify, MouseFilter};
+use rough_render::PaintContext;
+use rough_scene::SceneTree;
+use rough_theme::{radius, Space, SurfaceLevel, TextSize, Theme, Tone};
+use rough_ui::{Align, Justify, MouseFilter};
 
 use crate::Button;
-use cobbled_ui::SurfaceStyle;
+use rough_ui::SurfaceStyle;
 
 /// Builds the overlay layer's private tree with a viewport-filling root.
-fn overlay_tree(measurer: Option<Rc<dyn cobbled_ui::TextMeasurer>>) -> (SceneTree, NodeId) {
+fn overlay_tree(measurer: Option<Rc<dyn rough_ui::TextMeasurer>>) -> (SceneTree, NodeId) {
     let mut tree = SceneTree::new();
     if let Some(measurer) = measurer {
-        cobbled_ui::set_text_measurer(&mut tree, measurer);
+        rough_ui::set_text_measurer(&mut tree, measurer);
     }
     let tree_root = tree.root();
     let root = tree.add_child(tree_root, Flex::column().mouse_filter(MouseFilter::Ignore));
@@ -170,7 +170,7 @@ pub struct Overlays {
     tree: SceneTree,
     root: NodeId,
     entries: Vec<Entry>,
-    measurer: Option<Rc<dyn cobbled_ui::TextMeasurer>>,
+    measurer: Option<Rc<dyn rough_ui::TextMeasurer>>,
     next_id: u64,
     viewport: ViewportSize,
     dirty: bool,
@@ -204,15 +204,15 @@ impl Overlays {
     }
 
     /// Uses `measurer` for overlay text layout, matching the host UI.
-    pub fn set_text_measurer(&mut self, measurer: Rc<dyn cobbled_ui::TextMeasurer>) {
-        cobbled_ui::set_text_measurer(&mut self.tree, measurer.clone());
+    pub fn set_text_measurer(&mut self, measurer: Rc<dyn rough_ui::TextMeasurer>) {
+        rough_ui::set_text_measurer(&mut self.tree, measurer.clone());
         self.measurer = Some(measurer);
         self.dirty = true;
     }
 
     /// Uses `clipboard` for text fields inside overlays (a modal input).
-    pub fn set_clipboard(&mut self, clipboard: Rc<RefCell<dyn cobbled_ui::Clipboard>>) {
-        cobbled_ui::set_clipboard(&mut self.tree, clipboard);
+    pub fn set_clipboard(&mut self, clipboard: Rc<RefCell<dyn rough_ui::Clipboard>>) {
+        rough_ui::set_clipboard(&mut self.tree, clipboard);
     }
 
     /// Opens a modal confirmation dialog.
@@ -458,10 +458,10 @@ impl Overlays {
     }
 
     /// The overlay's resolved rectangle after [`Overlays::layout`].
-    pub fn rect(&self, id: OverlayId) -> Option<cobbled_core::Rect> {
+    pub fn rect(&self, id: OverlayId) -> Option<rough_core::Rect> {
         let entry = self.entries.iter().find(|entry| entry.id == id)?;
         let root = entry.root?;
-        cobbled_ui::control(&self.tree, root).map(|control| control.rect)
+        rough_ui::control(&self.tree, root).map(|control| control.rect)
     }
 
     pub fn len(&self) -> usize {
@@ -529,7 +529,7 @@ impl Overlays {
 
     /// Whether any overlay is still counting down to auto-dismiss.
     ///
-    /// A host that renders on demand uses this (with `cobbled_anim` and the UI
+    /// A host that renders on demand uses this (with `rough_anim` and the UI
     /// repaint signal) to keep scheduling frames while a transient overlay is
     /// up, so a toast can dismiss itself without waiting for input.
     pub fn is_animating(&self) -> bool {
@@ -541,7 +541,7 @@ impl Overlays {
     /// Call after the host's own `Ui::layout`.
     pub fn layout(&mut self, host_tree: &SceneTree, viewport: ViewportSize) {
         // Tooltips live only while their target (or a descendant) is hovered.
-        let hovered = cobbled_ui::hovered(host_tree);
+        let hovered = rough_ui::hovered(host_tree);
         let stale: Vec<OverlayId> = self
             .entries
             .iter()
@@ -564,7 +564,7 @@ impl Overlays {
             self.rebuild();
         }
 
-        cobbled_ui::layout(&mut self.tree, viewport);
+        rough_ui::layout(&mut self.tree, viewport);
 
         // Sync any capped menu viewports before placement: the menu's height is
         // measured first, then clamped to the cap, then positioned.
@@ -580,7 +580,7 @@ impl Overlays {
             if !changed {
                 break;
             }
-            cobbled_ui::layout(&mut self.tree, viewport);
+            rough_ui::layout(&mut self.tree, viewport);
         }
 
         let viewport_rect = viewport.logical_rect();
@@ -589,12 +589,12 @@ impl Overlays {
             let Some(root) = entry.root else {
                 continue;
             };
-            let size = cobbled_ui::control(&self.tree, root)
+            let size = rough_ui::control(&self.tree, root)
                 .map(|control| control.rect.size)
                 .unwrap_or(Size::ZERO);
             let anchor = match entry.anchor {
                 Anchor::Target(id) => {
-                    cobbled_ui::control(host_tree, id).map(|control| control.rect)
+                    rough_ui::control(host_tree, id).map(|control| control.rect)
                 }
                 Anchor::Point(point) => Some(Rect::from_min_size(point, Size::ZERO)),
                 Anchor::ViewportSize => None,
@@ -607,7 +607,7 @@ impl Overlays {
                 entry.offset,
                 MARGIN,
             );
-            if cobbled_ui::control(&self.tree, root).map(|control| control.rect) != Some(rect) {
+            if rough_ui::control(&self.tree, root).map(|control| control.rect) != Some(rect) {
                 crate::base::update_control(&mut self.tree, root, |d| d.anchors = Edges::ZERO);
                 crate::base::update_control(&mut self.tree, root, |d| {
                     d.offsets = Edges::new(rect.left(), rect.top(), rect.right(), rect.bottom())
@@ -616,7 +616,7 @@ impl Overlays {
             }
         }
         if moved {
-            cobbled_ui::layout(&mut self.tree, viewport);
+            rough_ui::layout(&mut self.tree, viewport);
         }
     }
 
@@ -631,7 +631,7 @@ impl Overlays {
                 ctx.fill_rect(viewport, scrim);
             }
         }
-        cobbled_ui::paint(&self.tree, ctx);
+        rough_ui::paint(&self.tree, ctx);
     }
 
     /// Routes an event to the overlays.
@@ -664,7 +664,7 @@ impl Overlays {
         };
 
         if let InputEvent::PointerDown { position, .. } = event {
-            if cobbled_ui::hit_test(&self.tree, *position).is_none() {
+            if rough_ui::hit_test(&self.tree, *position).is_none() {
                 if let Some(entry) = self
                     .entries
                     .iter()
@@ -677,7 +677,7 @@ impl Overlays {
             }
         }
 
-        let ui_result = cobbled_ui::handle_input(&mut self.tree, event);
+        let ui_result = rough_ui::handle_input(&mut self.tree, event);
         self.process_actions();
 
         // `Ui::handle_input` reports `Handled` for every `PointerUp`, so pointer
@@ -685,7 +685,7 @@ impl Overlays {
         let consumed = match pointer {
             Some(position) => {
                 modal
-                    || (cobbled_ui::hit_test(&self.tree, position).is_some()
+                    || (rough_ui::hit_test(&self.tree, position).is_some()
                         && ui_result.is_handled())
             }
             None => modal || ui_result.is_handled(),
@@ -986,7 +986,7 @@ fn build_entry(
 mod tests {
     use super::*;
     use crate::{Menu, MenuItem};
-    use cobbled_theme::{default_theme, Mode};
+    use rough_theme::{default_theme, Mode};
 
     fn viewport() -> ViewportSize {
         ViewportSize::new(Size::new(640.0, 420.0))
@@ -1042,7 +1042,7 @@ mod tests {
         let mut overlays = Overlays::new(theme);
         let mut host = SceneTree::new();
         let target = host.add_child(host.root(), crate::Flex::column().min_size(100.0, 20.0));
-        cobbled_ui::layout(&mut host, viewport());
+        rough_ui::layout(&mut host, viewport());
 
         let scroll = crate::ScrollViewState::new();
         let view = scroll.clone();
@@ -1071,7 +1071,7 @@ mod tests {
 
         overlays.handle_input(&InputEvent::Wheel {
             position: rect.center(),
-            delta: cobbled_core::Vec2::new(0.0, 40.0),
+            delta: rough_core::Vec2::new(0.0, 40.0),
         });
         overlays.layout(&host, viewport());
         assert!(scroll.offset() > 0.0, "the wheel scrolled the menu");

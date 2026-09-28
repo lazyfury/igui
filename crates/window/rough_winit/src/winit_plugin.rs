@@ -2,15 +2,15 @@
 //!
 //! [`WinitPlugin`] owns the platform loop. On first resume it creates the
 //! window, publishes it as [`SharedWindow`] and sets the initial scale, then
-//! calls [`App::resumed`](cobbled_app::App::resumed) so the graphics / IME
+//! calls [`App::resumed`](rough_app::App::resumed) so the graphics / IME
 //! lifecycle observers can build on it. It never touches `wgpu`.
 
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use cobbled_app::{App, AppBuilder, PlatformEvent, PlatformObserver, Plugin};
-use cobbled_core::InputEvent;
+use rough_app::{App, AppBuilder, PlatformEvent, PlatformObserver, Plugin};
+use rough_core::InputEvent;
 use winit::application::ApplicationHandler;
 use winit::dpi::LogicalSize;
 use winit::event::WindowEvent;
@@ -74,12 +74,12 @@ impl PlatformObserver for WindowStateObserver {
 }
 
 fn run_event_loop(app: App) {
-    let event_loop = EventLoop::new().expect("cobbled_winit: create event loop");
+    let event_loop = EventLoop::new().expect("rough_winit: create event loop");
     event_loop.set_control_flow(ControlFlow::Wait);
     let mut handler = WinitHandler { app, window: None };
     event_loop
         .run_app(&mut handler)
-        .expect("cobbled_winit: run event loop");
+        .expect("rough_winit: run event loop");
 }
 
 struct WinitHandler {
@@ -113,7 +113,7 @@ impl ApplicationHandler for WinitHandler {
             let window = Arc::new(
                 event_loop
                     .create_window(window_attributes(&config))
-                    .expect("cobbled_winit: create window"),
+                    .expect("rough_winit: create window"),
             );
             if let Some(state) = self.app.services().get::<SharedWindowState>() {
                 state.borrow_mut().scale_factor = window.scale_factor();

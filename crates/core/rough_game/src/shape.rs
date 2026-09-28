@@ -2,11 +2,11 @@
 //!
 //! Shapes are local to a node (origin at the node origin, matching `Visual`),
 //! and [`CollisionShape::world`] turns one into a world-axis [`WorldShape`] under
-//! a node's [`cobbled_core::Transform2D`]. Rotation is folded into the world bounds
+//! a node's [`rough_core::Transform2D`]. Rotation is folded into the world bounds
 //! (an oriented box becomes its axis-aligned bounding box; a non-uniformly
 //! scaled circle is approximated by its largest radius).
 
-use cobbled_core::{Rect, Size, Transform2D, Vec2};
+use rough_core::{Rect, Size, Transform2D, Vec2};
 
 /// A collision shape in a node's local space.
 #[derive(Debug, Clone, Copy, PartialEq)]

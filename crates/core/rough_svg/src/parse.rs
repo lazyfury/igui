@@ -2,7 +2,7 @@
 //! packs, not a general XML parser. Unknown elements and attributes are ignored;
 //! `<defs>`-style containers have their contents skipped.
 
-use cobbled_core::{Color, Vec2};
+use rough_core::{Color, Vec2};
 
 use crate::path;
 use crate::shapes;

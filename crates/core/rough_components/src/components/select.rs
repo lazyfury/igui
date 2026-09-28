@@ -7,14 +7,14 @@
 //! exactly how [`Button`](crate::Button) raises an action. The visible value is
 //! dynamic: mount the [`NodeRef`] passed to [`Select::value_ref`] and write the
 //! new label with
-//! [`set_text`](cobbled_ui::set_text) when the choice changes.
+//! [`set_text`](rough_ui::set_text) when the choice changes.
 
 use crate::base::{Component, Label, Spec};
 use crate::glyph::{paint_glyph, Glyph};
 use crate::NodeRef;
-use cobbled_core::{Cursor, Edges, Rect, Size, Vec2};
-use cobbled_theme::{radius, ControlSize, Space, TextSize, Theme};
-use cobbled_ui::{Align, Justify, SurfaceStyle, TextOptions, Widget};
+use rough_core::{Cursor, Edges, Rect, Size, Vec2};
+use rough_theme::{radius, ControlSize, Space, TextSize, Theme};
+use rough_ui::{Align, Justify, SurfaceStyle, TextOptions, Widget};
 
 /// How wide the chevron zone (and its right inset) is reserved on the trigger.
 const CHEVRON_ZONE: f32 = 18.0;
@@ -94,7 +94,7 @@ impl Component for Select {
 
     fn widget(&self) -> Widget {
         Widget::Flex(
-            cobbled_ui::FlexStyle::row()
+            rough_ui::FlexStyle::row()
                 .align(Align::Center)
                 .justify(Justify::SpaceBetween)
                 .gap(0.0)
@@ -181,14 +181,14 @@ crate::impl_scene_child!(Select);
 mod tests {
     use super::*;
     use crate::{set_text, Flex};
-    use cobbled_core::{InputEvent, PointerButton, ViewportSize};
-    use cobbled_scene::SceneTree;
-    use cobbled_theme::{default_theme, Mode};
-    use cobbled_ui::{control, MouseFilter};
+    use rough_core::{InputEvent, PointerButton, ViewportSize};
+    use rough_scene::SceneTree;
+    use rough_theme::{default_theme, Mode};
+    use rough_ui::{control, MouseFilter};
     use std::cell::Cell;
     use std::rc::Rc;
 
-    fn mount(tree: &mut SceneTree, select: Select) -> (cobbled_core::NodeId, cobbled_core::NodeId) {
+    fn mount(tree: &mut SceneTree, select: Select) -> (rough_core::NodeId, rough_core::NodeId) {
         let page = tree.add_child(
             tree.root(),
             Flex::column()
@@ -212,7 +212,7 @@ mod tests {
                 button: PointerButton::Left,
             },
         ] {
-            cobbled_ui::handle_input(tree, &event);
+            rough_ui::handle_input(tree, &event);
         }
     }
 
@@ -226,7 +226,7 @@ mod tests {
             &mut tree,
             Select::new(theme).on_open(move || flag.set(true)),
         );
-        cobbled_ui::layout(&mut tree, ViewportSize::new(Size::new(400.0, 300.0)));
+        rough_ui::layout(&mut tree, ViewportSize::new(Size::new(400.0, 300.0)));
         let center = control(&tree, id).unwrap().rect.center();
         click(&mut tree, center);
         assert!(opened.get());
@@ -244,7 +244,7 @@ mod tests {
                 .disabled(true)
                 .on_open(move || flag.set(true)),
         );
-        cobbled_ui::layout(&mut tree, ViewportSize::new(Size::new(400.0, 300.0)));
+        rough_ui::layout(&mut tree, ViewportSize::new(Size::new(400.0, 300.0)));
         let center = control(&tree, id).unwrap().rect.center();
         click(&mut tree, center);
         assert!(!opened.get());
@@ -256,11 +256,11 @@ mod tests {
         let slot = NodeRef::default();
         let mut tree = SceneTree::new();
         mount(&mut tree, Select::new(theme).value("ZIP").value_ref(&slot));
-        cobbled_ui::layout(&mut tree, ViewportSize::new(Size::new(400.0, 300.0)));
+        rough_ui::layout(&mut tree, ViewportSize::new(Size::new(400.0, 300.0)));
 
         let label = slot.get().expect("value label mounted");
         set_text(&mut tree, label, "7z");
-        cobbled_ui::layout(&mut tree, ViewportSize::new(Size::new(400.0, 300.0)));
+        rough_ui::layout(&mut tree, ViewportSize::new(Size::new(400.0, 300.0)));
         // The label node exists and takes the new text; nothing else to assert
         // (the rendered glyphs are a paint concern, not behaviour).
         assert_eq!(slot.get(), Some(label));

@@ -1,5 +1,5 @@
 [package]
-name = "cobbled_core"
+name = "rough_core"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

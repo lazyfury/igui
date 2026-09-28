@@ -5,7 +5,7 @@
 //! of the UI and closes on Escape / a click outside:
 //!
 //! ```ignore
-//! use cobbled_components::{Menu, MenuItem};
+//! use rough_components::{Menu, MenuItem};
 //!
 //! overlays.menu(button, move |tree, node| {
 //!     tree.add_child(node, Menu::new(theme)
@@ -19,9 +19,9 @@
 //! each row, so items line up regardless of label length.
 
 use crate::base::{Component, Label, Spec};
-use cobbled_core::{Cursor, Edges, Size};
-use cobbled_theme::{radius, Space, SurfaceLevel, TextSize, Theme, Tone};
-use cobbled_ui::{Align, Justify, SurfaceStyle, TextOptions, Widget};
+use rough_core::{Cursor, Edges, Size};
+use rough_theme::{radius, Space, SurfaceLevel, TextSize, Theme, Tone};
+use rough_ui::{Align, Justify, SurfaceStyle, TextOptions, Widget};
 
 /// Default minimum width of a menu surface (logical pixels).
 pub const MENU_MIN_WIDTH: f32 = 200.0;
@@ -102,7 +102,7 @@ impl Component for MenuItem {
 
     fn widget(&self) -> Widget {
         Widget::Flex(
-            cobbled_ui::FlexStyle::row()
+            rough_ui::FlexStyle::row()
                 .align(Align::Center)
                 .justify(Justify::SpaceBetween)
                 .gap(self.theme.spacing(Space::LG))
@@ -118,7 +118,7 @@ impl Component for MenuItem {
         // Dimmed rows never highlight; enabled ones light up on hover / press.
         self.spec.background = Some(Box::new(move |st| {
             let fill = if disabled || !(st.hovered || st.pressed) {
-                cobbled_core::Color::TRANSPARENT
+                rough_core::Color::TRANSPARENT
             } else {
                 theme.palette().surface_hover
             };
@@ -226,7 +226,7 @@ impl Component for Menu {
 
     fn widget(&self) -> Widget {
         Widget::Flex(
-            cobbled_ui::FlexStyle::column()
+            rough_ui::FlexStyle::column()
                 .gap(self.theme.spacing(Space::XXXS))
                 .padding(Edges::all(self.theme.spacing(Space::XS))),
         )
@@ -255,10 +255,10 @@ crate::impl_scene_child!(Menu, MenuItem);
 mod tests {
     use super::*;
     use crate::base::Flex;
-    use cobbled_core::{InputEvent, PointerButton, Vec2, ViewportSize};
-    use cobbled_scene::SceneTree;
-    use cobbled_theme::{default_theme, Mode};
-    use cobbled_ui::{control, MouseFilter};
+    use rough_core::{InputEvent, PointerButton, Vec2, ViewportSize};
+    use rough_scene::SceneTree;
+    use rough_theme::{default_theme, Mode};
+    use rough_ui::{control, MouseFilter};
     use std::cell::Cell;
     use std::rc::Rc;
 
@@ -267,14 +267,14 @@ mod tests {
     }
 
     fn click(tree: &mut SceneTree, position: Vec2) {
-        cobbled_ui::handle_input(
+        rough_ui::handle_input(
             tree,
             &InputEvent::PointerDown {
                 position,
                 button: PointerButton::Left,
             },
         );
-        cobbled_ui::handle_input(
+        rough_ui::handle_input(
             tree,
             &InputEvent::PointerUp {
                 position,
@@ -284,7 +284,7 @@ mod tests {
     }
 
     /// Mounts `menu` in a filling column and returns the menu's node.
-    fn mount_menu(tree: &mut SceneTree, menu: Menu) -> cobbled_core::NodeId {
+    fn mount_menu(tree: &mut SceneTree, menu: Menu) -> rough_core::NodeId {
         let root = tree.root();
         let page = tree.add_child(
             root,
@@ -308,7 +308,7 @@ mod tests {
                 .separator()
                 .item(MenuItem::new("Redo", theme)),
         );
-        cobbled_ui::layout(&mut tree, viewport());
+        rough_ui::layout(&mut tree, viewport());
 
         let menu_rect = control(&tree, menu).unwrap().rect;
         assert!(menu_rect.size.width >= MENU_MIN_WIDTH - 1e-3);
@@ -326,7 +326,7 @@ mod tests {
         let id = MenuItem::new("Undo", theme)
             .on_click(move || flag.set(true))
             .build(&mut tree, root);
-        cobbled_ui::layout(&mut tree, viewport());
+        rough_ui::layout(&mut tree, viewport());
         let center = control(&tree, id).unwrap().rect.center();
         click(&mut tree, center);
         assert!(clicked.get());
@@ -343,7 +343,7 @@ mod tests {
             .disabled(true)
             .on_click(move || flag.set(true))
             .build(&mut tree, root);
-        cobbled_ui::layout(&mut tree, viewport());
+        rough_ui::layout(&mut tree, viewport());
         assert_eq!(control(&tree, id).unwrap().cursor, Cursor::Default);
         let center = control(&tree, id).unwrap().rect.center();
         click(&mut tree, center);
@@ -356,7 +356,7 @@ mod tests {
         let mut tree = SceneTree::new();
         let root = tree.root();
         let id = MenuItem::new("Undo", theme).build(&mut tree, root);
-        cobbled_ui::layout(&mut tree, viewport());
+        rough_ui::layout(&mut tree, viewport());
         assert_eq!(control(&tree, id).unwrap().cursor, Cursor::Pointer);
     }
 }

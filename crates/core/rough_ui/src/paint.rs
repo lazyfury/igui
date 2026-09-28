@@ -1,10 +1,10 @@
 //! Backend-neutral surface helpers used by the component library.
 //!
-//! Rounded rectangles are a first-class [`DrawCommand`](cobbled_render::DrawCommand)
+//! Rounded rectangles are a first-class [`DrawCommand`](rough_render::DrawCommand)
 //! with per-corner radii, so surfaces map almost directly onto the IR.
 
-use cobbled_core::{Color, Rect, Vec2};
-use cobbled_render::{CornerRadii, PaintContext};
+use rough_core::{Color, Rect, Vec2};
+use rough_render::{CornerRadii, PaintContext};
 
 /// A rounded surface: fill, optional hairline border and per-corner radii.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -113,13 +113,13 @@ pub fn inset(rect: Rect, amount: f32) -> Rect {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cobbled_render::DrawCommand;
+    use rough_render::DrawCommand;
 
     fn rect() -> Rect {
         Rect::from_min_max(Vec2::new(10.0, 20.0), Vec2::new(110.0, 60.0))
     }
 
-    fn count(list: &cobbled_render::DrawList, f: impl Fn(&DrawCommand) -> bool) -> usize {
+    fn count(list: &rough_render::DrawList, f: impl Fn(&DrawCommand) -> bool) -> usize {
         list.commands().iter().filter(|c| f(c)).count()
     }
 

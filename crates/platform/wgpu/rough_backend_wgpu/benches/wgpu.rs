@@ -9,13 +9,13 @@
 //! skipped and the process exits successfully, matching the crate's pixel tests.
 //!
 //! ```bash
-//! cargo bench -p cobbled_backend_wgpu --bench wgpu
+//! cargo bench -p rough_backend_wgpu --bench wgpu
 //! ```
 
-use cobbled_backend_wgpu::WgpuBackend;
-use cobbled_bench::{black_box, finish, BenchResult, BenchRunner, RunConfig};
-use cobbled_core::{Color, Rect, Size, Vec2, ViewportSize};
-use cobbled_render::{PaintContext, RenderBackend};
+use rough_backend_wgpu::WgpuBackend;
+use rough_bench::{black_box, finish, BenchResult, BenchRunner, RunConfig};
+use rough_core::{Color, Rect, Size, Vec2, ViewportSize};
+use rough_render::{PaintContext, RenderBackend};
 
 /// Entity counts; readback cost dominates, so the range is modest.
 const SIZES: [usize; 3] = [16, 256, 2_048];
@@ -56,7 +56,7 @@ fn main() {
 }
 
 /// Builds a `DrawList` of `n` colored rectangles in a deterministic grid.
-fn build_list(n: usize) -> cobbled_render::DrawList {
+fn build_list(n: usize) -> rough_render::DrawList {
     let columns = (n as f64).sqrt().ceil().max(1.0) as usize;
     let cell = TARGET_SIZE / columns as f32;
     let mut ctx = PaintContext::with_capacity(n);

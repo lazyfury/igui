@@ -5,10 +5,10 @@
 //! `_input -> world -> GUI -> _unhandled_input` order hosts run through
 //! [`route_input`].
 
-use cobbled_core::{
+use rough_core::{
     Cursor, EventResult, InputEvent, Key, Modifiers, NodeId, PointerButton, Rect, Vec2,
 };
-use cobbled_scene::SceneTree;
+use rough_scene::SceneTree;
 
 use crate::control::{control_visible, Control, MouseFilter, PointerPhase};
 use crate::widget::Widget;
@@ -368,7 +368,7 @@ pub fn route_input(tree: &mut SceneTree, event: &InputEvent) -> EventResult {
 
 struct GuiStage;
 
-impl cobbled_scene::GuiInput for GuiStage {
+impl rough_scene::GuiInput for GuiStage {
     fn gui_input(&mut self, tree: &mut SceneTree, event: &InputEvent) -> EventResult {
         handle_input(tree, event)
     }
@@ -521,7 +521,7 @@ pub fn focused(tree: &SceneTree) -> Option<NodeId> {
 }
 
 /// The held keyboard modifiers, tracked from
-/// [`InputEvent::ModifiersChanged`](cobbled_core::InputEvent::ModifiersChanged).
+/// [`InputEvent::ModifiersChanged`](rough_core::InputEvent::ModifiersChanged).
 pub fn modifiers(tree: &SceneTree) -> Modifiers {
     crate::gui_state_of(tree).map_or(Modifiers::NONE, |state| state.modifiers)
 }
@@ -567,7 +567,7 @@ mod tests {
     use crate::control::ControlData;
     use crate::layout::TextOptions;
     use crate::widget::Widget;
-    use cobbled_core::{Color, Edges, Size, ViewportSize};
+    use rough_core::{Color, Edges, Size, ViewportSize};
     use std::cell::{Cell, RefCell};
     use std::rc::Rc;
 

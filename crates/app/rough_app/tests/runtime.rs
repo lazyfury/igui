@@ -1,17 +1,17 @@
-//! Integration tests for the `cobbled_app` runtime, exercised through its public
+//! Integration tests for the `rough_app` runtime, exercised through its public
 //! API only: assembling an app from a plugin + logic, routing input through
 //! layers, and the `update -> layout -> paint -> present` frame.
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
-use cobbled_app::{
+use rough_app::{
     App, AppBuilder, AppConfig, AppLogic, EventContext, FrameContext, FrameObserver, InitContext,
     InputLayer, LifecycleObserver, PlatformEvent, PlatformObserver, Plugin, PresentOutcome,
     Presenter,
 };
-use cobbled_core::{EventResult, InputEvent, Key, Size, Vec2, ViewportSize};
-use cobbled_render::{DrawList, Paint, PaintContext};
+use rough_core::{EventResult, InputEvent, Key, Size, Vec2, ViewportSize};
+use rough_render::{DrawList, Paint, PaintContext};
 
 type Log = Rc<RefCell<Vec<String>>>;
 

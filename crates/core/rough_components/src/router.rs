@@ -2,7 +2,7 @@
 //!
 //! Routing is explicit and cheap. All views are built once as children of a
 //! container; the router toggles scene visibility so only the active one is laid
-//! out, painted and hit-tested (`cobbled_ui` skips hidden controls). Because the
+//! out, painted and hit-tested (`rough_ui` skips hidden controls). Because the
 //! views stay mounted, their state (scroll position, focus, text bindings)
 //! survives a switch.
 //!
@@ -30,8 +30,8 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
-use cobbled_core::NodeId;
-use cobbled_scene::SceneTree;
+use rough_core::NodeId;
+use rough_scene::SceneTree;
 
 use crate::base::Component;
 
@@ -146,7 +146,7 @@ impl Router {
             let want = i == index;
             if tree.is_visible(*id) != Some(want) {
                 tree.set_visible(*id, want);
-                cobbled_ui::mark_dirty(tree, *id);
+                rough_ui::mark_dirty(tree, *id);
             }
         }
     }
@@ -174,8 +174,8 @@ impl Router {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cobbled_core::Color;
-    use cobbled_scene::SceneTree;
+    use rough_core::Color;
+    use rough_scene::SceneTree;
 
     use crate::base::Panel;
 

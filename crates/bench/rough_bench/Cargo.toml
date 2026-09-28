@@ -1,5 +1,5 @@
 [package]
-name = "cobbled_bench"
+name = "rough_bench"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

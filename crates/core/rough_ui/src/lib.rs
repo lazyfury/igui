@@ -1,21 +1,21 @@
-//! `cobbled_ui` — layout, paint and input for backend-neutral UI controls.
+//! `rough_ui` — layout, paint and input for backend-neutral UI controls.
 //!
 //! This crate owns three stages of the pipeline:
 //!
 //! - **Layout** ([`layout()`]) resolves absolute rectangles from anchors/offsets;
 //!   flex and grid containers size and arrange their children.
-//! - **Paint** ([`paint`]) emits a backend-neutral `cobbled_render::DrawList`.
+//! - **Paint** ([`paint`]) emits a backend-neutral `rough_render::DrawList`.
 //! - **Input** ([`hit_test`] / [`handle_input`] / [`route_input`]) hit-tests
 //!   controls and runs the `_input -> world -> GUI -> _unhandled_input` order.
 //!
 //! Control data ([`ControlData`], [`Widget`], [`NodeDecor`]) lives on the
 //! [`SceneTree`] node's extension slot, and the text measurer / GUI interaction
 //! state / layout cache live on the root node. The theme is a value passed to
-//! component constructors. Building components lives in `cobbled_components`;
+//! component constructors. Building components lives in `rough_components`;
 //! submitting the resulting `DrawList` to a backend is the host's job.
 //!
 //! ```ignore
-//! use cobbled_ui as ui;
+//! use rough_ui as ui;
 //!
 //! ui::layout(&mut tree, viewport);
 //! ui::paint(&tree, &mut ctx);
@@ -25,7 +25,7 @@
 //! native `cargo test`.
 
 /// Crate name, kept for lightweight smoke checks.
-pub const CRATE: &str = "cobbled_ui";
+pub const CRATE: &str = "rough_ui";
 
 mod cache;
 mod control;
@@ -65,9 +65,9 @@ pub use widget::{estimate_text_size, BoxLayout, ButtonData, ButtonState, Widget}
 
 use std::rc::Rc;
 
-use cobbled_core::{NodeId, Size, ViewportSize};
-use cobbled_render::PaintContext;
-use cobbled_scene::SceneTree;
+use rough_core::{NodeId, Size, ViewportSize};
+use rough_render::PaintContext;
+use rough_scene::SceneTree;
 
 use crate::control::{gui_state as read_gui_state, gui_state_mut as control_gui_state_mut};
 use crate::ui::Ui;
@@ -107,7 +107,7 @@ pub fn last_arranged_nodes(tree: &SceneTree) -> usize {
 ///
 /// A host that caches its frame can skip layout while this is `false`.
 ///
-/// **Non-breaking addition to `cobbled_ui`** (Stage 27); recorded in
+/// **Non-breaking addition to `rough_ui`** (Stage 27); recorded in
 /// `docs/design-system.md`.
 pub fn needs_layout(tree: &SceneTree) -> bool {
     Ui.needs_layout(tree)
@@ -120,7 +120,7 @@ pub fn needs_layout(tree: &SceneTree) -> bool {
 /// [`UiPaintCache`] was built from to decide whether the UI must be repainted
 /// this frame.
 ///
-/// **Non-breaking addition to `cobbled_ui`** (Stage 27); recorded in
+/// **Non-breaking addition to `rough_ui`** (Stage 27); recorded in
 /// `docs/design-system.md`.
 pub fn paint_generation(tree: &SceneTree) -> u64 {
     Ui.paint_generation(tree)
@@ -130,7 +130,7 @@ pub fn paint_generation(tree: &SceneTree) -> u64 {
 
 /// Marks `id` (and its ancestors) as needing layout.
 ///
-/// The construction layer (`cobbled_components`) calls this after mutating a control's
+/// The construction layer (`rough_components`) calls this after mutating a control's
 /// layout inputs directly through [`SceneTree::data_mut`].
 pub fn mark_dirty(tree: &mut SceneTree, id: NodeId) {
     Ui.mark_dirty(tree, id)
@@ -150,7 +150,7 @@ pub fn add_decor(tree: &mut SceneTree, id: NodeId, decor: DecorRef) {
 /// its clipping ancestors is empty is skipped entirely — painted nowhere, and
 /// not hit-testable either.
 ///
-/// **Non-breaking addition to `cobbled_ui`** (`ControlData` gained `clip` /
+/// **Non-breaking addition to `rough_ui`** (`ControlData` gained `clip` /
 /// `clip_rect`); recorded in `docs/design-system.md`.
 pub fn set_clip(tree: &mut SceneTree, id: NodeId, clip: bool) {
     Ui.set_clip(tree, id, clip)
@@ -215,7 +215,7 @@ pub fn layout(tree: &mut SceneTree, viewport: ViewportSize) {
 /// be at this width". The measurement is cached per (node, available) pair, and
 /// [`layout`] clears that cache, so asking does not disturb a later frame.
 ///
-/// **Note** this is a non-breaking addition to `cobbled_ui` made for the host in
+/// **Note** this is a non-breaking addition to `rough_ui` made for the host in
 /// `examples/deepseek_balance`; see `docs/design-system.md`.
 pub fn content_size(tree: &SceneTree, available: Size) -> ContentSize {
     Ui.content_size(tree, available)

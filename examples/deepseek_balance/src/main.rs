@@ -6,8 +6,8 @@
 //! 三个前端，同一份数据层（[`api`] / [`go`]）：
 //!
 //! - 默认（macOS）：**菜单栏应用** —— 状态栏显示余额，左键弹出面板，右键菜单。
-//!   用本仓库自己的 UI 栈（`cobbled_theme` / `cobbled_components` / `cobbled_ui`
-//!   + `cobbled_backend_wgpu`）渲染面板。
+//!   用本仓库自己的 UI 栈（`rough_theme` / `rough_components` / `rough_ui`
+//!   + `rough_backend_wgpu`）渲染面板。
 //! - `--window`：普通窗口，同样的 UI，方便调样式。
 //! - `--cli`：只在终端打印文本，方便脚本调用。
 //!
@@ -52,7 +52,7 @@ deepseek_balance — 查询 DeepSeek 账户余额
       --badge          额外开一个无边框小窗（贴桌面右下角，多窗口测试；默认就开）
       --cli            只在终端打印结果，不打开窗口
       --selfcheck      无头自检：同一套 UI 绘制进 RecordingBackend，
-                       用 cobbled_profile 体检 + 断言关键内容，失败退出码 1
+                       用 rough_profile 体检 + 断言关键内容，失败退出码 1
       --dump           同 --selfcheck，并打印完整 UI 树与每条绘制命令
       --dump-tree      同 --selfcheck，只打印 UI 树
       --dump-commands  同 --selfcheck，只打印每条绘制命令

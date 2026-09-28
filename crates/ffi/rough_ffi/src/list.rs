@@ -6,7 +6,7 @@
 //! segfault by forgetting a null check; every other pointer must come from
 //! [`quill_draw_list_new`] and be released with [`quill_draw_list_free`].
 
-use cobbled_render::DrawCommand;
+use rough_render::DrawCommand;
 
 use crate::convert::*;
 use crate::types::*;
@@ -17,7 +17,7 @@ pub extern "C" fn quill_abi_version() -> u32 {
     ABI_VERSION
 }
 
-/// Allocates an empty [`DrawList`](cobbled_render::DrawList). Release it with
+/// Allocates an empty [`DrawList`](rough_render::DrawList). Release it with
 /// [`quill_draw_list_free`].
 #[no_mangle]
 pub extern "C" fn quill_draw_list_new() -> *mut QuillDrawList {

@@ -1,4 +1,4 @@
-//! `cobbled_font` — backend-neutral font loading, discovery, shaping and glyph
+//! `rough_font` — backend-neutral font loading, discovery, shaping and glyph
 //! rasterization.
 //!
 //! Owns everything text-file-shaped so the render IR and the UI stay free of
@@ -17,11 +17,11 @@
 //!   rasterized on demand with `ab_glyph` into one shared shelf atlas, which a
 //!   backend uploads to a texture.
 //!
-//! A backend (e.g. `cobbled_backend_wgpu`) holds a [`FontServer`] and turns the
+//! A backend (e.g. `rough_backend_wgpu`) holds a [`FontServer`] and turns the
 //! returned [`GlyphSlot`]s into quads; it never parses a font itself.
 //!
 //! ```no_run
-//! use cobbled_font::{FontConfig, FontRequest, FontServer};
+//! use rough_font::{FontConfig, FontRequest, FontServer};
 //!
 //! let server = FontServer::load_with(FontConfig::default());
 //! for family in server.families() {
@@ -31,7 +31,7 @@
 //! ```
 
 /// Crate name, kept for lightweight smoke checks.
-pub const CRATE: &str = "cobbled_font";
+pub const CRATE: &str = "rough_font";
 
 mod atlas;
 mod bitmap;
@@ -52,6 +52,6 @@ mod tests {
 
     #[test]
     fn crate_identity() {
-        assert_eq!(CRATE, "cobbled_font");
+        assert_eq!(CRATE, "rough_font");
     }
 }

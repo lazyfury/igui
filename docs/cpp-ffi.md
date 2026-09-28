@@ -1,24 +1,24 @@
-# C ABI & the C++ host (`cobbled_ffi`, `examples/cpp_ffi`)
+# C ABI & the C++ host (`rough_ffi`, `examples/cpp_ffi`)
 
-`cobbled_ffi` exposes the backend-neutral core to a non-Rust host over a C ABI.
+`rough_ffi` exposes the backend-neutral core to a non-Rust host over a C ABI.
 The first consumer is `examples/cpp_ffi`: a C++ program that builds its own UI,
 fills a quill `DrawList`, and rasterizes it with its own OpenGL 3.3 backend.
 
 The point is the boundary, not the demo:
 
 ```text
-C++ UI (ui.cpp) --Canvas--> cobbled_ffi --> DrawList --C++ GlBackend--> pixels
+C++ UI (ui.cpp) --Canvas--> rough_ffi --> DrawList --C++ GlBackend--> pixels
 ```
 
 The UI is organized **in C++**. quill supplies only the core: the value types
-and the command list. Nothing from `cobbled_scene` / `cobbled_ui` crosses the ABI, and
+and the command list. Nothing from `rough_scene` / `rough_ui` crosses the ABI, and
 the OpenGL backend is C++, not a Rust `RenderBackend` implementation.
 
 ## What crosses the boundary
 
-`crates/ffi/cobbled_ffi` depends on `cobbled_core` + `cobbled_render` only (no backend, no
+`crates/ffi/rough_ffi` depends on `rough_core` + `rough_render` only (no backend, no
 scene/UI). Its `crate-type` is `staticlib` + `cdylib` + `rlib`, so a host links
-`libcobbled_ffi.a` (or the `.dylib`) and includes `include/quill.h`.
+`librough_ffi.a` (or the `.dylib`) and includes `include/quill.h`.
 
 - **Value types** (`#[repr(C)]`, all `f32` / C enum): `QuillVec2`, `QuillRect`,
   `QuillColor`, `QuillTransform`, `QuillCornerRadii`, `QuillPaint`.
@@ -35,7 +35,7 @@ scene/UI). Its `crate-type` is `staticlib` + `cdylib` + `rlib`, so a host links
   (the host refuses to run otherwise).
 
 The header is a hand-maintained mirror of the `#[repr(C)]` layout. If you change
-one, change the other and bump the version. `crates/ffi/cobbled_ffi/src/lib.rs` has
+one, change the other and bump the version. `crates/ffi/rough_ffi/src/lib.rs` has
 tests that pin the round-trip, the null-pointer safety and the version.
 
 ### Command-to-field map
@@ -60,14 +60,14 @@ tests that pin the round-trip, the null-pointer safety and the version.
 | File | Concern |
 |---|---|
 | `src/canvas.{hpp,cpp}` | the only place `quill.h` appears; value types + `Canvas` |
-| `src/theme.{hpp,cpp}` | the `cobbled_theme` tokens, mirrored for `demo_app` parity |
+| `src/theme.{hpp,cpp}` | the `rough_theme` tokens, mirrored for `demo_app` parity |
 | `src/widget.{hpp,cpp}` | the `Widget` base and `Column` / `Row` containers |
 | `src/ui.{hpp,cpp}` | the dashboard |
 | `src/gallery.{hpp,cpp}` | `demo_app`-styled components (button / checkbox / switch / card / divider / badge) |
 | `src/gl_backend.{hpp,cpp}` | the OpenGL backend (tessellation + state stack) |
 | `src/main.cpp` | window/event loop, `--dump`, `--gallery`, `--selfcheck` |
 
-The OpenGL backend mirrors `cobbled_backend_wgpu`: transform, opacity and clip are
+The OpenGL backend mirrors `rough_backend_wgpu`: transform, opacity and clip are
 resolved on the CPU while tessellating, so the GPU pass is one flat
 colored-triangle pipeline. `ClipRect` becomes `glScissor`, which is why a clip
 change (or a `Restore` that changes one) flushes the current batch first.
@@ -80,8 +80,8 @@ change (or a `Restore` that changes one) flushes the current batch first.
 ./examples/cpp_ffi/build/cpp_ffi            # live window
 ```
 
-`--gallery` renders a few components rebuilt from `cobbled_theme`'s tokens
-(`src/theme.cpp`) and `cobbled_components`' geometry (`src/gallery.cpp`), so they
+`--gallery` renders a few components rebuilt from `rough_theme`'s tokens
+(`src/theme.cpp`) and `rough_components`' geometry (`src/gallery.cpp`), so they
 can be compared against `examples/demo_app` side by side. The dashboard and the
 gallery share the same token source, so the whole demo is `demo_app`-styled.
 
@@ -100,7 +100,7 @@ C++ host -> demoapp_new/set_viewport/update/layout/paint -> DemoApp -> DrawList 
 - `demoapp_update`, `demoapp_layout`
 - `demoapp_paint` -> a fresh `QuillDrawList*`, released with `quill_draw_list_free`
 
-`cobbled_ffi` exposes a Rust helper, `wrap_draw_list(DrawList) -> *mut
+`rough_ffi` exposes a Rust helper, `wrap_draw_list(DrawList) -> *mut
 QuillDrawList` (not part of the C ABI), so `demoapp_ffi` hands its list to the
 same `quill_draw_list_command` read-back.
 
@@ -110,8 +110,8 @@ same `quill_draw_list_command` read-back.
 ./build/cpp_ffi --selfcheck --demoapp
 ```
 
-**Text is the limitation.** `DemoApp` lays out with `cobbled_ui`'s built-in
-`ApproxTextMeasurer` (it does not depend on `cobbled_font`) and emits a `DrawText`
+**Text is the limitation.** `DemoApp` lays out with `rough_ui`'s built-in
+`ApproxTextMeasurer` (it does not depend on `rough_font`) and emits a `DrawText`
 for every label. ABI v1 has no text record, so those read back as
 `QUILL_CMD_UNSUPPORTED` and the backend skips them: the geometry, layout and
 colors are the real app's, the labels are missing. The `--dump` histogram makes
@@ -119,12 +119,12 @@ that visible (86 `unsupported` of 145 commands).
 
 ## The Rust wgpu backend over FFI (`--wgpu`)
 
-`examples/wgpu_ffi` exposes the existing Rust `cobbled_backend_wgpu` over a C ABI,
+`examples/wgpu_ffi` exposes the existing Rust `rough_backend_wgpu` over a C ABI,
 so the C++ host can render the *same* `DrawList` with either backend:
 
 ```text
 C++ builds a DrawList ─┬─> C++ GlBackend (OpenGL 3.3) ─> surface
-                       └─> wgpu_ffi -> cobbled_backend_wgpu ─> surface
+                       └─> wgpu_ffi -> rough_backend_wgpu ─> surface
 ```
 
 - `wgpu_ffi_new(view, w, h, scale)` — a native `NSView*` for a window surface,
@@ -165,7 +165,7 @@ same `DrawList`, two backends, identical output.
   --wgpu` runs the same checks through `wgpu_ffi`'s offscreen readback. This is
   the backend's own pixel buffer, which is the project's no-screenshot rule.
 
-The Rust side is covered by `cargo test -p cobbled_ffi`; `cobbled_ffi` is a root
+The Rust side is covered by `cargo test -p rough_ffi`; `rough_ffi` is a root
 workspace member, so `cargo test --workspace` includes it. The C++ side is not a
 Cargo crate and has no `cargo` gate — `build.sh` + `--selfcheck` is its gate.
 
@@ -173,7 +173,7 @@ Cargo crate and has no `cargo` gate — `build.sh` + `--selfcheck` is its gate.
 
 - **ABI v1 has no text or images.** `DrawText` / `DrawImage` read back as
   `QUILL_CMD_UNSUPPORTED`. Text would require the host to rasterize glyphs
-  (`cobbled_font` is Rust); a future ABI version could pass a glyph atlas + quads,
+  (`rough_font` is Rust); a future ABI version could pass a glyph atlas + quads,
   but v1 keeps the demo self-contained and text-free.
 - **The OpenGL host targets macOS.** It includes `<OpenGL/gl3.h>` directly.
   Porting it means adding a GL loader (GLAD) and the matching GLFW hints; the

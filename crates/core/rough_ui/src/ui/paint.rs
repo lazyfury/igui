@@ -3,9 +3,9 @@
 use super::*;
 use crate::control::{control_of, control_visible};
 use crate::debug::DebugDrawOptions;
-use cobbled_core::{Rect, Vec2};
-use cobbled_render::{PaintContext, TextAlign};
-use cobbled_scene::SceneTree;
+use rough_core::{Rect, Vec2};
+use rough_render::{PaintContext, TextAlign};
+use rough_scene::SceneTree;
 
 impl Ui {
     /// Emits control visuals into `ctx` in draw order.
@@ -178,9 +178,9 @@ mod tests {
     use crate::control::Control;
     use crate::layout::TextOptions;
     use crate::widget::Widget;
-    use cobbled_core::{Color, Edges, FontWeight, Size, ViewportSize};
-    use cobbled_render::DrawCommand;
-    use cobbled_scene::SceneTree;
+    use rough_core::{Color, Edges, FontWeight, Size, ViewportSize};
+    use rough_render::DrawCommand;
+    use rough_scene::SceneTree;
 
     fn panel() -> Widget {
         Widget::Panel {
@@ -212,13 +212,13 @@ mod tests {
         }
     }
 
-    fn paint(tree: &SceneTree) -> cobbled_render::DrawList {
+    fn paint(tree: &SceneTree) -> rough_render::DrawList {
         let mut ctx = PaintContext::new();
         crate::paint(tree, &mut ctx);
         ctx.into_draw_list()
     }
 
-    fn clips(list: &cobbled_render::DrawList) -> Vec<Rect> {
+    fn clips(list: &rough_render::DrawList) -> Vec<Rect> {
         list.commands()
             .iter()
             .filter_map(|command| match command {

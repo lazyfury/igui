@@ -10,7 +10,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use cobbled_core::Vec2;
+use rough_core::Vec2;
 use winit::window::Window;
 
 use crate::input::DoubleClickTracker;

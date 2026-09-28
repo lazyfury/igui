@@ -1,7 +1,7 @@
 //! Texture upload through the backend-neutral contract.
 
-use cobbled_assets::DecodedImage;
-use cobbled_render::{RenderBackend, TextureId};
+use rough_assets::DecodedImage;
+use rough_render::{RenderBackend, TextureId};
 
 /// Uploads a decoded image through the backend-neutral
 /// [`RenderBackend::register_texture`] contract.
@@ -12,7 +12,7 @@ use cobbled_render::{RenderBackend, TextureId};
 /// sprites.
 ///
 /// ```ignore
-/// let image = cobbled_assets::decode_png(&std::fs::read("player.png")?)?;
+/// let image = rough_assets::decode_png(&std::fs::read("player.png")?)?;
 /// upload_texture(&mut backend, TextureId::new(1), &image)?;
 /// ```
 pub fn upload_texture<B: RenderBackend>(
@@ -26,7 +26,7 @@ pub fn upload_texture<B: RenderBackend>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cobbled_backend_recording::RecordingBackend;
+    use rough_backend_recording::RecordingBackend;
 
     #[test]
     fn upload_texture_reaches_the_backend_contract() {

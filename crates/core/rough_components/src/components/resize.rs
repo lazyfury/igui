@@ -5,9 +5,9 @@ use std::rc::Rc;
 
 use crate::base::{update_control, Component, Spec};
 use crate::NodeRef;
-use cobbled_core::{Color, Cursor, Edges, Size, Vec2};
-use cobbled_theme::Theme;
-use cobbled_ui::{DragPhase, MouseFilter, SizeBasis, Widget};
+use rough_core::{Color, Cursor, Edges, Size, Vec2};
+use rough_theme::Theme;
+use rough_ui::{DragPhase, MouseFilter, SizeBasis, Widget};
 
 /// A divider that resizes the pane before it while dragged.
 ///
@@ -120,7 +120,7 @@ impl Component for ResizeHandle {
     }
 
     fn widget(&self) -> Widget {
-        Widget::Flex(cobbled_ui::FlexStyle::default().padding(Edges::ZERO))
+        Widget::Flex(rough_ui::FlexStyle::default().padding(Edges::ZERO))
     }
 
     fn prepare(&mut self) {
@@ -212,10 +212,10 @@ crate::impl_scene_child!(ResizeHandle);
 mod tests {
     use super::*;
     use crate::base::Flex;
-    use cobbled_core::{InputEvent, PointerButton, ViewportSize};
-    use cobbled_scene::SceneTree;
-    use cobbled_theme::{default_theme, Mode};
-    use cobbled_ui::control;
+    use rough_core::{InputEvent, PointerButton, ViewportSize};
+    use rough_scene::SceneTree;
+    use rough_theme::{default_theme, Mode};
+    use rough_ui::control;
 
     /// Drags the handle 50px right and returns the target width it drove.
     fn dragged_width(invert: bool) -> f32 {
@@ -245,19 +245,19 @@ mod tests {
                 )
                 .child(handle),
         );
-        cobbled_ui::layout(&mut tree, ViewportSize::new(Size::new(800.0, 600.0)));
+        rough_ui::layout(&mut tree, ViewportSize::new(Size::new(800.0, 600.0)));
         let node = tree.children(page).unwrap()[1];
         let start = control(&tree, node).unwrap().rect.center();
         let end = start + Vec2::new(50.0, 0.0);
-        cobbled_ui::handle_input(
+        rough_ui::handle_input(
             &mut tree,
             &InputEvent::PointerDown {
                 position: start,
                 button: PointerButton::Left,
             },
         );
-        cobbled_ui::handle_input(&mut tree, &InputEvent::PointerMove { position: end });
-        cobbled_ui::handle_input(
+        rough_ui::handle_input(&mut tree, &InputEvent::PointerMove { position: end });
+        rough_ui::handle_input(
             &mut tree,
             &InputEvent::PointerUp {
                 position: end,

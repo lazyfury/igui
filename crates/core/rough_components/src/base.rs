@@ -2,7 +2,7 @@
 //!
 //! A component builds exactly one primary control node; nesting is expressed by
 //! chaining [`Component::child`] or by attaching the component to the scene
-//! with [`SceneTree::add_child`](cobbled_scene::SceneTree::add_child):
+//! with [`SceneTree::add_child`](rough_scene::SceneTree::add_child):
 //!
 //! ```ignore
 //! let root = tree.add_child(tree.root(), Flex::column()
@@ -18,13 +18,13 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use cobbled_core::{
+use rough_core::{
     Color, Cursor, Edges, EventResult, ImeEvent, Key, Modifiers, NodeId, Rect, Size, Vec2,
 };
-use cobbled_render::PaintContext;
-use cobbled_scene::SceneTree;
-use cobbled_ui::layout::{FlexDirection, FlexStyle, GridStyle, SizeBasis, Track};
-use cobbled_ui::{
+use rough_render::PaintContext;
+use rough_scene::SceneTree;
+use rough_ui::layout::{FlexDirection, FlexStyle, GridStyle, SizeBasis, Track};
+use rough_ui::{
     dynamic_surface_decor, foreground_decor, ButtonData, Control, ControlData, DragPhase,
     InteractState, MouseFilter, SurfaceStyle, Widget,
 };
@@ -71,7 +71,7 @@ pub struct Spec {
     /// Tree-aware absolute-position pointer callback (text fields: place the
     /// caret and repaint). Dispatched before [`Spec::on_pointer`].
     pub on_pointer_tree:
-        Option<Box<dyn FnMut(&mut SceneTree, cobbled_ui::PointerPhase, Rect, Vec2)>>,
+        Option<Box<dyn FnMut(&mut SceneTree, rough_ui::PointerPhase, Rect, Vec2)>>,
     pub on_scroll: Option<Box<dyn FnMut(Vec2)>>,
     pub cursor_provider: Option<Box<dyn Fn() -> Cursor>>,
     /// Whether the control accepts focused key / text / IME input.
@@ -159,7 +159,7 @@ pub trait Component: Sized {
 
     /// Runs before [`prepare`](Component::prepare) with the mounting tree, so a
     /// component can capture tree-scoped services (e.g. the tree's
-    /// [`TextMeasurer`](cobbled_ui::TextMeasurer)) into the decorators and
+    /// [`TextMeasurer`](rough_ui::TextMeasurer)) into the decorators and
     /// callbacks it is about to build. The default does nothing.
     fn bind(&mut self, _tree: &mut SceneTree) {}
 
@@ -210,7 +210,7 @@ pub trait Component: Sized {
     /// This is the component equivalent of Godot holding a `Node*` from `new()`
     /// / React's `ref` callback: the slot exists before mount and is read after.
     /// It works identically through
-    /// [`SceneTree::add_child`](cobbled_scene::SceneTree::add_child) and
+    /// [`SceneTree::add_child`](rough_scene::SceneTree::add_child) and
     /// [`Component::child`], because both mount paths run [`build`]
     /// ([`Component::build`]).
     fn ref_(self, slot: &NodeRef) -> Ref<Self> {
@@ -288,7 +288,7 @@ pub trait Component: Sized {
     /// (text fields placing their caret).
     fn on_pointer_tree(
         mut self,
-        callback: impl FnMut(&mut SceneTree, cobbled_ui::PointerPhase, Rect, Vec2) + 'static,
+        callback: impl FnMut(&mut SceneTree, rough_ui::PointerPhase, Rect, Vec2) + 'static,
     ) -> Self {
         self.spec().on_pointer_tree = Some(Box::new(callback));
         self
@@ -400,26 +400,26 @@ pub trait Component: Sized {
     }
 
     /// Cursor the host shows while the pointer is over the node.
-    fn cursor(mut self, cursor: cobbled_core::Cursor) -> Self {
+    fn cursor(mut self, cursor: rough_core::Cursor) -> Self {
         self.spec().data.cursor = cursor;
         self
     }
 }
 
-/// Implements [`SceneChild`](cobbled_scene::SceneChild) for component types.
+/// Implements [`SceneChild`](rough_scene::SceneChild) for component types.
 ///
-/// The trait lives in `cobbled_scene` (so `SceneTree::add_child` stays UI-neutral),
+/// The trait lives in `rough_scene` (so `SceneTree::add_child` stays UI-neutral),
 /// so each component type needs its own impl; the macro keeps that to one line
 /// per type without introducing a forwarding layer.
 #[macro_export]
 macro_rules! impl_scene_child {
     ($($t:ty),* $(,)?) => {$(
-        impl cobbled_scene::SceneChild for $t {
+        impl rough_scene::SceneChild for $t {
             fn attach(
                 self,
-                tree: &mut cobbled_scene::SceneTree,
-                parent: cobbled_core::NodeId,
-            ) -> cobbled_core::NodeId {
+                tree: &mut rough_scene::SceneTree,
+                parent: rough_core::NodeId,
+            ) -> rough_core::NodeId {
                 <Self as $crate::Component>::build(self, tree, parent)
             }
         }
@@ -431,10 +431,10 @@ impl_scene_child!(Panel, Label, Button, VBox, HBox, Flex, Column, Row, Grid);
 /// Applies a spec to an already-created node (decorators, callback, children).
 pub fn apply_spec(tree: &mut SceneTree, id: NodeId, spec: Spec) {
     if let Some(background) = spec.background {
-        cobbled_ui::add_decor(tree, id, dynamic_surface_decor(background));
+        rough_ui::add_decor(tree, id, dynamic_surface_decor(background));
     }
     if let Some(foreground) = spec.foreground {
-        cobbled_ui::add_decor(tree, id, foreground_decor(foreground));
+        rough_ui::add_decor(tree, id, foreground_decor(foreground));
     }
     if let Some(callback) = spec.on_click {
         set_on_click(tree, id, callback);
@@ -449,7 +449,7 @@ pub fn apply_spec(tree: &mut SceneTree, id: NodeId, spec: Spec) {
         set_pointer_callback(tree, id, callback);
     }
     if let Some(callback) = spec.on_pointer_tree {
-        cobbled_ui::set_pointer_tree_callback(tree, id, callback);
+        rough_ui::set_pointer_tree_callback(tree, id, callback);
     }
     if let Some(callback) = spec.on_scroll {
         set_on_scroll(tree, id, callback);
@@ -463,16 +463,16 @@ pub fn apply_spec(tree: &mut SceneTree, id: NodeId, spec: Spec) {
         }
     }
     if let Some(callback) = spec.on_key {
-        cobbled_ui::set_key_callback(tree, id, callback);
+        rough_ui::set_key_callback(tree, id, callback);
     }
     if let Some(callback) = spec.on_text {
-        cobbled_ui::set_text_callback(tree, id, callback);
+        rough_ui::set_text_callback(tree, id, callback);
     }
     if let Some(callback) = spec.on_ime {
-        cobbled_ui::set_ime_callback(tree, id, callback);
+        rough_ui::set_ime_callback(tree, id, callback);
     }
     if let Some(provider) = spec.caret_provider {
-        cobbled_ui::set_caret_provider(tree, id, provider);
+        rough_ui::set_caret_provider(tree, id, provider);
     }
     for child in spec.children {
         child(tree, id);
@@ -575,7 +575,7 @@ pub fn set_text(tree: &mut SceneTree, id: NodeId, text: impl Into<String>) -> bo
         None => return false,
     };
     if changed {
-        cobbled_ui::mark_dirty(tree, id);
+        rough_ui::mark_dirty(tree, id);
     }
     true
 }
@@ -606,7 +606,7 @@ pub fn update_control(tree: &mut SceneTree, id: NodeId, f: impl FnOnce(&mut Cont
         None => false,
     };
     if changed {
-        cobbled_ui::mark_dirty(tree, id);
+        rough_ui::mark_dirty(tree, id);
     }
     changed
 }
@@ -672,7 +672,7 @@ pub struct Label {
     text: String,
     font_size: f32,
     color: Color,
-    options: cobbled_ui::TextOptions,
+    options: rough_ui::TextOptions,
 }
 
 impl Label {
@@ -682,7 +682,7 @@ impl Label {
             text: text.into(),
             font_size: 20.0,
             color: Color::new(0.92, 0.94, 0.98, 1.0),
-            options: cobbled_ui::TextOptions::default(),
+            options: rough_ui::TextOptions::default(),
         }
     }
 
@@ -701,7 +701,7 @@ impl Label {
         self
     }
 
-    pub fn word_break(mut self, word_break: cobbled_ui::WordBreak) -> Self {
+    pub fn word_break(mut self, word_break: rough_ui::WordBreak) -> Self {
         self.options = self.options.word_break(word_break);
         self
     }
@@ -716,13 +716,13 @@ impl Label {
         self
     }
 
-    pub fn text_options(mut self, options: cobbled_ui::TextOptions) -> Self {
+    pub fn text_options(mut self, options: rough_ui::TextOptions) -> Self {
         self.options = options;
         self
     }
 
     /// Sets the text weight (regular or bold).
-    pub fn weight(mut self, weight: cobbled_core::FontWeight) -> Self {
+    pub fn weight(mut self, weight: rough_core::FontWeight) -> Self {
         self.options = self.options.weight(weight);
         self
     }
@@ -929,17 +929,17 @@ impl Flex {
         self
     }
 
-    pub fn justify(mut self, justify: cobbled_ui::Justify) -> Self {
+    pub fn justify(mut self, justify: rough_ui::Justify) -> Self {
         self.style.justify = justify;
         self
     }
 
-    pub fn align(mut self, align: cobbled_ui::Align) -> Self {
+    pub fn align(mut self, align: rough_ui::Align) -> Self {
         self.style.align = align;
         self
     }
 
-    pub fn align_content(mut self, align_content: cobbled_ui::AlignContent) -> Self {
+    pub fn align_content(mut self, align_content: rough_ui::AlignContent) -> Self {
         self.style.align_content = align_content;
         self
     }
@@ -1013,12 +1013,12 @@ impl Column {
         self
     }
 
-    pub fn align(mut self, align: cobbled_ui::Align) -> Self {
+    pub fn align(mut self, align: rough_ui::Align) -> Self {
         self.flex = self.flex.align(align);
         self
     }
 
-    pub fn justify(mut self, justify: cobbled_ui::Justify) -> Self {
+    pub fn justify(mut self, justify: rough_ui::Justify) -> Self {
         self.flex = self.flex.justify(justify);
         self
     }
@@ -1066,12 +1066,12 @@ impl Row {
         self
     }
 
-    pub fn align(mut self, align: cobbled_ui::Align) -> Self {
+    pub fn align(mut self, align: rough_ui::Align) -> Self {
         self.flex = self.flex.align(align);
         self
     }
 
-    pub fn justify(mut self, justify: cobbled_ui::Justify) -> Self {
+    pub fn justify(mut self, justify: rough_ui::Justify) -> Self {
         self.flex = self.flex.justify(justify);
         self
     }
@@ -1110,17 +1110,17 @@ impl Grid {
         self
     }
 
-    pub fn align_items(mut self, align: cobbled_ui::Align) -> Self {
+    pub fn align_items(mut self, align: rough_ui::Align) -> Self {
         self.style.align_items = align;
         self
     }
 
-    pub fn justify_items(mut self, align: cobbled_ui::Align) -> Self {
+    pub fn justify_items(mut self, align: rough_ui::Align) -> Self {
         self.style.justify_items = align;
         self
     }
 
-    pub fn align_content(mut self, align: cobbled_ui::AlignContent) -> Self {
+    pub fn align_content(mut self, align: rough_ui::AlignContent) -> Self {
         self.style.align_content = align;
         self
     }

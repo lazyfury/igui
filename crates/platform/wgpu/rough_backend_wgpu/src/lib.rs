@@ -1,6 +1,6 @@
-//! `cobbled_backend_wgpu` — a `wgpu` render backend.
+//! `rough_backend_wgpu` — a `wgpu` render backend.
 //!
-//! Consumes the backend-neutral [`cobbled_render::DrawList`] and rasterizes it with
+//! Consumes the backend-neutral [`rough_render::DrawList`] and rasterizes it with
 //! `wgpu`. Geometry, opacity and clip are resolved on the CPU; the GPU pass is a
 //! single textured-triangle pipeline, so solid shapes, images and bitmap text
 //! all share one pipeline.
@@ -12,13 +12,13 @@
 //! [`WgpuBackend::begin_frame_with_view`] and present it after `end_frame` (see
 //! `examples/wgpu_demo`).
 //!
-//! `wgpu` never enters `cobbled_core` / `cobbled_scene` / `cobbled_ui` / `cobbled_render`;
+//! `wgpu` never enters `rough_core` / `rough_scene` / `rough_ui` / `rough_render`;
 //! it is confined to this crate.
 //!
 //! ```no_run
-//! use cobbled_backend_wgpu::WgpuBackend;
-//! use cobbled_core::{Color, Rect, Size, Vec2, ViewportSize};
-//! use cobbled_render::{PaintContext, RenderBackend};
+//! use rough_backend_wgpu::WgpuBackend;
+//! use rough_core::{Color, Rect, Size, Vec2, ViewportSize};
+//! use rough_render::{PaintContext, RenderBackend};
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let mut backend = WgpuBackend::new()?;
@@ -38,10 +38,10 @@
 //! ```
 
 /// Crate name, kept for lightweight smoke checks.
-pub const CRATE: &str = "cobbled_backend_wgpu";
+pub const CRATE: &str = "rough_backend_wgpu";
 
 // WGPU is a native backend. On `wasm32` the crate is intentionally empty, like
-// `cobbled_backend_canvas` is on native, so the workspace still checks for the web
+// `rough_backend_canvas` is on native, so the workspace still checks for the web
 // targets.
 #[cfg(not(target_arch = "wasm32"))]
 mod backend;
@@ -70,6 +70,6 @@ mod tests {
 
     #[test]
     fn crate_identity() {
-        assert_eq!(CRATE, "cobbled_backend_wgpu");
+        assert_eq!(CRATE, "rough_backend_wgpu");
     }
 }

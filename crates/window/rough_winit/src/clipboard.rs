@@ -7,8 +7,8 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use cobbled_app::{AppBuilder, Plugin};
-use cobbled_ui::{Clipboard, MemoryClipboard};
+use rough_app::{AppBuilder, Plugin};
+use rough_ui::{Clipboard, MemoryClipboard};
 
 /// Installs a [`Clipboard`] service (the system clipboard with a fallback) so a
 /// UI can copy / cut / paste.

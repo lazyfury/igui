@@ -1,10 +1,10 @@
 //! Theme token previews: the palette, surface levels, semantic tones, density
 //! metrics, the radius / spacing scales and cursor feedback.
 
-use cobbled_components::{Card, Column, Component, Grid, Label, Panel, Row, Text};
-use cobbled_core::{Color, Cursor, Edges};
-use cobbled_theme::{radius, space, ControlSize, Space, SurfaceLevel, Theme, Tone};
-use cobbled_ui::{Align, Track};
+use rough_components::{Card, Column, Component, Grid, Label, Panel, Row, Text};
+use rough_core::{Color, Cursor, Edges};
+use rough_theme::{radius, space, ControlSize, Space, SurfaceLevel, Theme, Tone};
+use rough_ui::{Align, Track};
 
 use super::super::Ctx;
 use super::{chip, framed, rounded};

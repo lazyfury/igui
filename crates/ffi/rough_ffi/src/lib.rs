@@ -1,4 +1,4 @@
-//! `cobbled_ffi` — a C ABI over the backend-neutral core.
+//! `rough_ffi` — a C ABI over the backend-neutral core.
 //!
 //! A foreign-language host (the C++ `examples/cpp_ffi` demo is the first one)
 //! builds its own scene/UI and needs exactly two things from quill:
@@ -9,7 +9,7 @@
 //! Both are exposed here. The host then walks the list through
 //! [`quill_draw_list_command`] and rasterizes it with **its own** backend — the
 //! C++ demo's OpenGL renderer. The UI itself is the host's business: nothing
-//! from `cobbled_scene` / `cobbled_ui` crosses this boundary.
+//! from `rough_scene` / `rough_ui` crosses this boundary.
 //!
 //! ```text
 //! C++ UI -> quill_draw_list_* -> DrawList -> C++ backend -> pixels
