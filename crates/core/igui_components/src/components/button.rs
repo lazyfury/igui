@@ -4,7 +4,7 @@ use crate::base::{set_text, Component, Label, Spec};
 use igui_core::{Color, Edges, FontWeight, NodeId};
 use igui_scene::SceneTree;
 use igui_theme::{radius, ControlSize, TextSize, Theme};
-use igui_ui::{Align, Control, Justify, SurfaceStyle, TextOptions, Widget};
+use igui_ui::{Align, Container, Control, Justify, SurfaceStyle, TextOptions};
 
 /// Visual weight of a button.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -140,8 +140,8 @@ impl Component for Button {
         "Button"
     }
 
-    fn widget(&self) -> Widget {
-        Widget::Flex(
+    fn container(&self) -> Container {
+        Container::Flex(
             igui_ui::FlexStyle::row()
                 .align(Align::Center)
                 .justify(Justify::Center)
@@ -275,16 +275,13 @@ pub fn set_disabled(
         return;
     }
     if let Some(children) = tree.children(id).map(|children| children.to_vec()) {
+        let color = if disabled {
+            disabled_color
+        } else {
+            enabled_color
+        };
         for child in children {
-            if let Some(control) = tree.data_mut::<Control>(child) {
-                if let Widget::Label { color, .. } = &mut control.widget {
-                    *color = if disabled {
-                        disabled_color
-                    } else {
-                        enabled_color
-                    };
-                }
-            }
+            crate::base::set_text_color(tree, child, color);
         }
     }
     igui_ui::mark_dirty(tree, id);
@@ -301,11 +298,8 @@ pub fn set_button_text(tree: &mut SceneTree, id: NodeId, text: impl Into<String>
     };
     let text = text.into();
     for child in children {
-        if matches!(
-            tree.data::<Control>(child).map(|control| &control.widget),
-            Some(Widget::Label { .. })
-        ) {
-            set_text(tree, child, text);
+        if igui_ui::content(tree, child).is_some_and(|content| content.as_text().is_some()) {
+            set_text(tree, child, text.as_str());
             return true;
         }
     }
@@ -320,7 +314,7 @@ mod tests {
     use igui_render::{DrawCommand, PaintContext};
     use igui_scene::SceneTree;
     use igui_theme::{compact_theme, default_theme, DefaultTheme, Mode, Palette};
-    use igui_ui::{control, Control, MouseFilter};
+    use igui_ui::{control, MouseFilter};
     use std::cell::Cell;
     use std::rc::Rc;
 
@@ -434,10 +428,7 @@ mod tests {
         let mut tree = SceneTree::new();
         let id = column(&mut tree, Button::new("A", theme));
         let label = tree.children(id).unwrap().iter().find_map(|child| {
-            match tree.data::<Control>(*child).map(|data| &data.widget) {
-                Some(Widget::Label { font_size, .. }) => Some(*font_size),
-                _ => None,
-            }
+            igui_ui::content(&tree, *child).and_then(|content| content.as_text_size())
         });
         assert_eq!(label, Some(TextSize::Small.px() * 2.0));
     }
@@ -514,10 +505,9 @@ mod tests {
         assert!(set_button_text(&mut tree, id, "Stop"));
 
         let label = tree.children(id).unwrap().iter().find_map(|child| {
-            match tree.data::<Control>(*child).map(|data| &data.widget) {
-                Some(Widget::Label { text, .. }) => Some(text.clone()),
-                _ => None,
-            }
+            igui_ui::content(&tree, *child)
+                .and_then(|content| content.as_text())
+                .map(str::to_string)
         });
         assert_eq!(label.as_deref(), Some("Stop"));
     }

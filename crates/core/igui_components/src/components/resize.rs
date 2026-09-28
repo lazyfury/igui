@@ -7,7 +7,7 @@ use crate::base::{update_control, Component, Spec};
 use crate::NodeRef;
 use igui_core::{Color, Cursor, Edges, Size, Vec2};
 use igui_theme::Theme;
-use igui_ui::{DragPhase, MouseFilter, SizeBasis, Widget};
+use igui_ui::{Container, DragPhase, MouseFilter, SizeBasis};
 
 /// A divider that resizes the pane before it while dragged.
 ///
@@ -119,8 +119,8 @@ impl Component for ResizeHandle {
         "ResizeHandle"
     }
 
-    fn widget(&self) -> Widget {
-        Widget::Flex(igui_ui::FlexStyle::default().padding(Edges::ZERO))
+    fn container(&self) -> Container {
+        Container::Flex(igui_ui::FlexStyle::default().padding(Edges::ZERO))
     }
 
     fn prepare(&mut self) {

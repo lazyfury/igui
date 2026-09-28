@@ -7,10 +7,10 @@ use igui_core::{
 };
 use igui_scene::SceneTree;
 
+use crate::content::{Container, ContentRef};
 use crate::decor::DecorRef;
 use crate::focus::FocusNav;
 use crate::layout::{ApproxTextMeasurer, ContentSize, LayoutStyle, TextMeasurer, TextOptions};
-use crate::widget::Widget;
 
 /// How a control reacts to pointer events during hit testing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -253,12 +253,19 @@ pub(crate) fn resolve_clip(rect: Rect, clip: bool, inherited: Option<Rect>) -> O
 /// Per-node UI runtime stored in a `SceneTree` node's extension slot.
 ///
 /// This is the control-side counterpart of [`ControlData`]: everything a
-/// `Control` owns at runtime (its visual [`Widget`], click callback, themed
-/// decorations and layout-dirty flag) lives here, on the node, not in the UI namespace.
+/// `Control` owns at runtime (its [`Container`], self-draw [`ControlContent`],
+/// click callback, themed decorations and layout-dirty flag) lives here, on the
+/// node, not in the UI namespace.
 /// `Ui` only keeps the environment (theme, text measurement, layout caches).
 pub struct Control {
     pub data: ControlData,
-    pub widget: Widget,
+    /// How this control arranges its children.
+    pub container: Container,
+    /// The control's own measure + self-draw, if any.
+    pub content: Option<ContentRef>,
+    /// How many times this control has been activated (clicked / Enter). Used
+    /// for button-style feedback and tests.
+    pub click_count: u32,
     pub callback: Option<ClickCallback>,
     /// Pointer-drag callback (pointer capture while held).
     pub drag_callback: Option<DragCallback>,
@@ -305,10 +312,12 @@ pub struct Control {
 }
 
 impl Control {
-    pub fn new(data: ControlData, widget: Widget) -> Self {
+    pub fn new(data: ControlData, container: Container, content: Option<ContentRef>) -> Self {
         Self {
             data,
-            widget,
+            container,
+            content,
+            click_count: 0,
             callback: None,
             drag_callback: None,
             pointer_callback: None,

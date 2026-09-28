@@ -238,7 +238,7 @@ reading its own data instead:
 
 | Need | File |
 |---|---|
-| Widget reference, layout, input, custom components | `docs/components.md` |
+| Control / component reference, layout, input, custom components | `docs/components.md` |
 | Theme tokens & themed components | `docs/design-system.md` |
 | Full UI app pattern | `examples/demo_app/src/lib.rs` |
 | Minimal winit + wgpu host | `examples/wgpu_demo/src/app.rs` |

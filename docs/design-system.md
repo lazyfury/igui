@@ -139,7 +139,7 @@ Themed chrome is attached to a control as a `igui_ui::NodeDecor` (built by the
 `foreground_decor`), so a single `igui_ui::paint` runs it in tree order:
 
 1. every decorator's `paint_behind` — rounded surfaces/borders behind content,
-2. the control's own `Widget` content,
+2. the control's own `ControlContent` (`draw`, the Godot `_draw`),
 3. every decorator's `paint_front` — check marks, switch knobs, terminal dots.
 
 There are no separate surface/foreground passes, and a decorator is painted
@@ -251,8 +251,12 @@ layout stays incremental. Button clicks, Esc and click-outside push actions that
 foundation for the design system. The theme and component layers only *use* their
 public APIs:
 
-- `igui_components` composes `Panel`, `Label`, `Flex` and the layout setters.
-- No new variants were added to `igui_ui::Widget`.
+- `igui_components` composes `Container` (`Flex`/`Grid`), `ControlContent`
+  (`PanelContent`/`TextContent`/`ButtonContent`) and the layout setters.
+- A control is a `Container` plus an optional `ControlContent`; it is **not** a
+  closed widget enum, so any crate can add a self-drawing control without a
+  core change (`docs/godot-migration.md`, Stage 33). Chrome remains a
+  `NodeDecor`, drawn around the content.
 - Themed surfaces are painted by `igui_components` into the backend-neutral
   `DrawList`, so every backend renders them.
 
@@ -260,6 +264,22 @@ If a future component truly requires a core change, do it as a separate,
 backward-compatible addition and record it here.
 
 ### Recorded core additions
+
+- **Unified canvas-item model: `Container` + `ControlContent`, `Widget` removed**
+  (Stage 33): the closed `igui_ui::Widget` enum is gone. A `Control` now carries
+  a `Container` (`Leaf`/`Flex`/`Grid`) and an optional boxed `ControlContent`
+  (Godot `_get_minimum_size` + `_draw`: `measure`/`draw`, plus
+  `as_text`/`as_text_size`/`set_text`/`set_color` for introspection). Built-ins:
+  `PanelContent`, `TextContent`, `ButtonContent`; `PaintEnv` carries the
+  `PaintContext`, the text measurer and the shared line cache. Layout dispatches
+  on `container` and measures on `content.measure`; paint draws `content.draw`.
+  `igui_ui::paint` is now the single canvas-item walker — world `Visual` **and**
+  `Control`, in one layer-ordered pass over `SceneTree::paint_items` (with
+  `SceneTree::paint_visual` shared); `SceneTree::paint` stays the world-only
+  entry. This ends the `Widget`-vs-`NodeDecor` double path for content (chrome
+  stays a `NodeDecor`). Also removed: `ButtonData`, `ButtonState`,
+  `button_state`, `BoxLayout`, `igui_ui::widget`; activation counting moved onto
+  `Control::click_count`.
 
 - **`igui_ui::NodeDecor` / `InteractState` + `igui_ui::add_decor`** (Stage 22):
   the closed `Widget` enum cannot carry themed chrome, so components attach a

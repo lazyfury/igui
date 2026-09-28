@@ -279,7 +279,7 @@ pub struct BalanceApp {
     refresh_button: NodeId,
     /// The label nodes of every refresh button, one per page.
     ///
-    /// `igui_ui::Widget::set_text` writes `Label` and raw `Button` widgets only,
+    /// [`set_text`](igui_components::set_text) writes a node's text content,
     /// and the themed `Button` is a flex row *wrapping* a label — so the text has
     /// to be written one level down. Found once at mount ([`label_of`]) instead of
     /// every frame.
@@ -1096,14 +1096,14 @@ mod tests;
 
 use build::*;
 fn text(tree: &SceneTree, id: NodeId) -> Option<&str> {
-    igui_ui::widget(tree, id).and_then(|widget| widget.text())
+    igui_ui::content(tree, id).and_then(|content| content.as_text())
 }
 
 /// The first text-bearing child of `control`, i.e. the label a composite
 /// component wraps.
 ///
 /// `igui_components::Button` builds a flex row and puts the caption in a child
-/// label, and `Widget::set_text` only writes `Label` and raw `Button` widgets —
+/// label, and `set_text` only writes text content —
 /// so writing the caption means writing to this node, not to the button.
 fn label_of(tree: &SceneTree, control: NodeId) -> Option<NodeId> {
     tree.children(control)?

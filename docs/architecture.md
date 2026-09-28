@@ -128,8 +128,9 @@ logical size plus the world -> screen `canvas_transform`.)
   supports `.child()`/`.background()`/`.grow()` natively (no `View`/`ViewExt`
   layer). The theme is a value passed to constructors — it is no longer stored on
   the tree; the text measurer still lives on the root. `igui_ui` is layout +
-  paint free functions plus per-node runtime (`ControlData`/`Widget`/decorators/
-  GUI state/layout cache). Phases 1-5 and sub-stages 25.1-25.16 landed; Phases
+  paint free functions plus per-node runtime (`ControlData`/`Container`/
+  `ControlContent`/decorators/GUI state/layout cache; the `Widget` enum was
+  removed in Stage 33). Phases 1-5 and sub-stages 25.1-25.16 landed; Phases
   6-9 are future stages. Details: `docs/godot-migration.md`.
 - Post-Stage-25 (un-numbered): `igui_font` (system-font service + numeric
   `FontWeight`), `Theme` as a trait + `DefaultTheme`, and `igui_ffi` (a C ABI

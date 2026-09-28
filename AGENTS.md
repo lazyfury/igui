@@ -34,9 +34,10 @@ Input -> SceneTree -> Update -> Layout -> Paint -> DrawList -> RenderBackend -> 
    rather than capturing one.
 8. **The design-system layers do not extend the core.** `igui_theme` (tokens)
    and `igui_components` (components) may only use the public APIs of `igui_core`,
-   `igui_scene`, `igui_render` and `igui_ui`. Keep `igui_ui::Widget` and the
-   backend-neutral core frozen unless a change is genuinely required and
-   backward compatible; record any such change in `docs/design-system.md`.
+   `igui_scene`, `igui_render` and `igui_ui`. Keep the backend-neutral core —
+   `igui_ui`'s `Control` / `Container` / `ControlContent`, `igui_scene` and
+   `igui_render` — frozen unless a change is genuinely required and backward
+   compatible; record any such change in `docs/design-system.md`.
    Exact token names/paths matter: use `theme.palette().*` and
    `theme.surface(level)` rather than hard-coding hex values in components. Dark
    is a token swap, not a second code path, and dark values must stay within the
@@ -325,7 +326,20 @@ notes are `docs/godot-migration.md`.
   left/right, tab_index, group, group_hover}` and makes `Button` focusable by
   default. `examples/demo_app` gained Focus navigation / Group hover cards with
   end-to-end tests. Recorded in `docs/design-system.md`; see `docs/components.md`.
-- **Current stage:** none — next up Stage 32 (`igui` facade backend features).
+- **Current stage:** Stage 33 — unified canvas-item paint + `Widget` removal
+  [accepted]. The closed `igui_ui::Widget` enum is gone: a `Control` is now a
+  rectangle with a `Container` (`Leaf`/`Flex`/`Grid`) and an optional
+  `ControlContent` (Godot `_get_minimum_size` + `_draw`), so any crate can add a
+  self-drawing control without touching the core. `igui_ui::paint` is the
+  single canvas-item walker — it paints world `Visual`s and `Control`s in one
+  layer-ordered pass (`SceneTree::paint_items`); `SceneTree::paint` stays the
+  world-only entry for UI-less games. `ButtonState`/`ButtonData`/`button_state`
+  are removed (`click_count` + `state_for` replace them). Recorded in
+  `docs/design-system.md` and `docs/godot-migration.md`. Previously: Stage 31
+  (`igui_app` plugin runtime), Stage 30 (`examples/game_demo`), Stage 29
+  (`GameView`/sub-viewport + fixed timestep), Stage 28 (`igui_game` 2D game
+  layer), Stage 27 (refresh decoupling), Stage 26 (`igui_anim` + `igui` facade
+  skeleton), Stage 25 (Godot-style unified scene), `igui_font`, `Theme` trait.
 
 On acceptance of a whole user task, the agent writes the durable summary into
 this file (the "Current stage" bullet under "Stages" plus any doc updates).

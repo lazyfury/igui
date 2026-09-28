@@ -7,7 +7,7 @@ use crate::base::{Component, Flex, Label, Spec};
 use crate::glyph::{paint_glyph, Glyph};
 use igui_core::{Edges, Size, Vec2};
 use igui_theme::{radius, Space, TextSize, Theme};
-use igui_ui::{Align, SurfaceStyle, TextOptions, Widget};
+use igui_ui::{Align, Container, SurfaceStyle, TextOptions};
 
 /// The three visual states of a [`Checkbox`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
@@ -90,8 +90,8 @@ impl Component for Checkbox {
         "Checkbox"
     }
 
-    fn widget(&self) -> Widget {
-        Widget::Flex(
+    fn container(&self) -> Container {
+        Container::Flex(
             igui_ui::FlexStyle::row()
                 .align(Align::Center)
                 .padding(Edges::ZERO)
@@ -232,8 +232,8 @@ impl Component for Switch {
         "Switch"
     }
 
-    fn widget(&self) -> Widget {
-        Widget::Flex(
+    fn container(&self) -> Container {
+        Container::Flex(
             igui_ui::FlexStyle::row()
                 .align(Align::Center)
                 .gap(self.theme.spacing(Space::SM)),

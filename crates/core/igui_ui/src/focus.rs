@@ -351,23 +351,26 @@ fn disabled_in_tree(tree: &SceneTree, id: NodeId) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::content::{Container, ContentRef, PanelContent};
     use crate::control::{Control, ControlData};
     use crate::layout;
-    use crate::widget::Widget;
     use igui_core::{Color, Edges, Size, ViewportSize};
 
-    fn panel() -> Widget {
-        Widget::Panel {
+    fn panel() -> Option<ContentRef> {
+        Some(Box::new(PanelContent {
             color: Color::RED,
             border: None,
-        }
+        }))
     }
 
     fn host() -> (SceneTree, NodeId) {
         let mut tree = SceneTree::new();
         let root = tree.root();
         let host = tree.add_control(root, "host");
-        tree.set_data(host, Control::new(ControlData::fill_parent(), panel()));
+        tree.set_data(
+            host,
+            Control::new(ControlData::fill_parent(), Container::Leaf, panel()),
+        );
         (tree, host)
     }
 
@@ -379,7 +382,7 @@ mod tests {
             offsets: Edges::new(rect[0], rect[1], rect[2], rect[3]),
             ..ControlData::default()
         };
-        let mut control = Control::new(data, panel());
+        let mut control = Control::new(data, Container::Leaf, panel());
         control.focusable = true;
         tree.set_data(id, control);
         id

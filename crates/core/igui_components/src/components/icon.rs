@@ -2,7 +2,7 @@
 
 use igui_core::{Color, Size};
 use igui_theme::{Theme, Tone};
-use igui_ui::Widget;
+use igui_ui::{ContentRef, PanelContent};
 
 use crate::base::{Component, Spec};
 use crate::glyph::{paint_glyph, Glyph};
@@ -69,11 +69,11 @@ impl Component for Icon {
         "Icon"
     }
 
-    fn widget(&self) -> Widget {
-        Widget::Panel {
+    fn content(&self) -> Option<ContentRef> {
+        Some(Box::new(PanelContent {
             color: Color::TRANSPARENT,
             border: None,
-        }
+        }))
     }
 
     fn prepare(&mut self) {

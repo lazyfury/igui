@@ -9,7 +9,8 @@ use igui_render::PaintContext;
 use igui_scene::SceneTree;
 use igui_theme::{default_theme, Mode, Space, TextSize, Theme, Tone};
 use igui_ui::{
-    dynamic_surface_decor, Align, Control, MouseFilter, SizeBasis, SurfaceStyle, Widget,
+    dynamic_surface_decor, Align, ContentRef, Control, MouseFilter, PanelContent, SizeBasis,
+    SurfaceStyle,
 };
 
 use crate::base::{
@@ -126,11 +127,11 @@ impl Component for LeadIcon {
         "LeadIcon"
     }
 
-    fn widget(&self) -> Widget {
-        Widget::Panel {
+    fn content(&self) -> Option<ContentRef> {
+        Some(Box::new(PanelContent {
             color: Color::TRANSPARENT,
             border: None,
-        }
+        }))
     }
 
     fn prepare(&mut self) {
@@ -728,11 +729,11 @@ impl Component for List {
         "List"
     }
 
-    fn widget(&self) -> Widget {
-        Widget::Panel {
+    fn content(&self) -> Option<ContentRef> {
+        Some(Box::new(PanelContent {
             color: self.theme.palette().surface,
             border: None,
-        }
+        }))
     }
 
     fn prepare(&mut self) {
@@ -746,7 +747,10 @@ impl Component for List {
         self.prepare();
         let spec = std::mem::take(self.spec());
         let id = tree.add_control(parent, self.name());
-        tree.set_data(id, Control::new(spec.data, self.widget()));
+        tree.set_data(
+            id,
+            Control::new(spec.data, self.container(), self.content()),
+        );
         apply_spec(tree, id, spec);
 
         {
@@ -865,10 +869,11 @@ mod tests {
         fn cell(&self, slot: usize, column: usize) -> String {
             let row = self.state.rows()[slot];
             let node = self.tree.children(row).unwrap()[column];
-            match igui_ui::widget(&self.tree, node) {
-                Some(Widget::Label { text, .. }) => text.clone(),
-                other => panic!("row cell is not a label: {other:?}"),
-            }
+            let cell = igui_ui::content(&self.tree, node)
+                .and_then(|content| content.as_text())
+                .unwrap_or_else(|| panic!("row cell is not a label"))
+                .to_string();
+            cell
         }
 
         fn paint(&self) -> DrawList {

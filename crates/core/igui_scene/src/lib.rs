@@ -27,6 +27,7 @@ pub use input::GuiInput;
 pub use node::{
     AnchorMode, Camera2DData, CanvasItem, CanvasLayerData, DirtyFlags, Node, NodeKind, Visual,
 };
+pub use paint::{paint_visual, PaintItem};
 pub use tree::{PreorderIter, SceneTree};
 pub use viewport::Viewport;
 

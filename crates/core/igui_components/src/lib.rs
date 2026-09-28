@@ -80,19 +80,16 @@ pub use igui_theme::{self as theme, SurfaceTone, Theme, Tone};
 
 use igui_core::NodeId;
 use igui_scene::SceneTree;
-use igui_ui::{ButtonState, Control, Widget};
+use igui_ui::Control;
 
-/// Runtime state of a button control.
-pub fn button_state(tree: &SceneTree, id: NodeId) -> Option<ButtonState> {
-    match tree.data::<Control>(id).map(|control| &control.widget) {
-        Some(Widget::Button(button)) => Some(button.state),
-        _ => None,
-    }
-}
-
-/// Number of times a button control has been activated.
+/// Number of times a control has been activated (clicked / Enter).
+///
+/// Replaces the old `Widget`-based `button_state`, which carried hover/press
+/// snapshots: those now come from [`igui_ui::state_for`], and only the
+/// activation count still needs to persist on the control.
 pub fn click_count(tree: &SceneTree, id: NodeId) -> u32 {
-    button_state(tree, id).map_or(0, |state| state.click_count)
+    tree.data::<Control>(id)
+        .map_or(0, |control| control.click_count)
 }
 
 #[cfg(test)]
@@ -441,7 +438,7 @@ mod tests {
     }
 
     /// A focused themed button activates on Enter (it is a Flex widget, not
-    /// `Widget::Button`, so the click callback is the signal).
+    /// click callback is the signal).
     #[test]
     fn enter_activates_a_focused_button() {
         let theme = crate::theme::default_theme(crate::theme::Mode::Dark);

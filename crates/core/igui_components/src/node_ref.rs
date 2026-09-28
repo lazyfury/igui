@@ -15,7 +15,7 @@ use igui_core::NodeId;
 use igui_scene::{SceneChild, SceneTree};
 
 use crate::base::{Component, Spec};
-use igui_ui::Widget;
+use igui_ui::{Container, ContentRef};
 
 /// A slot that a mounted component fills with its `NodeId`.
 ///
@@ -73,8 +73,12 @@ impl<C: Component> Component for Ref<C> {
         self.inner.name()
     }
 
-    fn widget(&self) -> Widget {
-        self.inner.widget()
+    fn container(&self) -> Container {
+        self.inner.container()
+    }
+
+    fn content(&self) -> Option<ContentRef> {
+        self.inner.content()
     }
 
     fn prepare(&mut self) {

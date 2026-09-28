@@ -26,8 +26,8 @@ native demo's `ControlFlow::Wait`. It is caused by structural decisions:
 | H1 | Two trees / two ownerships | `Ui` owns its own `SceneTree` (`crates/core/igui_ui/src/ui/mod.rs`), separate from any game tree |
 | H2 | Layout in absolute viewport coords, detached from `CanvasItem.world_transform` | `ControlData::rect` is "absolute in logical viewport coordinates"; `Ui::paint` emits no `SetTransform` |
 | H3 | Nodes have no user data / lifecycle | `igui_scene::Node` fields are fixed; `NodeKind` is a closed enum; AGENTS rule 5 bans ECS |
-| H4 | Paint traversal and input routing are split | `SceneTree::paint` vs `Ui::paint`; `Ui::handle_input` vs game input |
-| H5 | Dependency direction + frozen core | `igui_ui -> igui_scene`; rule 8 freezes `igui_ui::Widget` and the backend-neutral core |
+| H4 | Paint traversal and input routing are split | `SceneTree::paint` vs `Ui::paint`; `Ui::handle_input` vs game input — **paint unified in Stage 33**; input was unified in Phase 5 |
+| H5 | Dependency direction + frozen core | **resolved (Stage 33)**: the closed `igui_ui::Widget` enum is gone; a `Control` is a `Container` + `ControlContent` |
 
 `ControlFlow::Wait` (only in `examples/wgpu_demo`) and the WASM `requestAnimationFrame`
 loop are **not** hard limits; the WASM runner already refreshes every frame.
@@ -510,6 +510,28 @@ the borrowed winit `ActiveEventLoop` cannot be `Any + 'static`, so there is no
 IME placement and profiler audits; the wgpu_demo overlays stay inside its
 `AppLogic` because they share profiler state (the `InputLayer` API is covered by
 runtime tests).
+
+## Stage 33 — unified canvas-item paint + `Widget` removal (approved, DONE)
+
+Fixes the remaining structural limits H4 (paint traversal split) and H5 (the
+frozen closed `Widget` enum):
+
+- **`Control` is not a widget.** A `igui_ui::Control` now carries a `Container`
+  (`Leaf` / `Flex` / `Grid`) and an optional `ControlContent`
+  (Godot `_get_minimum_size` + `_draw`: `measure` / `draw` / introspection),
+  replacing the closed `Widget` enum. Built-ins: `PanelContent`, `TextContent`,
+  `ButtonContent`; `PaintEnv` is the draw surface (context + measurer + shared
+  line cache). Any crate can add a self-drawing control with no core change.
+- **One paint pass.** `igui_ui::paint` walks `SceneTree::paint_items` and draws
+  world `Visual`s and `Control`s in one layer-ordered pass; `SceneTree::paint`
+  stays the world-only entry for UI-less games (`SceneTree::paint_visual` is
+  shared).
+- **Removed** `Widget`, `ButtonData`, `ButtonState`, `button_state`,
+  `BoxLayout`, `igui_ui::widget`; `click_count` moved onto `Control`.
+
+Layer-aware layout (H2: UI resolving relative to its `CanvasLayer`) remains a
+follow-up; controls still draw in viewport coordinates (ignoring the camera),
+as before. Recorded in `docs/design-system.md`.
 
 ## Dependency order
 

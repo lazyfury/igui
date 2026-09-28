@@ -14,7 +14,7 @@ use crate::glyph::{paint_glyph, Glyph};
 use crate::NodeRef;
 use igui_core::{Cursor, Edges, Rect, Size, Vec2};
 use igui_theme::{radius, ControlSize, Space, TextSize, Theme};
-use igui_ui::{Align, Justify, SurfaceStyle, TextOptions, Widget};
+use igui_ui::{Align, Container, Justify, SurfaceStyle, TextOptions};
 
 /// How wide the chevron zone (and its right inset) is reserved on the trigger.
 const CHEVRON_ZONE: f32 = 18.0;
@@ -92,8 +92,8 @@ impl Component for Select {
         "Select"
     }
 
-    fn widget(&self) -> Widget {
-        Widget::Flex(
+    fn container(&self) -> Container {
+        Container::Flex(
             igui_ui::FlexStyle::row()
                 .align(Align::Center)
                 .justify(Justify::SpaceBetween)

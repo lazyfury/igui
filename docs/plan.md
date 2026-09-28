@@ -116,7 +116,8 @@ graph and UI data lives in `Ui`'s `NodeId`-keyed maps. Priority order:
 
 **Resolved (Stage 25).** The `Ui` object was removed entirely; `igui_ui` is now
 free functions over the tree, and every per-control runtime value
-(`ControlData`/`Widget`/decorators/callback) lives on the node's extension slot.
+(`ControlData`/`Container`/`ControlContent`/decorators/callback) lives on the
+node's extension slot (`Widget` was later removed in Stage 33).
 The layout cache, GUI interaction state and text measurer live on the root; the
 **theme is not stored on the tree**. See `docs/godot-migration.md` Phase 4.
 

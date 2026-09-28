@@ -11,7 +11,6 @@ use igui_core::{
 use igui_scene::SceneTree;
 
 use crate::control::{control_visible, Control, MouseFilter, PointerPhase};
-use crate::widget::Widget;
 
 /// Controls whose parent is not itself a control (the UI roots).
 fn root_controls(tree: &SceneTree) -> Vec<NodeId> {
@@ -24,19 +23,6 @@ fn root_controls(tree: &SceneTree) -> Vec<NodeId> {
                     .map_or(true, |parent| tree.data::<Control>(parent).is_none())
         })
         .collect()
-}
-
-/// Control children of `id` (non-control nodes are ignored).
-fn control_children(tree: &SceneTree, id: NodeId) -> Vec<NodeId> {
-    tree.children(id)
-        .map(|children| {
-            children
-                .iter()
-                .copied()
-                .filter(|child| tree.data::<Control>(*child).is_some())
-                .collect()
-        })
-        .unwrap_or_default()
 }
 
 /// Returns the topmost control under `position`, respecting visibility and
@@ -52,12 +38,16 @@ pub fn hit_test(tree: &SceneTree, position: Vec2) -> Option<NodeId> {
 
 fn hit_node(tree: &SceneTree, id: NodeId, position: Vec2) -> Option<NodeId> {
     // Children are drawn after the parent, so test them first (topmost first).
-    for child in control_children(tree, id).iter().rev() {
-        if !control_visible(tree, *child) {
-            continue;
-        }
-        if let Some(hit) = hit_node(tree, *child, position) {
-            return Some(hit);
+    // Walk the child slice directly instead of collecting a per-node `Vec`:
+    // non-control children are skipped and a control child is searched in place.
+    if let Some(children) = tree.children(id) {
+        for &child in children.iter().rev() {
+            if tree.data::<Control>(child).is_none() || !control_visible(tree, child) {
+                continue;
+            }
+            if let Some(hit) = hit_node(tree, child, position) {
+                return Some(hit);
+            }
         }
     }
     let control = tree.data::<Control>(id)?;
@@ -176,11 +166,6 @@ pub fn handle_input(tree: &mut SceneTree, event: &InputEvent) -> EventResult {
                 {
                     (callback.borrow_mut())(rect, *position);
                 }
-                if let Some(control) = tree.data_mut::<Control>(id) {
-                    if let Widget::Button(button) = &mut control.widget {
-                        button.state.pressed = true;
-                    }
-                }
                 EventResult::Handled
             } else {
                 EventResult::Ignored
@@ -235,11 +220,6 @@ pub fn handle_input(tree: &mut SceneTree, event: &InputEvent) -> EventResult {
                     .and_then(|control| control.pointer_tree_callback.clone())
                 {
                     (callback.borrow_mut())(tree, PointerPhase::Up, rect, *position);
-                }
-                if let Some(control) = tree.data_mut::<Control>(pressed) {
-                    if let Widget::Button(button) = &mut control.widget {
-                        button.state.pressed = false;
-                    }
                 }
                 if hit == Some(pressed) {
                     activate(tree, pressed);
@@ -325,8 +305,8 @@ pub fn handle_input(tree: &mut SceneTree, event: &InputEvent) -> EventResult {
                     }
                 }
                 // Otherwise Enter/Space activate the focused control's nearest
-                // click handler (a themed button is a Flex widget, not
-                // `Widget::Button`, so the callback is the reliable signal).
+                // click handler (the callback is the reliable signal, so a
+                // themed button needs no special widget type).
                 Key::Enter | Key::Space => {
                     let focused = crate::gui_state_of(tree).and_then(|state| state.focused);
                     match focused {
@@ -407,9 +387,7 @@ fn activate(tree: &mut SceneTree, id: NodeId) {
         guard = tree.parent(node);
     }
     if let Some(control) = tree.data_mut::<Control>(id) {
-        if let Widget::Button(button) = &mut control.widget {
-            button.state.click_count += 1;
-        }
+        control.click_count += 1;
     }
     // Dispatch to the nearest ancestor with a callback: a component root owns
     // its click, so a hit on a descendant activates it.
@@ -480,20 +458,6 @@ fn set_hover(tree: &mut SceneTree, hit: Option<NodeId>) {
     if old == hit {
         return;
     }
-    if let Some(old) = old {
-        if let Some(control) = tree.data_mut::<Control>(old) {
-            if let Widget::Button(button) = &mut control.widget {
-                button.state.hovered = false;
-            }
-        }
-    }
-    if let Some(new) = hit {
-        if let Some(control) = tree.data_mut::<Control>(new) {
-            if let Widget::Button(button) = &mut control.widget {
-                button.state.hovered = true;
-            }
-        }
-    }
     crate::gui_state_mut(tree).hovered = hit;
     crate::control::set_hovered_groups(tree, hovered_group_chain(tree, hit));
 }
@@ -561,12 +525,9 @@ pub fn hovered_cursor(tree: &SceneTree) -> Cursor {
     }
 }
 
-/// Whether the pointer is currently over a clickable button.
+/// Whether the pointer is currently over a clickable control.
 pub fn hovered_is_button(tree: &SceneTree) -> bool {
-    hovered(tree).is_some_and(|id| {
-        tree.data::<Control>(id)
-            .is_some_and(|c| c.widget.is_button())
-    })
+    hovered(tree).is_some_and(|id| is_interactive(tree, id))
 }
 
 /// The focused node, from the viewport GUI state.
@@ -618,32 +579,38 @@ pub fn is_interactive(tree: &SceneTree, id: NodeId) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::content::{Container, ContentRef, PanelContent, TextContent};
     use crate::control::ControlData;
     use crate::layout::TextOptions;
-    use crate::widget::Widget;
     use igui_core::{Color, Edges, Size, ViewportSize};
     use std::cell::{Cell, RefCell};
     use std::rc::Rc;
 
-    fn panel() -> Widget {
-        Widget::Panel {
+    fn panel() -> Option<ContentRef> {
+        Some(Box::new(PanelContent {
             color: Color::RED,
             border: None,
-        }
+        }))
     }
 
-    fn label(text: &str) -> Widget {
-        Widget::Label {
+    fn label(text: &str) -> Option<ContentRef> {
+        Some(Box::new(TextContent {
             text: text.to_string(),
             font_size: 12.0,
             color: Color::WHITE,
             options: TextOptions::default(),
-        }
+            align: igui_render::TextAlign::Left,
+        }))
     }
 
-    fn add(tree: &mut SceneTree, parent: NodeId, data: ControlData, widget: Widget) -> NodeId {
+    fn add(
+        tree: &mut SceneTree,
+        parent: NodeId,
+        data: ControlData,
+        content: Option<ContentRef>,
+    ) -> NodeId {
         let id = tree.add_control(parent, "test");
-        tree.set_data(id, Control::new(data, widget));
+        tree.set_data(id, Control::new(data, Container::Leaf, content));
         id
     }
 
@@ -655,7 +622,7 @@ mod tests {
         top: f32,
         right: f32,
         bottom: f32,
-        widget: Widget,
+        content: Option<ContentRef>,
     ) -> NodeId {
         add(
             tree,
@@ -665,7 +632,7 @@ mod tests {
                 offsets: Edges::new(left, top, right, bottom),
                 ..ControlData::default()
             },
-            widget,
+            content,
         )
     }
 

@@ -25,8 +25,9 @@ use igui_render::PaintContext;
 use igui_scene::SceneTree;
 use igui_ui::layout::{FlexDirection, FlexStyle, GridStyle, SizeBasis, Track};
 use igui_ui::{
-    dynamic_surface_decor, foreground_decor, ButtonData, Control, ControlData, DragPhase, FocusNav,
-    InteractState, MouseFilter, SurfaceStyle, Widget,
+    dynamic_surface_decor, foreground_decor, ButtonContent, Container, ContentRef, Control,
+    ControlData, DragPhase, FocusNav, InteractState, MouseFilter, PanelContent, SurfaceStyle,
+    TextContent,
 };
 
 use crate::node_ref::{NodeRef, Ref};
@@ -166,8 +167,18 @@ pub trait Component: Sized {
         "Control"
     }
 
-    /// The visual widget for the primary node.
-    fn widget(&self) -> Widget;
+    /// How this component lays out its children. The default is a leaf, which
+    /// resolves children with the anchor/offset model.
+    fn container(&self) -> Container {
+        Container::Leaf
+    }
+
+    /// The component's own intrinsic size and self-draw. The default is `None`:
+    /// the control paints nothing on its own and takes no intrinsic size, which
+    /// is what a pure container or a chrome-only surface wants.
+    fn content(&self) -> Option<ContentRef> {
+        None
+    }
 
     /// Runs before [`prepare`](Component::prepare) with the mounting tree, so a
     /// component can capture tree-scoped services (e.g. the tree's
@@ -185,14 +196,17 @@ pub trait Component: Sized {
     /// Builds this component's node under `parent` and returns its id.
     ///
     /// The default runs [`prepare`](Component::prepare), creates a `Control`
-    /// node, installs the widget and applies the spec (layout, decorators,
-    /// click callback, children).
+    /// node, installs its container and self-draw content, and applies the spec
+    /// (layout, decorators, click callback, children).
     fn build(mut self, tree: &mut SceneTree, parent: NodeId) -> NodeId {
         self.bind(tree);
         self.prepare();
         let spec = std::mem::take(self.spec());
         let id = tree.add_control(parent, self.name());
-        tree.set_data(id, Control::new(spec.data, self.widget()));
+        tree.set_data(
+            id,
+            Control::new(spec.data, self.container(), self.content()),
+        );
         apply_spec(tree, id, spec);
         id
     }
@@ -669,8 +683,12 @@ where
 
 /// Replaces a control's text, marking layout dirty only when it changed.
 pub fn set_text(tree: &mut SceneTree, id: NodeId, text: impl Into<String>) -> bool {
+    let text = text.into();
     let changed = match tree.data_mut::<Control>(id) {
-        Some(control) => control.widget.set_text(text),
+        Some(control) => control
+            .content
+            .as_mut()
+            .is_some_and(|content| content.set_text(&text)),
         None => return false,
     };
     if changed {
@@ -679,18 +697,16 @@ pub fn set_text(tree: &mut SceneTree, id: NodeId, text: impl Into<String>) -> bo
     true
 }
 
-/// Replaces a label's color (no-op on non-text widgets).
+/// Replaces a text control's color (no-op on content without a color).
 ///
 /// Color does not affect layout, so the tree is not marked dirty: the paint
-/// stage reads the widget's color every frame.
+/// stage reads the content's color every frame.
 pub fn set_text_color(tree: &mut SceneTree, id: NodeId, color: Color) -> bool {
     let Some(control) = tree.data_mut::<Control>(id) else {
         return false;
     };
-    match &mut control.widget {
-        Widget::Label { color: current, .. } => *current = color,
-        Widget::Button(button) => button.text_color = color,
-        _ => {}
+    if let Some(content) = control.content.as_mut() {
+        content.set_color(color);
     }
     true
 }
@@ -757,11 +773,11 @@ impl Component for Panel {
         "Panel"
     }
 
-    fn widget(&self) -> Widget {
-        Widget::Panel {
+    fn content(&self) -> Option<ContentRef> {
+        Some(Box::new(PanelContent {
             color: self.color,
             border: self.border,
-        }
+        }))
     }
 }
 
@@ -836,20 +852,17 @@ impl Component for Label {
         "Label"
     }
 
-    fn widget(&self) -> Widget {
-        Widget::Label {
-            text: self.text.clone(),
-            font_size: self.font_size,
-            color: self.color,
-            options: self.options,
-        }
+    fn content(&self) -> Option<ContentRef> {
+        let mut content = TextContent::new(self.text.clone(), self.font_size, self.color);
+        content.options = self.options;
+        Some(Box::new(content))
     }
 }
 
 /// A clickable button with an optional click callback.
 pub struct Button {
     spec: Spec,
-    data: ButtonData,
+    data: ButtonContent,
 }
 
 impl Button {
@@ -860,7 +873,7 @@ impl Button {
         spec.focusable = true;
         Self {
             spec,
-            data: ButtonData::new(text),
+            data: ButtonContent::new(text, 18.0),
         }
     }
 
@@ -904,8 +917,8 @@ impl Component for Button {
         "Button"
     }
 
-    fn widget(&self) -> Widget {
-        Widget::Button(self.data.clone())
+    fn content(&self) -> Option<ContentRef> {
+        Some(Box::new(self.data.clone()))
     }
 }
 
@@ -950,8 +963,8 @@ impl Component for VBox {
         "VBox"
     }
 
-    fn widget(&self) -> Widget {
-        Widget::Flex(self.style)
+    fn container(&self) -> Container {
+        Container::Flex(self.style)
     }
 }
 
@@ -996,8 +1009,8 @@ impl Component for HBox {
         "HBox"
     }
 
-    fn widget(&self) -> Widget {
-        Widget::Flex(self.style)
+    fn container(&self) -> Container {
+        Container::Flex(self.style)
     }
 }
 
@@ -1083,8 +1096,8 @@ impl Component for Flex {
         "Flex"
     }
 
-    fn widget(&self) -> Widget {
-        Widget::Flex(self.style)
+    fn container(&self) -> Container {
+        Container::Flex(self.style)
     }
 }
 
@@ -1136,8 +1149,8 @@ impl Component for Column {
         "Column"
     }
 
-    fn widget(&self) -> Widget {
-        self.flex.widget()
+    fn container(&self) -> Container {
+        self.flex.container()
     }
 }
 
@@ -1189,8 +1202,8 @@ impl Component for Row {
         "Row"
     }
 
-    fn widget(&self) -> Widget {
-        self.flex.widget()
+    fn container(&self) -> Container {
+        self.flex.container()
     }
 }
 
@@ -1259,7 +1272,7 @@ impl Component for Grid {
         "Grid"
     }
 
-    fn widget(&self) -> Widget {
-        Widget::Grid(self.style.clone())
+    fn container(&self) -> Container {
+        Container::Grid(self.style.clone())
     }
 }

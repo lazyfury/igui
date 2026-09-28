@@ -3,7 +3,7 @@
 use crate::base::{Component, Spec};
 use igui_core::{Color, FontWeight};
 use igui_theme::{TextSize, Theme, Tone};
-use igui_ui::{TextOptions, Widget, WordBreak};
+use igui_ui::{ContentRef, TextContent, TextOptions, WordBreak};
 
 /// A single block of text with a semantic size and color.
 ///
@@ -136,16 +136,25 @@ impl Component for Text {
         "Text"
     }
 
-    fn widget(&self) -> Widget {
+    fn content(&self) -> Option<ContentRef> {
+        let (font_size, weight) = self.resolved();
+        Some(Box::new(TextContent {
+            text: self.text.clone(),
+            font_size,
+            color: self.color.unwrap_or_else(|| self.tone.color(self.theme)),
+            options: self.options.weight(weight),
+            align: igui_render::TextAlign::Left,
+        }))
+    }
+}
+
+impl Text {
+    /// The theme-resolved font size and weight.
+    fn resolved(&self) -> (f32, FontWeight) {
         let weight = self
             .weight
             .unwrap_or_else(|| self.theme.font_weight(self.size));
-        Widget::Label {
-            text: self.text.clone(),
-            font_size: self.theme.font_size(self.size),
-            color: self.color.unwrap_or_else(|| self.tone.color(self.theme)),
-            options: self.options.weight(weight),
-        }
+        (self.theme.font_size(self.size), weight)
     }
 }
 
@@ -157,17 +166,11 @@ mod tests {
     use igui_theme::{default_theme, DefaultTheme, Mode, Palette, Theme};
 
     fn weight_of(text: Text) -> FontWeight {
-        match text.widget() {
-            Widget::Label { options, .. } => options.weight,
-            _ => panic!("Text must build a Label"),
-        }
+        text.resolved().1
     }
 
     fn size_of(text: Text) -> f32 {
-        match text.widget() {
-            Widget::Label { font_size, .. } => font_size,
-            _ => panic!("Text must build a Label"),
-        }
+        text.resolved().0
     }
 
     #[test]

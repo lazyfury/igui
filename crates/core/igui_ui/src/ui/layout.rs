@@ -11,6 +11,7 @@
 use std::collections::{HashMap, HashSet};
 
 use super::*;
+use crate::content::Container;
 use crate::control::{
     control_mut, control_of, control_visible, resolve_clip, root_state, root_state_mut, LayoutCache,
 };
@@ -140,11 +141,11 @@ impl Ui {
         cache.last_arranged += 1;
 
         let children = self.children_vec(tree, id);
-        match control_of(tree, id).map(|control| &control.widget) {
-            Some(Widget::Flex(style)) => {
+        match control_of(tree, id).map(|control| &control.container) {
+            Some(Container::Flex(style)) => {
                 self.arrange_flex(tree, cache, id, rect, style, &children, out, dirty)
             }
-            Some(Widget::Grid(style)) => {
+            Some(Container::Grid(style)) => {
                 self.arrange_grid(tree, cache, id, rect, style, &children, out, dirty)
             }
             _ => {
@@ -239,24 +240,27 @@ impl Ui {
         let explicit = control_of(tree, id)
             .map(|control| control.data.min_size)
             .unwrap_or(Size::ZERO);
-        let measured = match control_of(tree, id).map(|control| &control.widget) {
-            Some(Widget::Flex(style)) => {
+        let control = control_of(tree, id);
+        let measured = match control.map(|control| &control.container) {
+            Some(Container::Flex(style)) => {
                 let children = self.children_vec(tree, id);
                 self.measure_flex(tree, cache, id, style, &children, available)
             }
-            Some(Widget::Grid(style)) => {
+            Some(Container::Grid(style)) => {
                 let children = self.children_vec(tree, id);
                 self.measure_grid(tree, cache, id, style, &children, available)
             }
-            Some(widget) => {
-                let measurer_guard = root_state(tree).map(|state| state.text_measurer.borrow());
-                let measurer: &dyn TextMeasurer = match measurer_guard.as_ref() {
-                    Some(handle) => handle.as_ref(),
-                    None => &crate::control::DEFAULT_MEASURER,
-                };
-                widget.measure_with(available, measurer)
-            }
-            None => ContentSize::ZERO,
+            _ => match control.and_then(|control| control.content.as_deref()) {
+                Some(content) => {
+                    let measurer_guard = root_state(tree).map(|state| state.text_measurer.borrow());
+                    let measurer: &dyn TextMeasurer = match measurer_guard.as_ref() {
+                        Some(handle) => handle.as_ref(),
+                        None => &crate::control::DEFAULT_MEASURER,
+                    };
+                    content.measure(measurer, available)
+                }
+                None => ContentSize::ZERO,
+            },
         };
         let min = measured.min.max(explicit);
         let result = ContentSize {
@@ -1126,18 +1130,19 @@ fn span_size(sizes: &[f32], start: usize, end: usize, gap: f32) -> f32 {
 mod tests {
     use super::*;
     use crate::control::Control;
-    use crate::widget::Widget;
+    use crate::test_support::TestControl;
     use igui_core::{Color, Edges};
     use std::rc::Rc;
 
-    fn add(tree: &mut SceneTree, parent: NodeId, data: ControlData, widget: Widget) -> NodeId {
+    fn add(tree: &mut SceneTree, parent: NodeId, data: ControlData, widget: TestControl) -> NodeId {
+        let (container, content) = widget.into_parts();
         let id = tree.add_control(parent, "test");
-        tree.set_data(id, Control::new(data, widget));
+        tree.set_data(id, Control::new(data, container, content));
         id
     }
 
-    fn panel(color: Color) -> Widget {
-        Widget::Panel {
+    fn panel(color: Color) -> TestControl {
+        TestControl::Panel {
             color,
             border: None,
         }
@@ -1366,7 +1371,7 @@ mod tests {
             &mut tree,
             tree_root,
             ControlData::fill_parent(),
-            Widget::Flex(FlexStyle::column()),
+            TestControl::Flex(FlexStyle::column()),
         );
         let style = FlexStyle {
             padding: Edges::new(10.0, 20.0, 10.0, 20.0),
@@ -1377,7 +1382,7 @@ mod tests {
             &mut tree,
             root,
             ControlData::fill_parent(),
-            Widget::Flex(style),
+            TestControl::Flex(style),
         );
         for basis in [40.0, 60.0] {
             let mut data = ControlData::default();
@@ -1426,7 +1431,7 @@ mod tests {
             &mut tree,
             root,
             ControlData::fill_parent(),
-            Widget::Flex(style),
+            TestControl::Flex(style),
         );
         let mut a_data = ControlData::default();
         a_data.layout.grow = 1.0;
@@ -1487,7 +1492,7 @@ mod tests {
             &mut tree,
             tree_root,
             ControlData::fill_parent(),
-            Widget::Flex(FlexStyle::row().wrap(true)),
+            TestControl::Flex(FlexStyle::row().wrap(true)),
         );
         for _ in 0..3 {
             let mut data = ControlData::default();
@@ -1527,7 +1532,7 @@ mod tests {
             &mut tree,
             root,
             ControlData::fill_parent(),
-            Widget::Flex(FlexStyle::row().padding(Edges::ZERO).gap(0.0)),
+            TestControl::Flex(FlexStyle::row().padding(Edges::ZERO).gap(0.0)),
         );
         let card = add(
             &mut tree,
@@ -1540,13 +1545,13 @@ mod tests {
                 },
                 ..ControlData::default()
             },
-            Widget::Flex(FlexStyle::column().padding(Edges::ZERO).gap(0.0)),
+            TestControl::Flex(FlexStyle::column().padding(Edges::ZERO).gap(0.0)),
         );
         add(
             &mut tree,
             card,
             ControlData::default(),
-            Widget::Label {
+            TestControl::Label {
                 text: "word ".repeat(20),
                 font_size: 10.0,
                 color: Color::BLACK,

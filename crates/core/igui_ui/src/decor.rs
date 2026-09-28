@@ -1,10 +1,11 @@
 //! Per-node decorations: chrome painted around a control and torn down with it.
 //!
-//! The core `Widget` enum stays closed, so components that need a surface /
-//! foreground (or shared interaction state) install a [`NodeDecor`] on their
-//! root node instead. `paint` runs `paint_behind` before the control's own
-//! content and `paint_front` after it, in the same single pass — hosts do not
-//! run separate surface/foreground passes.
+//! [`ControlContent`](crate::ControlContent) draws a control's own pixels; a
+//! component that needs reusable chrome *around* them (or shared interaction
+//! state) installs a [`NodeDecor`] on its root node instead. `paint` runs
+//! `paint_behind` before the control's own content and `paint_front` after it,
+//! in the same single pass — hosts do not run separate surface/foreground
+//! passes.
 //!
 //! The factory functions at the bottom build the common decorators. They take
 //! resolved colors (the closures capture what they need), so `igui_ui` never

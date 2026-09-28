@@ -18,7 +18,7 @@ use std::rc::Rc;
 
 use igui_core::Edges;
 use igui_theme::{radius, ControlSize, SurfaceLevel, Theme};
-use igui_ui::{Align, FlexStyle, Justify, SurfaceStyle, TextEdit, TextMeasurer, Widget};
+use igui_ui::{Align, Container, FlexStyle, Justify, SurfaceStyle, TextEdit, TextMeasurer};
 
 use crate::base::{Component, Spec};
 use crate::components::text_field::{self, FieldState};
@@ -95,8 +95,8 @@ impl Component for TextInput {
         "TextInput"
     }
 
-    fn widget(&self) -> Widget {
-        Widget::Flex(
+    fn container(&self) -> Container {
+        Container::Flex(
             FlexStyle::row()
                 .align(Align::Center)
                 .justify(Justify::Start)
@@ -153,7 +153,7 @@ mod tests {
     use igui_core::{Edges, ImeEvent, InputEvent, Key, Modifiers, Size, Vec2, ViewportSize};
     use igui_scene::SceneTree;
     use igui_theme::{default_theme, Mode};
-    use igui_ui::{Clipboard, MouseFilter, Widget};
+    use igui_ui::{Clipboard, MouseFilter};
 
     fn mount(tree: &mut SceneTree, input: TextInput) -> igui_core::NodeId {
         let page = tree.add_child(
@@ -377,6 +377,6 @@ mod tests {
         assert!(control.focusable);
         assert!(control.caret_provider.is_some());
         assert!(control.key_callback.is_some());
-        assert!(matches!(control.widget, Widget::Flex(_)));
+        assert!(matches!(control.container, Container::Flex(_)));
     }
 }

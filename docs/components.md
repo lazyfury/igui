@@ -664,10 +664,10 @@ Implement `igui_components::Component` for your own builder and mount it with
 `.into_tree()` / `add_child`:
 
 ```rust
-use igui_components::{Component, Flex, Spec};
+use igui_components::{Component, Spec};
 use igui_core::{Color, NodeId};
 use igui_scene::SceneTree;
-use igui_ui::Widget;
+use igui_ui::{ContentRef, TextContent};
 
 struct Badge {
     spec: Spec,
@@ -684,23 +684,22 @@ impl Component for Badge {
         "Badge"
     }
 
-    fn widget(&self) -> Widget {
-        Widget::Label {
-            text: self.text.clone(),
-            font_size: 12.0,
-            color: self.color,
-            options: igui_ui::TextOptions::no_wrap(),
-        }
+    fn content(&self) -> Option<ContentRef> {
+        let mut text = TextContent::new(self.text.clone(), 12.0, self.color);
+        text.options = igui_ui::TextOptions::no_wrap();
+        Some(Box::new(text))
     }
 }
 
 igui_components::impl_scene_child!(Badge);
 ```
 
-The default `build` creates the control, installs `widget()`, and applies the
-spec (layout, background/foreground, click callback, `.child()` list). Override
-`prepare(&mut self)` to compute decorators/children from field values, and
-`build` for fully custom composites.
+The default `build` creates the control, installs `container()` (how it lays out
+children) and `content()` (its own measure + self-draw), and applies the spec
+(layout, background/foreground, click callback, `.child()` list). A pure
+container overrides only `container()`; a self-drawing leaf overrides only
+`content()`. Override `prepare(&mut self)` to compute decorators/children from
+field values, and `build` for fully custom composites.
 
 Keep behavior driven only by core state so components stay headless-testable.
 
@@ -725,16 +724,17 @@ mount time.
 
 - **Composite components** come in two shapes:
   - root is an existing primitive → wrap it as `inner`, delegate
-    `spec`/`widget`/`prepare`, and only override `name()`;
-  - custom mount logic → own `spec: Spec`, hand-write `widget()`, override
-    `build(self, tree, parent)`.
+    `spec`/`container`/`content`/`prepare`, and only override `name()`;
+  - custom mount logic → own `spec: Spec`, hand-write `container()`/`content()`,
+    override `build(self, tree, parent)`.
 
   ```rust
   struct Sidebar { inner: Column }
   impl Component for Sidebar {
       fn spec(&mut self) -> &mut Spec { self.inner.spec() }
       fn name(&self) -> &'static str { "Sidebar" }
-      fn widget(&self) -> Widget { self.inner.widget() }
+      fn container(&self) -> igui_ui::Container { self.inner.container() }
+      fn content(&self) -> Option<igui_ui::ContentRef> { self.inner.content() }
       fn prepare(&mut self) { self.inner.prepare(); }
   }
   ```

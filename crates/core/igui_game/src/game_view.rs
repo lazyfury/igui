@@ -22,10 +22,10 @@
 //! ```
 
 use igui_anim::Animator;
-use igui_core::{Color, NodeId, Size, ViewportSize};
+use igui_core::{NodeId, Size, ViewportSize};
 use igui_render::{Paint, PaintContext, RenderBackend, RenderTargetId};
 use igui_scene::SceneTree;
-use igui_ui::{add_decor, foreground_decor, Control, ControlData, Widget};
+use igui_ui::{add_decor, foreground_decor, Container, Control, ControlData};
 
 use crate::clock::FixedTimestep;
 use crate::{Areas, SpriteAnimations, SpriteFrames, Timers};
@@ -78,13 +78,7 @@ impl GameView {
         let id = host.add_control(parent, "GameView");
         host.set_data(
             id,
-            Control::new(
-                ControlData::fill_parent(),
-                Widget::Panel {
-                    color: Color::TRANSPARENT,
-                    border: None,
-                },
-            ),
+            Control::new(ControlData::fill_parent(), Container::Leaf, None),
         );
         let texture = self.target.texture();
         add_decor(
@@ -239,7 +233,7 @@ mod tests {
     use std::rc::Rc;
 
     use igui_backend_recording::RecordingBackend;
-    use igui_core::Vec2;
+    use igui_core::{Color, Vec2};
     use igui_render::DrawCommand;
     use igui_scene::Visual;
     use igui_ui;

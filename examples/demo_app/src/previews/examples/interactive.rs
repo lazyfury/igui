@@ -15,7 +15,7 @@ use igui_core::{Color, Edges, NodeId, Rect, Size, Vec2};
 use igui_render::PaintContext;
 use igui_scene::{SceneChild, SceneTree};
 use igui_theme::{radius, space, Theme, Tone};
-use igui_ui::{Control, InteractState, SizeBasis, SurfaceStyle, Widget};
+use igui_ui::{ContentRef, Control, InteractState, PanelContent, SizeBasis, SurfaceStyle};
 
 use super::Ctx;
 
@@ -221,18 +221,21 @@ impl Component for RouterDemo {
         "Router"
     }
 
-    fn widget(&self) -> Widget {
-        Widget::Panel {
+    fn content(&self) -> Option<ContentRef> {
+        Some(Box::new(PanelContent {
             color: self.theme.palette().surface_raised,
             border: Some(self.theme.palette().border),
-        }
+        }))
     }
 
     fn build(mut self, tree: &mut SceneTree, parent: NodeId) -> NodeId {
         self.prepare();
         let spec = std::mem::take(self.spec());
         let root = tree.add_control(parent, self.name());
-        tree.set_data(root, Control::new(spec.data, self.widget()));
+        tree.set_data(
+            root,
+            Control::new(spec.data, self.container(), self.content()),
+        );
 
         let first = tree.add_child(root, self.first);
         let second = tree.add_child(root, self.second);

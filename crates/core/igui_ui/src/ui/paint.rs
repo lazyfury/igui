@@ -1,6 +1,7 @@
 //! Emitting control visuals and debug bounds into a `DrawList`.
 
 use super::*;
+use crate::content::PaintEnv;
 use crate::control::{control_of, control_visible};
 use crate::debug::DebugDrawOptions;
 use igui_core::{Rect, Vec2};
@@ -27,8 +28,21 @@ impl Ui {
         // keeps a scrolling list at one `Save`/`ClipRect` pair for all of its
         // rows, and costs nothing at all while no control clips.
         let mut active: Option<Rect> = None;
-        for id in tree.iter_visible() {
+        for item in tree.paint_items() {
+            let id = item.id;
             let Some(control) = control_of(tree, id) else {
+                // A world canvas item (no `Control` runtime). End any control
+                // clip, then draw its built-in `Visual` under its transform.
+                if active.is_some() {
+                    ctx.restore();
+                    active = None;
+                }
+                ctx.save();
+                ctx.set_transform(item.transform);
+                if let Some(visual) = tree.visual(id) {
+                    igui_scene::paint_visual(ctx, &visual);
+                }
+                ctx.restore();
                 continue;
             };
             // A node hidden at runtime (e.g. a router switch) is skipped even if
@@ -57,73 +71,9 @@ impl Ui {
             for decor in &control.decorations {
                 decor.paint_behind(ctx, rect, state);
             }
-            match &control.widget {
-                Widget::Panel { color, border } => {
-                    ctx.fill_rect(rect, *color);
-                    if let Some(border) = border {
-                        ctx.stroke_rect(rect, 1.0, *border);
-                    }
-                }
-                Widget::Label {
-                    text,
-                    font_size,
-                    color,
-                    options,
-                } => {
-                    let lines = self.layout_text_cached(
-                        cache,
-                        measurer,
-                        id,
-                        text,
-                        *font_size,
-                        rect.size.width,
-                        *options,
-                    );
-                    let step = measurer.line_height(*font_size);
-                    let mut baseline = rect.top() + measurer.ascent(*font_size);
-                    for line in lines.iter() {
-                        ctx.draw_text_weighted(
-                            line.clone(),
-                            Vec2::new(rect.left(), baseline),
-                            *font_size,
-                            options.weight,
-                            TextAlign::Left,
-                            *color,
-                        );
-                        baseline += step;
-                    }
-                }
-                Widget::Button(button) => {
-                    ctx.fill_rect(rect, button.fill());
-                    ctx.stroke_rect(rect, 1.0, button.text_color.with_alpha(0.35));
-
-                    let inner = (rect.size.width - 32.0).max(0.0);
-                    let lines = self.layout_text_cached(
-                        cache,
-                        measurer,
-                        id,
-                        &button.text,
-                        button.font_size,
-                        inner,
-                        button.options,
-                    );
-                    let step = measurer.line_height(button.font_size);
-                    let block = lines.len() as f32 * step;
-                    let mut baseline =
-                        rect.center().y - block / 2.0 + measurer.ascent(button.font_size);
-                    for line in lines.iter() {
-                        ctx.draw_text_weighted(
-                            line.clone(),
-                            Vec2::new(rect.center().x, baseline),
-                            button.font_size,
-                            button.options.weight,
-                            TextAlign::Center,
-                            button.text_color,
-                        );
-                        baseline += step;
-                    }
-                }
-                Widget::Flex(_) | Widget::Grid(_) => {}
+            if let Some(content) = &control.content {
+                let mut env = PaintEnv::new(ctx, measurer, cache);
+                content.draw(id, &mut env, rect, state);
             }
             for decor in &control.decorations {
                 decor.paint_front(ctx, rect, state);
@@ -177,20 +127,20 @@ mod tests {
     use super::*;
     use crate::control::Control;
     use crate::layout::TextOptions;
-    use crate::widget::Widget;
+    use crate::test_support::TestControl;
     use igui_core::{Color, Edges, FontWeight, Size, ViewportSize};
     use igui_render::DrawCommand;
     use igui_scene::SceneTree;
 
-    fn panel() -> Widget {
-        Widget::Panel {
+    fn panel() -> TestControl {
+        TestControl::Panel {
             color: Color::RED,
             border: None,
         }
     }
 
-    fn label(text: &str) -> Widget {
-        Widget::Label {
+    fn label(text: &str) -> TestControl {
+        TestControl::Label {
             text: text.to_string(),
             font_size: 12.0,
             color: Color::WHITE,
@@ -198,10 +148,16 @@ mod tests {
         }
     }
 
-    fn add(tree: &mut SceneTree, parent: NodeId, mut data: ControlData, widget: Widget) -> NodeId {
+    fn add(
+        tree: &mut SceneTree,
+        parent: NodeId,
+        mut data: ControlData,
+        widget: TestControl,
+    ) -> NodeId {
         data.anchors = Edges::ZERO;
+        let (container, content) = widget.into_parts();
         let id = tree.add_control(parent, "test");
-        tree.set_data(id, Control::new(data, widget));
+        tree.set_data(id, Control::new(data, container, content));
         id
     }
 
@@ -386,7 +342,7 @@ mod tests {
         let root = tree.root();
         let container = add(&mut tree, root, ControlData::fill_parent(), panel());
         let mut widget = label("bold");
-        if let Widget::Label { options, .. } = &mut widget {
+        if let TestControl::Label { options, .. } = &mut widget {
             *options = options.weight(FontWeight::BOLD);
         }
         add(&mut tree, container, rect(0.0, 0.0, 100.0, 20.0), widget);
@@ -399,5 +355,59 @@ mod tests {
             _ => None,
         });
         assert_eq!(weight, Some(FontWeight::BOLD));
+    }
+
+    /// One `igui_ui::paint` pass draws a world `Node2D` and a `Control`
+    /// together, in tree order, applying the world transform to the world item
+    /// only — the unified canvas-item walk (kills the old two-walk split).
+    #[test]
+    fn one_pass_paints_world_visuals_and_controls() {
+        use igui_core::Vec2;
+        use igui_scene::Visual;
+
+        let mut tree = SceneTree::new();
+        tree.set_viewport_size(Size::new(200.0, 200.0));
+        let root = tree.root();
+        let world = tree.add_node2d(root, "world");
+        tree.set_position(world, Vec2::new(10.0, 10.0));
+        tree.set_visual(
+            world,
+            Visual::Rect {
+                size: Size::new(20.0, 20.0),
+                color: Color::RED,
+            },
+        );
+        add(&mut tree, root, rect(0.0, 0.0, 50.0, 50.0), panel());
+        crate::layout(&mut tree, ViewportSize::new(Size::new(200.0, 200.0)));
+        tree.update();
+
+        let list = paint(&tree);
+        let commands = list.commands();
+
+        // The world item carries its own transform...
+        assert!(
+            commands.iter().any(|command| matches!(
+                command,
+                DrawCommand::SetTransform(t) if t.origin == Vec2::new(10.0, 10.0)
+            )),
+            "world transform was not applied"
+        );
+
+        // ...and both the world quad and the panel rect are painted, world first.
+        let fills: Vec<Rect> = commands
+            .iter()
+            .filter_map(|command| match command {
+                DrawCommand::FillRect { rect, .. } => Some(*rect),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(
+            fills.len(),
+            2,
+            "expected a world quad and the root panel fill"
+        );
+        assert_eq!(fills[0].size, Size::new(20.0, 20.0));
+        // The UI root is pinned to the viewport and painted after the world item.
+        assert_eq!(fills[1].size, Size::new(200.0, 200.0));
     }
 }

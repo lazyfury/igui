@@ -10,7 +10,7 @@ use std::rc::Rc;
 
 use igui_core::Edges;
 use igui_theme::{radius, ControlSize, SurfaceLevel, Theme};
-use igui_ui::{Align, FlexStyle, Justify, SurfaceStyle, TextEdit, TextMeasurer, Widget};
+use igui_ui::{Align, Container, FlexStyle, Justify, SurfaceStyle, TextEdit, TextMeasurer};
 
 use crate::base::{Component, Spec};
 use crate::components::text_field::{self, FieldState};
@@ -86,8 +86,8 @@ impl Component for TextArea {
         "TextArea"
     }
 
-    fn widget(&self) -> Widget {
-        Widget::Flex(
+    fn container(&self) -> Container {
+        Container::Flex(
             FlexStyle::column()
                 .align(Align::Start)
                 .justify(Justify::Start)

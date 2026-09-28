@@ -51,12 +51,12 @@ fn main() {
     // valid with their own tree. The real check is that edits never cross-talk.
     set_text(&mut a, title_a.get().expect("tree A title"), "A (edited)");
     assert_eq!(
-        igui_ui::widget(&b, title_b.get().expect("tree B title")).and_then(|w| w.text()),
+        igui_ui::content(&b, title_b.get().expect("tree B title")).and_then(|c| c.as_text()),
         Some("B"),
         "editing tree A must not touch tree B"
     );
     assert_eq!(
-        igui_ui::widget(&c, title_c.get().expect("tree C title")).and_then(|w| w.text()),
+        igui_ui::content(&c, title_c.get().expect("tree C title")).and_then(|c| c.as_text()),
         Some("C"),
         "editing tree A must not touch tree C"
     );

@@ -1,7 +1,7 @@
 use igui_core::{NodeId, Rect, Size, Transform2D, Vec2};
 use igui_render::{Paint, PaintContext, TextureId};
 
-use crate::node::Visual;
+use crate::node::{NodeKind, Visual};
 use crate::tree::SceneTree;
 
 /// A batch of canvas items sharing one canvas transform, painted as a group.
@@ -12,6 +12,21 @@ pub(crate) struct PaintGroup {
     pub(crate) layer: i32,
     pub(crate) transform: Transform2D,
     pub(crate) items: Vec<NodeId>,
+}
+
+/// One visible canvas item in paint order, with its effective canvas transform
+/// (`group * world`).
+///
+/// Unlike a [`Visual`], an item may carry no visual at all: a `Control` is a
+/// canvas item whose pixels are drawn by `igui_ui`, not by [`SceneTree::paint`].
+/// [`SceneTree::paint_items`] returns those too, so a unified painter can draw
+/// world and UI in one layer-ordered pass.
+pub struct PaintItem {
+    /// The node id.
+    pub id: NodeId,
+    /// The transform to draw the item under (its canvas transform composed with
+    /// its local world transform).
+    pub transform: Transform2D,
 }
 
 impl SceneTree {
@@ -41,43 +56,41 @@ impl SceneTree {
     /// camera, or its `CanvasLayer`'s final transform), so the output is
     /// deterministic for a given scene.
     pub fn paint(&self, ctx: &mut PaintContext) {
+        for item in self.paint_items() {
+            let Some(canvas) = self.get(item.id).and_then(|node| node.canvas()) else {
+                continue;
+            };
+            // A `Control` is included in `paint_items` for unified painters, but
+            // `SceneTree::paint` draws only built-in visuals.
+            if matches!(canvas.visual(), Visual::None) {
+                continue;
+            }
+            ctx.save();
+            ctx.set_transform(item.transform);
+            paint_visual(ctx, &canvas.visual());
+            ctx.restore();
+        }
+    }
+
+    /// Every visible canvas item in paint order, with its effective canvas
+    /// transform.
+    ///
+    /// Order is ascending `CanvasLayer::layer` (default world canvas `0`), then
+    /// tree / z order within a layer. Items with no [`Visual`] (a `Control`) are
+    /// included, so a higher layer can draw world and UI in one pass.
+    pub fn paint_items(&self) -> Vec<PaintItem> {
+        let mut items = Vec::new();
         for group in self.paint_groups() {
-            for id in group.items {
-                let Some(canvas) = self.get(id).and_then(|node| node.canvas()) else {
-                    continue;
-                };
-                ctx.save();
-                ctx.set_transform(group.transform * canvas.world_transform());
-                match canvas.visual() {
-                    Visual::None => {}
-                    Visual::Rect { size, color } => {
-                        ctx.fill_rect(Rect::from_min_size(Vec2::ZERO, size), Paint::new(color));
-                    }
-                    Visual::Circle { radius, color } => {
-                        ctx.fill_circle(Vec2::ZERO, radius, Paint::new(color));
-                    }
-                    Visual::Image { texture, size } => {
-                        ctx.draw_image(
-                            texture,
-                            Rect::from_min_size(Vec2::ZERO, size),
-                            None,
-                            Paint::default(),
-                        );
-                    }
-                    Visual::Sprite {
-                        texture,
-                        size,
-                        source,
-                        flip_x,
-                        flip_y,
-                        nine,
-                    } => {
-                        paint_sprite(ctx, texture, size, source, flip_x, flip_y, nine);
-                    }
+            for &id in &group.items {
+                if let Some(canvas) = self.get(id).and_then(|node| node.canvas()) {
+                    items.push(PaintItem {
+                        id,
+                        transform: group.transform * canvas.world_transform(),
+                    });
                 }
-                ctx.restore();
             }
         }
+        items
     }
 
     /// Collects visible canvas items into layer-ordered groups.
@@ -90,7 +103,10 @@ impl SceneTree {
             let Some(canvas) = node.canvas() else {
                 continue;
             };
-            if matches!(canvas.visual(), Visual::None) {
+            // A `Control` has no `Visual` but is still painted (by `igui_ui`), so
+            // include it; every other visual-less canvas item (a `Camera2D`)
+            // emits nothing and is skipped.
+            if matches!(canvas.visual(), Visual::None) && node.kind() != NodeKind::Control {
                 continue;
             }
             let (key, layer) = match self.canvas_layer_of(id) {
@@ -111,6 +127,40 @@ impl SceneTree {
         // Stable: equal layers keep first-encounter (tree) order.
         groups.sort_by_key(|group| group.layer);
         groups
+    }
+}
+
+/// Emits the draw commands for one built-in [`Visual`].
+///
+/// Used by [`SceneTree::paint`] and by higher layers (e.g. `igui_ui::paint`)
+/// that draw world items and controls in a single layer-ordered pass.
+pub fn paint_visual(ctx: &mut PaintContext, visual: &Visual) {
+    match visual {
+        Visual::None => {}
+        Visual::Rect { size, color } => {
+            ctx.fill_rect(Rect::from_min_size(Vec2::ZERO, *size), Paint::new(*color));
+        }
+        Visual::Circle { radius, color } => {
+            ctx.fill_circle(Vec2::ZERO, *radius, Paint::new(*color));
+        }
+        Visual::Image { texture, size } => {
+            ctx.draw_image(
+                *texture,
+                Rect::from_min_size(Vec2::ZERO, *size),
+                None,
+                Paint::default(),
+            );
+        }
+        Visual::Sprite {
+            texture,
+            size,
+            source,
+            flip_x,
+            flip_y,
+            nine,
+        } => {
+            paint_sprite(ctx, *texture, *size, *source, *flip_x, *flip_y, *nine);
+        }
     }
 }
 

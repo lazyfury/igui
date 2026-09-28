@@ -306,22 +306,21 @@ fn dump_tree(tree: &igui_scene::SceneTree, controls: usize) {
         let control = igui_ui::control(tree, id)
             .map(|c| format!(" rect={}", rect_s(c.rect)))
             .unwrap_or_default();
-        let widget = match igui_ui::widget(tree, id) {
-            Some(igui_ui::Widget::Panel { color, .. }) => {
-                format!(" Panel {}", color_s(*color))
-            }
-            Some(igui_ui::Widget::Flex(_)) => " Flex".to_string(),
-            Some(igui_ui::Widget::Grid(_)) => " Grid".to_string(),
-            Some(igui_ui::Widget::Label {
-                text, font_size, ..
-            }) => format!(" Label \"{}\" font={}", text, num(*font_size)),
-            Some(igui_ui::Widget::Button(button)) => {
-                format!(" Button \"{}\"", button.text)
-            }
-            None => String::new(),
+        let kind = match igui_ui::container(tree, id) {
+            Some(igui_ui::Container::Flex(_)) => " Flex".to_string(),
+            Some(igui_ui::Container::Grid(_)) => " Grid".to_string(),
+            _ => match igui_ui::content(tree, id) {
+                Some(content) => match (content.as_text(), content.as_text_size()) {
+                    (Some(text), Some(size)) => {
+                        format!(" Text \"{}\" font={}", text, num(size))
+                    }
+                    _ => " Content".to_string(),
+                },
+                None => String::new(),
+            },
         };
         println!(
-            "    {}{:?} \"{}\"{control}{widget}",
+            "    {}{:?} \"{}\"{control}{kind}",
             "  ".repeat(depth),
             node.kind(),
             node.name()

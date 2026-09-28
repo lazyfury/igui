@@ -107,9 +107,8 @@ mod tests {
     use igui_core::{Color, Edges, NodeId, Size, ViewportSize};
     use igui_render::DrawCommand;
 
+    use crate::content::{Container, TextContent};
     use crate::control::{control_mut, Control, ControlData};
-    use crate::layout::TextOptions;
-    use crate::widget::Widget;
 
     use super::*;
 
@@ -123,21 +122,21 @@ mod tests {
             offsets: Edges::new(0.0, 0.0, 80.0, 20.0),
             ..ControlData::default()
         };
-        let widget = Widget::Label {
-            text: text.to_string(),
-            font_size: 12.0,
-            color: Color::WHITE,
-            options: TextOptions::default(),
-        };
+        let content = TextContent::new(text, 12.0, Color::WHITE);
         let id = tree.add_control(tree.root(), "label");
-        tree.set_data(id, Control::new(data, widget));
+        tree.set_data(
+            id,
+            Control::new(data, Container::Leaf, Some(Box::new(content))),
+        );
         crate::mark_dirty(tree, id);
         id
     }
 
     fn set_label_text(tree: &mut SceneTree, id: NodeId, text: &str) {
         if let Some(control) = control_mut(tree, id) {
-            control.widget.set_text(text);
+            if let Some(content) = control.content.as_mut() {
+                content.set_text(text);
+            }
         }
         crate::mark_dirty(tree, id);
     }

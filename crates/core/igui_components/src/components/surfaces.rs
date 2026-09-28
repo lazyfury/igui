@@ -4,7 +4,7 @@ use crate::base::{Component, Flex, Label, Spec};
 use igui_core::{Color, Edges, Size, Vec2};
 use igui_render::PaintContext;
 use igui_theme::{radius, Space, SurfaceTone, TextSize, Theme, Tone};
-use igui_ui::{Align, Justify, SurfaceStyle, TextOptions, Widget};
+use igui_ui::{Align, Container, Justify, SurfaceStyle, TextOptions};
 
 use crate::Text;
 
@@ -91,8 +91,8 @@ impl Component for Card {
         "Card"
     }
 
-    fn widget(&self) -> Widget {
-        Widget::Flex(
+    fn container(&self) -> Container {
+        Container::Flex(
             igui_ui::FlexStyle::column()
                 .gap(self.gap)
                 .padding(self.padding),
@@ -153,8 +153,8 @@ impl Component for Divider {
         "Divider"
     }
 
-    fn widget(&self) -> Widget {
-        Widget::Flex(igui_ui::FlexStyle::default().padding(Edges::ZERO))
+    fn container(&self) -> Container {
+        Container::Flex(igui_ui::FlexStyle::default().padding(Edges::ZERO))
     }
 
     fn prepare(&mut self) {
@@ -257,8 +257,8 @@ impl Component for Badge {
         "Badge"
     }
 
-    fn widget(&self) -> Widget {
-        Widget::Flex(
+    fn container(&self) -> Container {
+        Container::Flex(
             igui_ui::FlexStyle::row()
                 .align(Align::Center)
                 .justify(Justify::Center)
@@ -333,8 +333,8 @@ impl Component for CodeBlock {
         "CodeBlock"
     }
 
-    fn widget(&self) -> Widget {
-        Widget::Flex(
+    fn container(&self) -> Container {
+        Container::Flex(
             igui_ui::FlexStyle::column()
                 .gap(self.theme.spacing(Space::SM))
                 .padding(Edges::all(self.theme.spacing(Space::LG))),
@@ -422,8 +422,8 @@ impl Component for Terminal {
         "Terminal"
     }
 
-    fn widget(&self) -> Widget {
-        Widget::Flex(
+    fn container(&self) -> Container {
+        Container::Flex(
             igui_ui::FlexStyle::column()
                 .gap(self.theme.spacing(Space::SM))
                 .padding(Edges::all(self.theme.spacing(Space::LG))),
@@ -519,8 +519,8 @@ impl Component for EmptyState {
         "EmptyState"
     }
 
-    fn widget(&self) -> Widget {
-        Widget::Flex(
+    fn container(&self) -> Container {
+        Container::Flex(
             igui_ui::FlexStyle::column()
                 .align(Align::Center)
                 .gap(self.theme.spacing(Space::MD))

@@ -41,7 +41,7 @@ use igui_core::{
 use igui_render::PaintContext;
 use igui_scene::{SceneChild, SceneTree};
 use igui_theme::{default_theme, Mode, Theme, Tone};
-use igui_ui::{MouseFilter, TextMeasurer, Widget};
+use igui_ui::{Container, MouseFilter, TextMeasurer};
 
 /// Shared, mutable gallery state.
 ///
@@ -311,7 +311,7 @@ impl DemoApp {
         }
         self.titlebar_inset = inset;
         if let Some(control) = igui_components::control_mut(&mut self.tree, self.sidebar) {
-            if let Widget::Flex(flex) = &mut control.widget {
+            if let Container::Flex(flex) = &mut control.container {
                 flex.padding.top = sidebar::SIDEBAR_PADDING_TOP + inset;
             }
         }

@@ -1,8 +1,8 @@
 //! The crate-internal UI implementation namespace.
 //!
 //! `igui_ui` owns layout, paint and input. Every `Control`'s drawing/layout
-//! runtime — layout data and [`Widget`] — lives in the [`SceneTree`] node's
-//! extension slot ([`Control`]); the text measurer, GUI interaction state and
+//! runtime — layout data and its [`ControlContent`] — lives in the [`SceneTree`]
+//! node's extension slot ([`Control`]); the text measurer, GUI interaction state and
 //! layout cache live in the root node's [`UiRootState`]. The theme is not
 //! stored here: it is a value passed to component constructors. Application
 //! concerns (construction, backend submission) live in `igui_components`.
@@ -21,13 +21,13 @@ use std::rc::Rc;
 use igui_core::NodeId;
 use igui_scene::SceneTree;
 
+use crate::content::{Container, ControlContent};
 use crate::control::{
     bump_paint_generation, control_mut, control_of, control_visible, gui_state, root_state,
     root_state_mut, CachedText, ControlData, LayoutCache,
 };
 use crate::decor::{DecorRef, InteractState};
 use crate::layout::{layout_text, TextMeasurer, TextOptions};
-use crate::widget::Widget;
 
 /// The UI layout/paint implementation namespace. Zero-sized: the theme, text
 /// measurer, control runtime and layout cache all live on the [`SceneTree`].
@@ -179,9 +179,14 @@ impl Ui {
         control_of(tree, id).map(|control| &control.data)
     }
 
-    /// The control's visual widget, read from the node's extension slot.
-    pub fn widget<'a>(&self, tree: &'a SceneTree, id: NodeId) -> Option<&'a Widget> {
-        control_of(tree, id).map(|control| &control.widget)
+    /// The control's self-draw content, read from the node's extension slot.
+    pub fn content<'a>(&self, tree: &'a SceneTree, id: NodeId) -> Option<&'a dyn ControlContent> {
+        control_of(tree, id).and_then(|control| control.content.as_deref())
+    }
+
+    /// The control's container, read from the node's extension slot.
+    pub fn container<'a>(&self, tree: &'a SceneTree, id: NodeId) -> Option<&'a Container> {
+        control_of(tree, id).map(|control| &control.container)
     }
 
     /// Attaches themed chrome to `id`, painted by [`Ui::paint`] around the

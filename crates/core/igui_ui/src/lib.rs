@@ -8,7 +8,8 @@
 //! - **Input** ([`hit_test`] / [`handle_input`] / [`route_input`]) hit-tests
 //!   controls and runs the `_input -> world -> GUI -> _unhandled_input` order.
 //!
-//! Control data ([`ControlData`], [`Widget`], [`NodeDecor`]) lives on the
+//! Control data ([`ControlData`], [`Container`] / [`ControlContent`],
+//! [`NodeDecor`]) lives on the
 //! [`SceneTree`] node's extension slot, and the text measurer / GUI interaction
 //! state / layout cache live on the root node. The theme is a value passed to
 //! component constructors. Building components lives in `igui_components`;
@@ -28,6 +29,7 @@
 pub const CRATE: &str = "igui_ui";
 
 mod cache;
+mod content;
 mod control;
 mod debug;
 mod decor;
@@ -35,11 +37,16 @@ mod focus;
 mod input;
 pub mod layout;
 mod paint;
+#[cfg(test)]
+mod test_support;
 pub mod text_edit;
 mod ui;
-mod widget;
 
 pub use cache::{paint_cached, PaintStatus, UiPaintCache};
+pub use content::{
+    estimate_text_size, ButtonContent, Container, ContentRef, ControlContent, PaintEnv,
+    PanelContent, TextContent, TextVAlign,
+};
 pub use control::{
     clipboard, set_caret_provider, set_clipboard, set_ime_callback, set_key_callback,
     set_pointer_tree_callback, set_text_callback, text_measurer, text_measurer_handle,
@@ -66,7 +73,6 @@ pub use layout::{
 };
 pub use paint::{fill_rounded_rect, fill_rounded_rect_corners, inset, surface, SurfaceStyle};
 pub use text_edit::{Preedit, TextEdit};
-pub use widget::{estimate_text_size, BoxLayout, ButtonData, ButtonState, Widget};
 
 use std::rc::Rc;
 
@@ -189,9 +195,14 @@ pub fn control(tree: &SceneTree, id: NodeId) -> Option<&ControlData> {
     Ui.control(tree, id)
 }
 
-/// The control's visual widget, read from the node's extension slot.
-pub fn widget(tree: &SceneTree, id: NodeId) -> Option<&Widget> {
-    Ui.widget(tree, id)
+/// The control's self-draw content, read from the node's extension slot.
+pub fn content<'a>(tree: &'a SceneTree, id: NodeId) -> Option<&'a dyn ControlContent> {
+    Ui.content(tree, id)
+}
+
+/// The control's container, read from the node's extension slot.
+pub fn container<'a>(tree: &'a SceneTree, id: NodeId) -> Option<&'a Container> {
+    Ui.container(tree, id)
 }
 
 /// Number of controls in the UI.

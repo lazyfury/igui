@@ -21,7 +21,7 @@
 use crate::base::{Component, Label, Spec};
 use igui_core::{Cursor, Edges, Size};
 use igui_theme::{radius, Space, SurfaceLevel, TextSize, Theme, Tone};
-use igui_ui::{Align, Justify, SurfaceStyle, TextOptions, Widget};
+use igui_ui::{Align, Container, Justify, SurfaceStyle, TextOptions};
 
 /// Default minimum width of a menu surface (logical pixels).
 pub const MENU_MIN_WIDTH: f32 = 200.0;
@@ -100,8 +100,8 @@ impl Component for MenuItem {
         "MenuItem"
     }
 
-    fn widget(&self) -> Widget {
-        Widget::Flex(
+    fn container(&self) -> Container {
+        Container::Flex(
             igui_ui::FlexStyle::row()
                 .align(Align::Center)
                 .justify(Justify::SpaceBetween)
@@ -224,8 +224,8 @@ impl Component for Menu {
         "Menu"
     }
 
-    fn widget(&self) -> Widget {
-        Widget::Flex(
+    fn container(&self) -> Container {
+        Container::Flex(
             igui_ui::FlexStyle::column()
                 .gap(self.theme.spacing(Space::XXXS))
                 .padding(Edges::all(self.theme.spacing(Space::XS))),

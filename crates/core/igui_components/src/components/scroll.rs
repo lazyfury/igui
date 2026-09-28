@@ -29,7 +29,7 @@ use std::rc::Rc;
 use igui_core::{Color, Cursor, Edges, NodeId, Vec2};
 use igui_scene::SceneTree;
 use igui_theme::{radius, Theme};
-use igui_ui::{Control, DragPhase, MouseFilter, SurfaceStyle, Widget};
+use igui_ui::{ContentRef, Control, DragPhase, MouseFilter, PanelContent, SurfaceStyle};
 
 use crate::base::{apply_spec, set_on_drag, set_on_scroll, update_control, Component, Spec};
 use crate::Panel;
@@ -316,11 +316,11 @@ impl Component for ScrollView {
         "ScrollView"
     }
 
-    fn widget(&self) -> Widget {
-        Widget::Panel {
+    fn content(&self) -> Option<ContentRef> {
+        Some(Box::new(PanelContent {
             color: Color::TRANSPARENT,
             border: None,
-        }
+        }))
     }
 
     fn prepare(&mut self) {
@@ -341,7 +341,10 @@ impl Component for ScrollView {
         self.prepare();
         let spec = std::mem::take(self.spec());
         let root = tree.add_control(parent, self.name());
-        tree.set_data(root, Control::new(spec.data, self.widget()));
+        tree.set_data(
+            root,
+            Control::new(spec.data, self.container(), self.content()),
+        );
         apply_spec(tree, root, spec);
 
         // The content is the first (only) child; it keeps its preferred height

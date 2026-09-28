@@ -155,12 +155,12 @@ impl BadgeApp {
     /// The title line as it stands.
     #[cfg(test)]
     pub fn title_text(&self) -> Option<&str> {
-        igui_ui::widget(&self.tree, self.title).and_then(|widget| widget.text())
+        igui_ui::content(&self.tree, self.title).and_then(|content| content.as_text())
     }
 
     /// The value line as it stands (what the next frame would paint).
     pub fn balance_text(&self) -> Option<&str> {
-        igui_ui::widget(&self.tree, self.balance).and_then(|widget| widget.text())
+        igui_ui::content(&self.tree, self.balance).and_then(|content| content.as_text())
     }
 
     /// Shows the active tab: its title, its value prefix and the state.
@@ -293,10 +293,7 @@ mod tests {
 
         let mut boxes = Vec::new();
         for id in tree.iter_visible() {
-            if matches!(
-                igui_ui::widget(tree, id),
-                Some(igui_ui::Widget::Label { .. })
-            ) {
+            if igui_ui::content(tree, id).is_some_and(|content| content.as_text().is_some()) {
                 boxes.push(
                     igui_ui::control(tree, id)
                         .expect("a label has a control")
@@ -385,9 +382,10 @@ mod tests {
 
         let labels: Vec<String> = ids
             .iter()
-            .filter_map(|id| match igui_ui::widget(tree, *id) {
-                Some(igui_ui::Widget::Label { text, .. }) => Some(text.clone()),
-                _ => None,
+            .filter_map(|id| {
+                igui_ui::content(tree, *id)
+                    .and_then(|content| content.as_text())
+                    .map(str::to_string)
             })
             .collect();
         assert_eq!(

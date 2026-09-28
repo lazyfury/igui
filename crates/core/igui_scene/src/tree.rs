@@ -656,10 +656,13 @@ impl SceneTree {
                     child_visible = parent_visible;
                 }
             }
-            children = node.children.clone();
+            // Move the child list out of the node instead of cloning it: the
+            // recursion below never mutates tree structure, so it is restored
+            // after the walk. This keeps `update` allocation-free per node.
+            children = std::mem::take(&mut node.children);
         }
 
-        for child in children {
+        for &child in &children {
             recomputed += self.update_subtree(
                 child,
                 child_world,
@@ -667,6 +670,13 @@ impl SceneTree {
                 child_visible,
                 visible_changed,
             );
+        }
+        if let Some(node) = self
+            .slots
+            .get_mut(id.index() as usize)
+            .and_then(Option::as_mut)
+        {
+            node.children = children;
         }
         recomputed
     }
