@@ -155,21 +155,17 @@ pub(super) fn refresh_button(
 /// `paint_front` runs before the label child is painted, so the fill is dimmed
 /// and the text stays at full contrast.
 pub(super) fn dim_while_busy(tree: &mut SceneTree, button: NodeId, state: Rc<Cell<RefreshState>>) {
-    igui_ui::add_decor(
-        tree,
-        button,
-        igui_ui::foreground_decor(move |ctx, rect, _state| {
-            if state.get().is_idle() {
-                return;
-            }
-            fill_rounded_rect(
-                ctx,
-                rect,
-                radius::MD,
-                Color::BLACK.with_alpha(DISABLED_WASH_ALPHA),
-            );
-        }),
-    );
+    igui_ui::add_foreground(tree, button, move |env, rect, _state| {
+        if state.get().is_idle() {
+            return;
+        }
+        fill_rounded_rect(
+            env.ctx,
+            rect,
+            radius::MD,
+            Color::BLACK.with_alpha(DISABLED_WASH_ALPHA),
+        );
+    });
 }
 
 /// The page's endpoint line.

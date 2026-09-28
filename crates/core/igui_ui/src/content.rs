@@ -14,12 +14,12 @@ use igui_core::{Color, NodeId, Rect, Size, Vec2};
 use igui_render::{PaintContext, TextAlign};
 
 use crate::control::LayoutCache;
-use crate::decor::InteractState;
 use crate::layout::{
     self, layout_text, measure_weighted_with, ContentSize, FlexStyle, GridStyle, TextMeasurer,
     TextOptions, WordBreak,
 };
 use crate::paint::SurfaceStyle;
+use crate::state::InteractState;
 
 /// How a control lays out its child controls.
 ///
@@ -78,17 +78,23 @@ pub enum TextVAlign {
 ///
 /// Only `draw` is required: a pure container or a control whose pixels are
 /// supplied by chrome leaves `measure` at its default and reports
-/// [`ContentSize::ZERO`]. `draw` must paint the control's own content; a
-/// component that needs reusable chrome around it keeps using
-/// `NodeDecor`/`foreground_decor`, or draws it here.
+/// [`ContentSize::ZERO`]. `draw` paints the control's own content; a surface or
+/// foreground around it is a [`Chrome`](crate::Chrome) wrapper, which is still
+/// one [`ControlContent`].
 pub trait ControlContent {
     /// The size the content wants, given the space a parent can offer.
     fn measure(&self, _measurer: &dyn TextMeasurer, _available: Size) -> ContentSize {
         ContentSize::ZERO
     }
 
+    /// Paints a surface/chrome behind the content (before [`draw`](Self::draw)).
+    fn paint_behind(&self, _env: &mut PaintEnv<'_>, _rect: Rect, _state: InteractState) {}
+
     /// Paints the content into `rect` in the current transform space.
     fn draw(&self, id: NodeId, env: &mut PaintEnv<'_>, rect: Rect, state: InteractState);
+
+    /// Paints chrome in front of the content (after [`draw`](Self::draw)).
+    fn paint_front(&self, _env: &mut PaintEnv<'_>, _rect: Rect, _state: InteractState) {}
 
     /// The text this content renders, if any (used for introspection / tests).
     fn as_text(&self) -> Option<&str> {

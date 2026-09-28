@@ -339,12 +339,10 @@ impl Component for ScrollView {
 
     fn build(mut self, tree: &mut SceneTree, parent: NodeId) -> NodeId {
         self.prepare();
-        let spec = std::mem::take(self.spec());
+        let mut spec = std::mem::take(self.spec());
+        let content = spec.chrome(self.content());
         let root = tree.add_control(parent, self.name());
-        tree.set_data(
-            root,
-            Control::new(spec.data, self.container(), self.content()),
-        );
+        tree.set_data(root, Control::new(spec.data, self.container(), content));
         apply_spec(tree, root, spec);
 
         // The content is the first (only) child; it keeps its preferred height

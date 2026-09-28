@@ -103,8 +103,8 @@ density.
 
 The crate split is deliberate: `igui_ui` is the UI runtime **and** the styling
 primitives (`SurfaceStyle`, `fill_rounded_rect`/`inset`/`surface`, `Tone`,
-`SurfaceTone`, and the `surface_decor`/`dynamic_surface_decor`/
-`foreground_decor` factories), while `igui_components` contains **only component
+`SurfaceTone`, and the `Chrome` wrapper with its `add_background` /
+`add_foreground` helpers), while `igui_components` contains **only component
 builders**. Components implement `igui_components::Component`, receive a
 `&'static dyn Theme`, and attach their chrome to their own node. Hosts build one
 tree and use a single paint/input pass:
@@ -134,16 +134,20 @@ from the tree, so switching light/dark is just building with a different theme.
 
 ### Paint passes
 
-Themed chrome is attached to a control as a `igui_ui::NodeDecor` (built by the
-`igui_ui` decorator helpers `surface_decor` / `dynamic_surface_decor` /
-`foreground_decor`), so a single `igui_ui::paint` runs it in tree order:
+A control has one self-draw value — a boxed `ControlContent` — and an optional
+`igui_ui::Chrome` wrapper that paints a surface behind and/or a foreground in
+front of it. A single `igui_ui::paint` runs both in tree order:
 
-1. every decorator's `paint_behind` — rounded surfaces/borders behind content,
-2. the control's own `ControlContent` (`draw`, the Godot `_draw`),
-3. every decorator's `paint_front` — check marks, switch knobs, terminal dots.
+1. `paint_behind` — the `Chrome` surface (rounded surface / border), then the
+   inner content's behind,
+2. `draw` — the control's own `ControlContent` (the Godot `_draw`),
+3. `paint_front` — the inner content's front, then the `Chrome` foreground
+   (check marks, switch knobs, terminal dots).
 
-There are no separate surface/foreground passes, and a decorator is painted
-next to the node it belongs to (so it is torn down with the node).
+There are no separate surface/foreground passes, and the chrome is painted next
+to the node it belongs to (so it is torn down with the node).
+`Spec.background`/`foreground`, and the post-mount `add_background` /
+`add_foreground`, build that `Chrome` around the component's content.
 
 `paint::fill_rounded_rect` / `paint::surface` compose the render IR's rects and
 circles into rounded surfaces without double-blending translucent fills.
@@ -154,11 +158,11 @@ Components register clicks with `igui_components::set_on_click(tree, node, ..)` 
 `Component::on_click` builder; a hit on any
 descendant walks up to the nearest ancestor callback. Hover/pressed/focused
 state lives in the core and `igui_ui::state_for(tree, node)` inherits it from ancestors,
-which is what decorators read each frame. Checkbox/Switch share their state
+which is what content reads each frame. Checkbox/Switch share their state
 through `Rc<Cell<bool>>`.
 
 Surfaces are usually static, but selection and hover need per-frame styles:
-`dynamic_surface_decor(|state| ...)` recomputes a `SurfaceStyle` from the node's
+`Chrome::background(|state| ...)` recomputes a `SurfaceStyle` from the node's
 `InteractState` on every frame; the closure captures the theme/colors it needs.
 
 Beyond the node itself, a control can drive a named **group**
@@ -255,8 +259,9 @@ public APIs:
   (`PanelContent`/`TextContent`/`ButtonContent`) and the layout setters.
 - A control is a `Container` plus an optional `ControlContent`; it is **not** a
   closed widget enum, so any crate can add a self-drawing control without a
-  core change (`docs/godot-migration.md`, Stage 33). Chrome remains a
-  `NodeDecor`, drawn around the content.
+  core change (`docs/godot-migration.md`, Stage 33). Surface/foreground chrome
+  is the `Chrome` wrapper around that content, so a control still stores one
+  self-draw value.
 - Themed surfaces are painted by `igui_components` into the backend-neutral
   `DrawList`, so every backend renders them.
 
@@ -276,11 +281,19 @@ backward-compatible addition and record it here.
   `igui_ui::paint` is now the single canvas-item walker — world `Visual` **and**
   `Control`, in one layer-ordered pass over `SceneTree::paint_items` (with
   `SceneTree::paint_visual` shared); `SceneTree::paint` stays the world-only
-  entry. This ends the `Widget`-vs-`NodeDecor` double path for content (chrome
-  stays a `NodeDecor`). Also removed: `ButtonData`, `ButtonState`,
+  entry. This ends the `Widget`-only path for content. Also removed: `ButtonData`,
+  `ButtonState`,
   `button_state`, `BoxLayout`, `igui_ui::widget`; activation counting moved onto
   `Control::click_count`.
 
+- **`igui_ui::Chrome` + `add_background` / `add_foreground`** (Stage 33,
+  continued): the `NodeDecor` trait, `DecorRef` and `add_decor` were folded into
+  `ControlContent` so a control stores exactly one self-draw value. `Chrome`
+  wraps an inner content with an optional surface (`background`) and foreground,
+  and `Spec::chrome` composes a component's `background`/`foreground` around its
+  `content()`. `InteractState` moved to `igui_ui::state`; `igui_ui::decor` is
+  gone. `igui_components::base` was also split into `base/{mod,primitives,
+  containers,setters}.rs` (E2, partial).
 - **`igui_ui::NodeDecor` / `InteractState` + `igui_ui::add_decor`** (Stage 22):
   the closed `Widget` enum cannot carry themed chrome, so components attach a
   `NodeDecor` to a node instead. `igui_ui::paint` runs `paint_behind` / content /

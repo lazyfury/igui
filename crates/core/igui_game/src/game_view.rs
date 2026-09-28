@@ -25,7 +25,7 @@ use igui_anim::Animator;
 use igui_core::{NodeId, Size, ViewportSize};
 use igui_render::{Paint, PaintContext, RenderBackend, RenderTargetId};
 use igui_scene::SceneTree;
-use igui_ui::{add_decor, foreground_decor, Container, Control, ControlData};
+use igui_ui::{add_foreground, Container, Control, ControlData};
 
 use crate::clock::FixedTimestep;
 use crate::{Areas, SpriteAnimations, SpriteFrames, Timers};
@@ -81,13 +81,9 @@ impl GameView {
             Control::new(ControlData::fill_parent(), Container::Leaf, None),
         );
         let texture = self.target.texture();
-        add_decor(
-            host,
-            id,
-            foreground_decor(move |ctx, rect, _state| {
-                ctx.draw_image(texture, rect, None, Paint::default());
-            }),
-        );
+        add_foreground(host, id, move |env, rect, _state| {
+            env.ctx.draw_image(texture, rect, None, Paint::default());
+        });
         self.control = Some(id);
         id
     }

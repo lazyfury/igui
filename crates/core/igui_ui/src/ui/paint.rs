@@ -68,15 +68,11 @@ impl Ui {
             }
             let rect = control.data.rect;
             let state = self.state_for(tree, id);
-            for decor in &control.decorations {
-                decor.paint_behind(ctx, rect, state);
-            }
             if let Some(content) = &control.content {
                 let mut env = PaintEnv::new(ctx, measurer, cache);
+                content.paint_behind(&mut env, rect, state);
                 content.draw(id, &mut env, rect, state);
-            }
-            for decor in &control.decorations {
-                decor.paint_front(ctx, rect, state);
+                content.paint_front(&mut env, rect, state);
             }
         }
         if active.is_some() {

@@ -99,7 +99,7 @@ mod tests {
     use std::rc::Rc;
 
     use igui_core::{
-        Cursor, Edges, EventResult, InputEvent, PointerButton, Rect, Size, Vec2, ViewportSize,
+        Cursor, Edges, EventResult, InputEvent, PointerButton, Size, Vec2, ViewportSize,
     };
     use igui_scene::Visual;
     use igui_ui::{focused, handle_input, hovered_cursor, route_input};
@@ -341,53 +341,24 @@ mod tests {
     }
 
     #[test]
-    fn decor_paints_around_nodes_in_tree_order() {
-        use igui_ui::{InteractState, NodeDecor};
+    fn chrome_paints_around_nodes_in_tree_order() {
         use std::cell::RefCell;
-
-        struct Marker {
-            name: &'static str,
-            log: Rc<RefCell<Vec<&'static str>>>,
-        }
-        impl NodeDecor for Marker {
-            fn paint_behind(
-                &self,
-                _ctx: &mut igui_render::PaintContext,
-                _rect: Rect,
-                _state: InteractState,
-            ) {
-                self.log.borrow_mut().push(self.name);
-            }
-            fn paint_front(
-                &self,
-                _ctx: &mut igui_render::PaintContext,
-                _rect: Rect,
-                _state: InteractState,
-            ) {
-                self.log.borrow_mut().push(self.name);
-            }
-        }
 
         let (mut tree, root) = host();
         let a = tree.add_child(root, Label::new("A"));
         let b = tree.add_child(root, Label::new("B"));
         let log = Rc::new(RefCell::new(Vec::new()));
-        igui_ui::add_decor(
-            &mut tree,
-            a,
-            Rc::new(Marker {
-                name: "a",
-                log: log.clone(),
-            }),
-        );
-        igui_ui::add_decor(
-            &mut tree,
-            b,
-            Rc::new(Marker {
-                name: "b",
-                log: log.clone(),
-            }),
-        );
+        for (id, name) in [(a, "a"), (b, "b")] {
+            let behind = log.clone();
+            igui_ui::add_background(&mut tree, id, move |_state| {
+                behind.borrow_mut().push(name);
+                igui_ui::SurfaceStyle::new(igui_core::Color::TRANSPARENT)
+            });
+            let front = log.clone();
+            igui_ui::add_foreground(&mut tree, id, move |_env, _rect, _state| {
+                front.borrow_mut().push(name);
+            });
+        }
         igui_ui::layout(&mut tree, viewport(200.0, 200.0));
         tree.update();
         let mut ctx = igui_render::PaintContext::new();

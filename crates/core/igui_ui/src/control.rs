@@ -8,7 +8,6 @@ use igui_core::{
 use igui_scene::SceneTree;
 
 use crate::content::{Container, ContentRef};
-use crate::decor::DecorRef;
 use crate::focus::FocusNav;
 use crate::layout::{ApproxTextMeasurer, ContentSize, LayoutStyle, TextMeasurer, TextOptions};
 
@@ -305,8 +304,6 @@ pub struct Control {
     /// Name of the group this control reacts to while it is hovered. Resolved
     /// into [`InteractState::group_hovered`](crate::InteractState::group_hovered).
     pub group_hover: Option<String>,
-    /// Themed chrome attached by components (surfaces, foregrounds).
-    pub decorations: Vec<DecorRef>,
     /// Set when this control's layout inputs changed; cleared as it is arranged.
     pub layout_dirty: bool,
 }
@@ -333,7 +330,6 @@ impl Control {
             focus: FocusNav::default(),
             group: None,
             group_hover: None,
-            decorations: Vec::new(),
             layout_dirty: true,
         }
     }

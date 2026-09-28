@@ -7,7 +7,7 @@ UI is built from **components** on one `igui_scene::SceneTree`. A component is a
 value that builds exactly one primary control node; mount a whole scene with
 `.into_tree()` (or `SceneTree::add_child`) and nest with `.child()`.
 
-All UI runtime state lives on the tree (control data, widget, decorators, click
+All UI runtime state lives on the tree (control data, container/content, click
 callback, GUI state, layout cache, text measurer). `igui_ui` is a set of free
 functions over `&SceneTree` / `&mut SceneTree` — there is no `Ui` object. The
 theme is a plain value passed to component constructors; it is never stored on
@@ -645,7 +645,8 @@ Glyphs: `Check`, `Cross`, `Dash`, `Minus`, `Plus`, `ChevronDown` / `Up` /
 `Left` / `Right`, `Warning`, `Info`, `Search`, `Dot`, `Grid`, `List`,
 `TextLines`, `Square`, `Toggle`. `Icon` takes `size`, `tone` / `color` and an
 optional `stroke` width; for a custom shape call
-`igui_components::paint_glyph(..)` inside a `foreground` decorator.
+`igui_components::paint_glyph(..)` inside a `foreground` (or a `Chrome`
+foreground layer).
 
 ## Request redraw
 
@@ -698,7 +699,7 @@ The default `build` creates the control, installs `container()` (how it lays out
 children) and `content()` (its own measure + self-draw), and applies the spec
 (layout, background/foreground, click callback, `.child()` list). A pure
 container overrides only `container()`; a self-drawing leaf overrides only
-`content()`. Override `prepare(&mut self)` to compute decorators/children from
+`content()`. Override `prepare(&mut self)` to compute chrome/children from
 field values, and `build` for fully custom composites.
 
 Keep behavior driven only by core state so components stay headless-testable.

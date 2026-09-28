@@ -18,16 +18,18 @@ mod paint;
 
 use std::rc::Rc;
 
-use igui_core::NodeId;
+use igui_core::{NodeId, Rect};
 use igui_scene::SceneTree;
 
-use crate::content::{Container, ControlContent};
+use crate::chrome::Chrome;
+use crate::content::{Container, ControlContent, PaintEnv};
 use crate::control::{
     bump_paint_generation, control_mut, control_of, control_visible, gui_state, root_state,
     root_state_mut, CachedText, ControlData, LayoutCache,
 };
-use crate::decor::{DecorRef, InteractState};
 use crate::layout::{layout_text, TextMeasurer, TextOptions};
+use crate::paint::SurfaceStyle;
+use crate::state::InteractState;
 
 /// The UI layout/paint implementation namespace. Zero-sized: the theme, text
 /// measurer, control runtime and layout cache all live on the [`SceneTree`].
@@ -189,13 +191,36 @@ impl Ui {
         control_of(tree, id).map(|control| &control.container)
     }
 
-    /// Attaches themed chrome to `id`, painted by [`Ui::paint`] around the
-    /// control's own content.
-    pub fn add_decor(&mut self, tree: &mut SceneTree, id: NodeId, decor: DecorRef) {
-        if let Some(control) = control_mut(tree, id) {
-            control.decorations.push(decor);
-            bump_paint_generation(tree);
-        }
+    /// Paints a themed surface behind `id`'s content, wrapping whatever content
+    /// the control already has.
+    pub fn add_background(
+        &mut self,
+        tree: &mut SceneTree,
+        id: NodeId,
+        resolve: impl Fn(InteractState) -> SurfaceStyle + 'static,
+    ) {
+        let Some(control) = control_mut(tree, id) else {
+            return;
+        };
+        let inner = control.content.take();
+        control.content = Some(Box::new(Chrome::new(inner).background(resolve)));
+        bump_paint_generation(tree);
+    }
+
+    /// Paints a foreground in front of `id`'s content, wrapping whatever content
+    /// the control already has.
+    pub fn add_foreground(
+        &mut self,
+        tree: &mut SceneTree,
+        id: NodeId,
+        draw: impl Fn(&mut PaintEnv<'_>, Rect, InteractState) + 'static,
+    ) {
+        let Some(control) = control_mut(tree, id) else {
+            return;
+        };
+        let inner = control.content.take();
+        control.content = Some(Box::new(Chrome::new(inner).foreground(draw)));
+        bump_paint_generation(tree);
     }
 
     /// Turns subtree clipping on or off for `id`.
@@ -214,13 +239,6 @@ impl Ui {
         if changed {
             self.mark_dirty(tree, id);
         }
-    }
-
-    /// Decorators attached to `id`, in paint order.
-    pub fn decor<'a>(&self, tree: &'a SceneTree, id: NodeId) -> &'a [DecorRef] {
-        control_of(tree, id)
-            .map(|control| control.decorations.as_slice())
-            .unwrap_or(&[])
     }
 
     /// Hover/pressed/focused state of `id`, inherited from its ancestors.

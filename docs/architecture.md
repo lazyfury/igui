@@ -129,7 +129,7 @@ logical size plus the world -> screen `canvas_transform`.)
   layer). The theme is a value passed to constructors — it is no longer stored on
   the tree; the text measurer still lives on the root. `igui_ui` is layout +
   paint free functions plus per-node runtime (`ControlData`/`Container`/
-  `ControlContent`/decorators/GUI state/layout cache; the `Widget` enum was
+  `ControlContent`/`Chrome`/GUI state/layout cache; the `Widget` enum was
   removed in Stage 33). Phases 1-5 and sub-stages 25.1-25.16 landed; Phases
   6-9 are future stages. Details: `docs/godot-migration.md`.
 - Post-Stage-25 (un-numbered): `igui_font` (system-font service + numeric
@@ -146,7 +146,7 @@ logical size plus the world -> screen `canvas_transform`.)
 - Stage 27 — refresh decoupling [done]: additive core plumbing so a host can
   render only on change and keep an unchanged UI out of the frame cost. The
   `igui_ui` root state gained a `paint_generation` (bumped by layout
-  invalidation, GUI interaction state and decorators) plus `needs_layout` /
+  invalidation, GUI interaction state and chrome/content) plus `needs_layout` /
   `paint_generation` queries and `UiPaintCache` / `paint_cached` (reuses the
   last UI `DrawList`); `igui_scene::SceneTree::needs_update` reports stale
   derived state; `igui_render::PaintContext::extend` splices a cached list.

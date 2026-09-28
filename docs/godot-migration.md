@@ -526,12 +526,20 @@ frozen closed `Widget` enum):
   world `Visual`s and `Control`s in one layer-ordered pass; `SceneTree::paint`
   stays the world-only entry for UI-less games (`SceneTree::paint_visual` is
   shared).
+- **One self-draw layer.** `NodeDecor` / `DecorRef` / `add_decor`, and the
+  `surface_decor` / `dynamic_surface_decor` / `foreground_decor` factories, were
+  folded into `ControlContent` through `igui_ui::Chrome` (`add_background` /
+  `add_foreground`, `Spec::chrome`); `Control.decorations` is gone, so a control
+  stores one self-draw value.
 - **Removed** `Widget`, `ButtonData`, `ButtonState`, `button_state`,
   `BoxLayout`, `igui_ui::widget`; `click_count` moved onto `Control`.
 
 Layer-aware layout (H2: UI resolving relative to its `CanvasLayer`) remains a
 follow-up; controls still draw in viewport coordinates (ignoring the camera),
-as before. Recorded in `docs/design-system.md`.
+as before. The `igui_components::base` split into
+`base/{mod,primitives,containers,setters}.rs` is a first pass at the file-size
+rule; the remaining oversized files are a follow-up. Recorded in
+`docs/design-system.md`.
 
 ## Dependency order
 

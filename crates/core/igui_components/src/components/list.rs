@@ -8,10 +8,7 @@ use igui_core::{Color, Edges, NodeId, Rect, Size, Vec2};
 use igui_render::PaintContext;
 use igui_scene::SceneTree;
 use igui_theme::{default_theme, Mode, Space, TextSize, Theme, Tone};
-use igui_ui::{
-    dynamic_surface_decor, Align, ContentRef, Control, MouseFilter, PanelContent, SizeBasis,
-    SurfaceStyle,
-};
+use igui_ui::{Align, ContentRef, Control, MouseFilter, PanelContent, SizeBasis, SurfaceStyle};
 
 use crate::base::{
     apply_spec, set_on_click, set_on_scroll, set_on_secondary, set_text, update_control, Component,
@@ -491,20 +488,16 @@ impl ListInner {
             .map(|id| vec![id])
             .collect();
 
-        igui_ui::add_decor(
-            tree,
-            root,
-            dynamic_surface_decor(move |state| {
-                let index = paint_first.get() + slot_index;
-                if paint_selected.get() == Some(index) {
-                    SurfaceStyle::new(theme.palette().selection)
-                } else if state.hovered {
-                    SurfaceStyle::new(theme.palette().surface_hover)
-                } else {
-                    SurfaceStyle::new(Color::TRANSPARENT)
-                }
-            }),
-        );
+        igui_ui::add_background(tree, root, move |state| {
+            let index = paint_first.get() + slot_index;
+            if paint_selected.get() == Some(index) {
+                SurfaceStyle::new(theme.palette().selection)
+            } else if state.hovered {
+                SurfaceStyle::new(theme.palette().surface_hover)
+            } else {
+                SurfaceStyle::new(Color::TRANSPARENT)
+            }
+        });
         set_on_click(tree, root, move || {
             let index = click_first.get() + slot_index;
             click_selected.set(Some(index));
@@ -745,12 +738,10 @@ impl Component for List {
 
     fn build(mut self, tree: &mut SceneTree, parent: NodeId) -> NodeId {
         self.prepare();
-        let spec = std::mem::take(self.spec());
+        let mut spec = std::mem::take(self.spec());
+        let content = spec.chrome(self.content());
         let id = tree.add_control(parent, self.name());
-        tree.set_data(
-            id,
-            Control::new(spec.data, self.container(), self.content()),
-        );
+        tree.set_data(id, Control::new(spec.data, self.container(), content));
         apply_spec(tree, id, spec);
 
         {

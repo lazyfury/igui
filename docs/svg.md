@@ -53,7 +53,7 @@ svg.draw(&mut ctx, Rect::from_min_size(Vec2::ZERO, Size::splat(24.0)), Color::BL
 `preserveAspectRatio="xMidYMid meet"` semantics (uniform scale, centred) and
 resolves `stroke="currentColor"` from the color you pass. Because it writes
 straight into a `PaintContext`, an icon can be drawn inside any `igui_ui`
-decorator (via `igui_ui::foreground_decor`) without a texture or a raster cache.
+foreground layer (via `igui_ui::add_foreground`) without a texture or a raster cache.
 
 `igui_svg::IconPack` indexes a directory tree of `.svg` files by file stem:
 
@@ -73,7 +73,7 @@ geometry.
 
 Consumer (the `image_editor` project, a sibling checkout): it uses it two ways — the toolbar's tool
 and undo/redo buttons each build an `Icon` component (which strokes one SVG via a
-foreground decorator; see `icons.rs` / `ui/toolbar.rs`), and a sidebar gallery
+foreground layer; see `icons.rs` / `ui/toolbar.rs`), and a sidebar gallery
 draws a grid of 20 (`icons.rs`). Setting `IMAGE_EDITOR_ICON_DIR` points the same
 code at a full pack (2112 icons).
 

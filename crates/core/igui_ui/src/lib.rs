@@ -9,7 +9,7 @@
 //!   controls and runs the `_input -> world -> GUI -> _unhandled_input` order.
 //!
 //! Control data ([`ControlData`], [`Container`] / [`ControlContent`],
-//! [`NodeDecor`]) lives on the
+//! [`Chrome`]) lives on the
 //! [`SceneTree`] node's extension slot, and the text measurer / GUI interaction
 //! state / layout cache live on the root node. The theme is a value passed to
 //! component constructors. Building components lives in `igui_components`;
@@ -29,20 +29,22 @@
 pub const CRATE: &str = "igui_ui";
 
 mod cache;
+mod chrome;
 mod content;
 mod control;
 mod debug;
-mod decor;
 mod focus;
 mod input;
 pub mod layout;
 mod paint;
+mod state;
 #[cfg(test)]
 mod test_support;
 pub mod text_edit;
 mod ui;
 
 pub use cache::{paint_cached, PaintStatus, UiPaintCache};
+pub use chrome::Chrome;
 pub use content::{
     estimate_text_size, ButtonContent, Container, ContentRef, ControlContent, PaintEnv,
     PanelContent, TextContent, TextVAlign,
@@ -55,9 +57,6 @@ pub use control::{
     PointerPhase, PointerTreeCallback, ScrollCallback, SecondaryCallback, TextCallback,
 };
 pub use debug::DebugDrawOptions;
-pub use decor::{
-    dynamic_surface_decor, foreground_decor, surface_decor, DecorRef, InteractState, NodeDecor,
-};
 pub use focus::{
     focus_down, focus_left, focus_move, focus_nav, focus_next, focus_prev, focus_right, focus_up,
     focusable_nodes, set_focus, set_focus_nav, FocusDir, FocusNav,
@@ -72,11 +71,12 @@ pub use layout::{
     TextOptions, Track, WordBreak,
 };
 pub use paint::{fill_rounded_rect, fill_rounded_rect_corners, inset, surface, SurfaceStyle};
+pub use state::InteractState;
 pub use text_edit::{Preedit, TextEdit};
 
 use std::rc::Rc;
 
-use igui_core::{NodeId, Size, ViewportSize};
+use igui_core::{NodeId, Rect, Size, ViewportSize};
 use igui_render::PaintContext;
 use igui_scene::SceneTree;
 
@@ -147,10 +147,24 @@ pub fn mark_dirty(tree: &mut SceneTree, id: NodeId) {
     Ui.mark_dirty(tree, id)
 }
 
-/// Attaches themed chrome to `id`, painted by [`paint`] around the control's
-/// own content.
-pub fn add_decor(tree: &mut SceneTree, id: NodeId, decor: DecorRef) {
-    Ui.add_decor(tree, id, decor)
+/// Paints a themed surface behind `id`'s content, wrapping whatever content the
+/// control already has.
+pub fn add_background(
+    tree: &mut SceneTree,
+    id: NodeId,
+    resolve: impl Fn(InteractState) -> SurfaceStyle + 'static,
+) {
+    Ui.add_background(tree, id, resolve)
+}
+
+/// Paints a foreground in front of `id`'s content, wrapping whatever content the
+/// control already has.
+pub fn add_foreground(
+    tree: &mut SceneTree,
+    id: NodeId,
+    draw: impl Fn(&mut PaintEnv<'_>, Rect, InteractState) + 'static,
+) {
+    Ui.add_foreground(tree, id, draw)
 }
 
 /// Clips `id` (and everything below it) to its own rectangle.
@@ -165,11 +179,6 @@ pub fn add_decor(tree: &mut SceneTree, id: NodeId, decor: DecorRef) {
 /// `clip_rect`); recorded in `docs/design-system.md`.
 pub fn set_clip(tree: &mut SceneTree, id: NodeId, clip: bool) {
     Ui.set_clip(tree, id, clip)
-}
-
-/// Decorators attached to `id`, in paint order.
-pub fn decor(tree: &SceneTree, id: NodeId) -> &[DecorRef] {
-    Ui.decor(tree, id)
 }
 
 /// Hover/pressed/focused state of `id`, inherited from its ancestors.
