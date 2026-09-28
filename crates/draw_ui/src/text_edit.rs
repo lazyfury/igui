@@ -117,6 +117,48 @@ impl TextEdit {
         self.caret = self.text.len();
     }
 
+    /// Moves the caret to `byte` while keeping the selection anchor, so a
+    /// pointer drag extends the selection.
+    pub fn extend_to(&mut self, byte: usize) {
+        self.caret = floor_boundary(&self.text, byte);
+    }
+
+    /// The selected substring, or `None` when there is no selection.
+    pub fn selected_text(&self) -> Option<&str> {
+        self.selection().map(|(start, end)| &self.text[start..end])
+    }
+
+    /// Selects the word (or separator run) around `byte` — the double-click
+    /// behaviour. A run of word characters selects the word; otherwise the run
+    /// of separators under the pointer is selected.
+    pub fn select_word_at(&mut self, byte: usize) {
+        let byte = floor_boundary(&self.text, byte);
+        let at = self.text[byte..].chars().next();
+        let before = self.text[..byte].chars().next_back();
+        let word = at.is_some_and(is_word_char) || before.is_some_and(is_word_char);
+
+        let mut start = byte;
+        while start > 0 {
+            let previous = prev_boundary(&self.text, start);
+            let ch = self.text[previous..start].chars().next().unwrap_or(' ');
+            if is_word_char(ch) != word {
+                break;
+            }
+            start = previous;
+        }
+        let mut end = byte;
+        while end < self.text.len() {
+            let next = next_boundary(&self.text, end);
+            let ch = self.text[end..next].chars().next().unwrap_or(' ');
+            if is_word_char(ch) != word {
+                break;
+            }
+            end = next;
+        }
+        self.anchor = start;
+        self.caret = end;
+    }
+
     /// Collapses the selection to the caret end (no-op when there is none).
     pub fn clear_selection(&mut self) {
         self.anchor = self.caret;
@@ -505,6 +547,24 @@ mod tests {
         assert_eq!(edit.text(), "你");
         assert!(!edit.has_preedit());
         assert_eq!(edit.caret(), 3);
+    }
+
+    #[test]
+    fn extend_to_keeps_the_anchor() {
+        let mut edit = TextEdit::new("hello");
+        edit.set_caret(1);
+        edit.extend_to(4);
+        assert_eq!(edit.selection(), Some((1, 4)));
+        assert_eq!(edit.selected_text(), Some("ell"));
+    }
+
+    #[test]
+    fn select_word_at_picks_the_word_run() {
+        let mut edit = TextEdit::new("foo bar baz");
+        edit.select_word_at(5); // inside "bar"
+        assert_eq!(edit.selected_text(), Some("bar"));
+        edit.select_word_at(3); // at the space after "foo"
+        assert_eq!(edit.selected_text(), Some("foo"));
     }
 
     #[test]

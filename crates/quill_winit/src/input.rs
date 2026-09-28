@@ -5,6 +5,8 @@
 //! modifier set. [`Host::translate`](crate::Host::translate) builds the events;
 //! these functions stay public so a host that keeps its own loop can reuse them.
 
+use std::time::{Duration, Instant};
+
 use draw_core::{Key, Modifiers, PointerButton, Vec2};
 use winit::dpi::PhysicalPosition;
 use winit::event::{MouseButton, MouseScrollDelta};
@@ -12,6 +14,40 @@ use winit::keyboard::{Key as WinitKey, ModifiersState, NamedKey};
 
 /// One wheel notch scrolls this many logical pixels (about three text lines).
 pub const WHEEL_LINE_HEIGHT: f32 = 48.0;
+
+/// Two presses within this window (and this many logical pixels of each other)
+/// are a double click.
+pub const DOUBLE_CLICK_WINDOW: Duration = Duration::from_millis(400);
+/// Maximum distance between the two presses of a double click.
+pub const DOUBLE_CLICK_SLOP: f32 = 6.0;
+
+/// Tracks left-button presses to detect double clicks.
+#[derive(Debug, Default)]
+pub struct DoubleClickTracker {
+    last: Option<(Instant, Vec2)>,
+}
+
+impl DoubleClickTracker {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Records a press at `position` now and reports whether it is the second
+    /// of a double click.
+    pub fn press(&mut self, position: Vec2) -> bool {
+        self.press_at(position, Instant::now())
+    }
+
+    /// [`press`](Self::press) with an explicit clock (tests).
+    pub fn press_at(&mut self, position: Vec2, now: Instant) -> bool {
+        let double = self.last.is_some_and(|(when, at)| {
+            now.duration_since(when) < DOUBLE_CLICK_WINDOW
+                && (at - position).length() <= DOUBLE_CLICK_SLOP
+        });
+        self.last = Some((now, position));
+        double
+    }
+}
 
 /// Maps a platform mouse button; anything unknown is the primary button.
 pub fn pointer_button(button: MouseButton) -> PointerButton {
@@ -79,6 +115,28 @@ pub fn map_key(key: &WinitKey) -> Option<Key> {
     }
 }
 
+/// The committed text a keyboard event contributes, if any.
+///
+/// Prefers the platform's `text`; when that is absent (Space and Tab are named
+/// keys whose `text` is not always set) it is derived from the logical key.
+/// Control characters are dropped except Tab (text fields insert it).
+pub fn committed_text(logical_key: &WinitKey, text: Option<&str>) -> Option<String> {
+    if matches!(
+        logical_key,
+        WinitKey::Named(NamedKey::Space | NamedKey::Tab)
+    ) {
+        return None;
+    }
+    let derived = text.map(str::to_string).or_else(|| match logical_key {
+        WinitKey::Character(text) => Some(text.to_string()),
+        _ => None,
+    })?;
+    if derived.is_empty() || derived.chars().any(char::is_control) {
+        return None;
+    }
+    Some(derived)
+}
+
 /// Converts a physical pointer position to logical viewport coordinates.
 pub fn to_logical(position: PhysicalPosition<f64>, scale: f64) -> Vec2 {
     let scale = if scale > 0.0 { scale as f32 } else { 1.0 };
@@ -132,5 +190,48 @@ mod tests {
     fn pointer_coordinates_scale_to_logical() {
         let logical = to_logical(PhysicalPosition::new(40.0, 60.0), 2.0);
         assert_eq!(logical, Vec2::new(20.0, 30.0));
+    }
+
+    #[test]
+    fn committed_text_is_characters_not_named_keys() {
+        assert_eq!(
+            committed_text(&WinitKey::Character("a".into()), None).as_deref(),
+            Some("a")
+        );
+        // Space and Tab are named keys: the field handles them, so the host must
+        // not send them as committed text (even if the platform sets `text`).
+        assert_eq!(
+            committed_text(&WinitKey::Named(NamedKey::Space), Some(" ")),
+            None
+        );
+        assert_eq!(
+            committed_text(&WinitKey::Named(NamedKey::Tab), Some("\t")),
+            None
+        );
+        // Other control characters are not committed text either.
+        assert_eq!(
+            committed_text(&WinitKey::Named(NamedKey::Enter), Some("\r")),
+            None
+        );
+        assert_eq!(
+            committed_text(&WinitKey::Named(NamedKey::Escape), None),
+            None
+        );
+    }
+
+    #[test]
+    fn double_click_needs_time_and_proximity() {
+        let start = Instant::now();
+        let mut tracker = DoubleClickTracker::new();
+        assert!(!tracker.press_at(Vec2::new(10.0, 10.0), start));
+        assert!(tracker.press_at(Vec2::new(11.0, 10.0), start + Duration::from_millis(100)));
+
+        let mut slow = DoubleClickTracker::new();
+        slow.press_at(Vec2::ZERO, start);
+        assert!(!slow.press_at(Vec2::ZERO, start + Duration::from_millis(800)));
+
+        let mut far = DoubleClickTracker::new();
+        far.press_at(Vec2::ZERO, start);
+        assert!(!far.press_at(Vec2::new(40.0, 0.0), start + Duration::from_millis(50)));
     }
 }

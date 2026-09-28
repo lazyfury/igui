@@ -142,14 +142,29 @@ pub type DragCallback = Rc<RefCell<dyn FnMut(&mut SceneTree, DragPhase, Vec2)>>;
 /// pointer onto its own rectangle. Fires on press and on every move while held.
 pub type PointerCallback = Rc<RefCell<dyn FnMut(Rect, Vec2)>>;
 
-/// Like [`PointerCallback`] but receives the owning tree, so the control can
-/// mark itself for repaint ([`draw_ui::request_paint`](crate::request_paint))
-/// after the pointer edit (a text field placing its caret).
+/// Phase of an absolute-position pointer interaction, so a control can react to
+/// press / drag / release and to a double click (a text field: place the caret,
+/// extend the selection, finish the drag, select a word).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PointerPhase {
+    /// The pointer went down on the control.
+    Down,
+    /// The pointer moved while held (pointer capture).
+    Move,
+    /// The pointer was released.
+    Up,
+    /// A second click on the same point (word selection).
+    DoubleClick,
+}
+
+/// Like [`PointerCallback`] but receives the owning tree and the interaction
+/// [`PointerPhase`], so the control can mark itself for repaint
+/// ([`draw_ui::request_paint`](crate::request_paint)) and implement selection.
 ///
 /// Additive: [`Control::pointer_callback`] keeps its original signature, so
 /// existing components are unaffected. The router dispatches this one first
 /// when a control registered both.
-pub type PointerTreeCallback = Rc<RefCell<dyn FnMut(&mut SceneTree, Rect, Vec2)>>;
+pub type PointerTreeCallback = Rc<RefCell<dyn FnMut(&mut SceneTree, PointerPhase, Rect, Vec2)>>;
 
 /// A callback invoked on a secondary (right) click, with the pointer position in
 /// viewport coordinates — enough to anchor a context menu at the cursor.
@@ -187,6 +202,36 @@ pub type ImeCallback = Rc<RefCell<dyn FnMut(&mut SceneTree, &ImeEvent)>>;
 /// coordinates, so a host can place the platform IME candidate window
 /// (`set_ime_cursor_area`). `None` when the control has no visible caret.
 pub type CaretProvider = Rc<dyn Fn() -> Option<Rect>>;
+
+/// A host-provided clipboard, so a text field can copy / cut / paste without
+/// the UI layer touching a platform API.
+///
+/// Install one with [`set_clipboard`](crate::set_clipboard); the tree root
+/// stores it. A host that has no system clipboard can leave it unset (copy /
+/// paste then do nothing) or install [`MemoryClipboard`].
+pub trait Clipboard {
+    /// The current clipboard text, if any.
+    fn get(&self) -> Option<String>;
+    /// Replaces the clipboard text.
+    fn set(&mut self, text: &str);
+}
+
+/// A process-local clipboard, used by tests and as a host fallback when no
+/// system clipboard is available.
+#[derive(Debug, Default)]
+pub struct MemoryClipboard {
+    text: Option<String>,
+}
+
+impl Clipboard for MemoryClipboard {
+    fn get(&self) -> Option<String> {
+        self.text.clone()
+    }
+
+    fn set(&mut self, text: &str) {
+        self.text = Some(text.to_string());
+    }
+}
 
 /// Resolves the clip rectangle a control draws its subtree under.
 ///
@@ -358,6 +403,8 @@ pub(crate) struct UiRootState {
     pub(crate) text_measurer: Rc<RefCell<Rc<dyn TextMeasurer>>>,
     pub(crate) gui: GuiState,
     pub(crate) layout: RefCell<LayoutCache>,
+    /// Host-provided clipboard, if any (text fields copy / cut / paste).
+    pub(crate) clipboard: Option<Rc<RefCell<dyn Clipboard>>>,
     /// Bumped on every change that can alter the painted UI. Hosts compare it
     /// (via [`paint_generation`](crate::paint_generation)) against the
     /// generation their cached UI `DrawList` was built from.
@@ -370,6 +417,7 @@ impl Default for UiRootState {
             text_measurer: Rc::new(RefCell::new(Rc::new(ApproxTextMeasurer))),
             gui: GuiState::default(),
             layout: RefCell::new(LayoutCache::default()),
+            clipboard: None,
             paint_generation: 0,
         }
     }
@@ -459,7 +507,7 @@ where
 /// [`PointerTreeCallback`]).
 pub fn set_pointer_tree_callback<F>(tree: &mut SceneTree, id: NodeId, callback: F) -> bool
 where
-    F: FnMut(&mut SceneTree, Rect, Vec2) + 'static,
+    F: FnMut(&mut SceneTree, PointerPhase, Rect, Vec2) + 'static,
 {
     match control_mut(tree, id) {
         Some(control) => {
@@ -490,6 +538,16 @@ pub fn text_measurer(tree: &SceneTree) -> Rc<dyn TextMeasurer> {
     root_state(tree)
         .map(|state| state.text_measurer.borrow().clone())
         .unwrap_or_else(|| Rc::new(ApproxTextMeasurer))
+}
+
+/// Installs a host clipboard (text fields copy / cut / paste through it).
+pub fn set_clipboard(tree: &mut SceneTree, clipboard: Rc<RefCell<dyn Clipboard>>) {
+    root_state_mut(tree).clipboard = Some(clipboard);
+}
+
+/// The tree's clipboard, if a host installed one.
+pub fn clipboard(tree: &SceneTree) -> Option<Rc<RefCell<dyn Clipboard>>> {
+    root_state(tree).and_then(|state| state.clipboard.clone())
 }
 
 /// The tree's measurer as a stable shared handle.

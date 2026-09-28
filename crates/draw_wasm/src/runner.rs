@@ -213,29 +213,33 @@ fn attach_keyboard_listeners<A: App + 'static>(window: &Window, app: &Rc<RefCell
         Closure::<dyn FnMut(web_sys::KeyboardEvent)>::new(move |event: web_sys::KeyboardEvent| {
             let mut app = app.borrow_mut();
             app.event(&InputEvent::ModifiersChanged(modifiers_from_event(&event)));
-            app.event(&InputEvent::KeyDown {
-                key: key_from_event(&event),
-            });
+            let handled = app
+                .event(&InputEvent::KeyDown {
+                    key: key_from_event(&event),
+                })
+                .is_handled();
             // Browsers deliver typed text on `keydown`; a single printable
             // character (outside a Ctrl/Cmd chord) is committed text. IME
             // composition needs a focused DOM input, which this canvas host
             // does not have (yet).
             if !(event.ctrl_key() || event.meta_key()) {
                 let key_text = event.key();
-                if key_text == "Tab" {
-                    app.event(&InputEvent::TextInput { text: "\t".into() });
-                } else {
-                    let single = {
-                        let mut chars = key_text.chars();
-                        match (chars.next(), chars.next()) {
-                            (Some(ch), None) => Some(ch),
-                            _ => None,
-                        }
-                    };
-                    if single.is_some_and(|ch| !ch.is_control()) {
-                        app.event(&InputEvent::TextInput { text: key_text });
+                let single = {
+                    let mut chars = key_text.chars();
+                    match (chars.next(), chars.next()) {
+                        (Some(ch), None) => Some(ch),
+                        _ => None,
                     }
+                };
+                // Space and Tab are named keys the field inserts from `KeyDown`.
+                if single.is_some_and(|ch| !ch.is_control() && ch != ' ') {
+                    app.event(&InputEvent::TextInput { text: key_text });
                 }
+            }
+            // The focused field consumed it: stop the browser from scrolling
+            // (Space, arrows) or moving focus (Tab).
+            if handled {
+                event.prevent_default();
             }
         })
     };

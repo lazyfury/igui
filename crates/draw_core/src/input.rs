@@ -117,6 +117,14 @@ pub enum InputEvent {
     PointerMove {
         position: Vec2,
     },
+    /// A second click on (nearly) the same point within the double-click
+    /// window. Hosts detect it (they own the clock); the UI uses it for
+    /// word-level selection. Sent *after* the matching [`PointerDown`].
+    ///
+    /// [`PointerDown`]: InputEvent::PointerDown
+    DoubleClick {
+        position: Vec2,
+    },
     PointerLeave,
     /// Mouse wheel / trackpad scroll. `delta` is in logical pixels; `y > 0`
     /// scrolls down, `x > 0` scrolls right.
@@ -149,6 +157,7 @@ impl InputEvent {
             Self::PointerDown { position, .. }
             | Self::PointerUp { position, .. }
             | Self::PointerMove { position }
+            | Self::DoubleClick { position }
             | Self::Wheel { position, .. } => Some(*position),
             _ => None,
         }
@@ -225,7 +234,9 @@ impl InputState {
                 self.pointer = *position;
                 self.buttons.remove(button);
             }
-            InputEvent::PointerMove { position } | InputEvent::Wheel { position, .. } => {
+            InputEvent::PointerMove { position }
+            | InputEvent::DoubleClick { position }
+            | InputEvent::Wheel { position, .. } => {
                 self.pointer = *position;
             }
             InputEvent::KeyDown { key } => {

@@ -1,8 +1,11 @@
 //! `DemoApp` behaviour: navigation, the theme rebuild and the headless pipeline.
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use crate::*;
 use draw_backend_recording::RecordingBackend;
-use draw_core::{Color, PointerButton};
+use draw_core::{Color, Key, PointerButton};
 use draw_render::{DrawCommand, PaintContext, RenderBackend};
 
 fn laid_out() -> DemoApp {
@@ -25,6 +28,15 @@ fn click(app: &mut DemoApp, position: Vec2) {
 }
 
 #[test]
+/// The gallery installs a host clipboard for its text fields.
+#[test]
+fn the_demo_installs_a_host_clipboard() {
+    let mut app = laid_out();
+    let clipboard = Rc::new(RefCell::new(draw_ui::MemoryClipboard::default()));
+    app.set_clipboard(clipboard.clone());
+    assert!(draw_ui::clipboard(app.tree()).is_some());
+}
+
 /// The gallery's live text fields are interactive end to end: a click focuses
 /// one and a typed character reaches its committed text (and the `DrawList`).
 #[test]
@@ -53,7 +65,18 @@ fn a_gallery_text_field_accepts_typed_input() {
         .rect
         .center();
     click(&mut app, center);
-    app.event(&InputEvent::TextInput { text: "hi".into() });
+    // Mimic the host: characters arrive as committed text, Space/Tab as a
+    // named key.
+    for (key, text) in [
+        (Key::Character('a'), Some("a")),
+        (Key::Space, None),
+        (Key::Character('b'), Some("b")),
+    ] {
+        app.event(&InputEvent::KeyDown { key });
+        if let Some(text) = text {
+            app.event(&InputEvent::TextInput { text: text.into() });
+        }
+    }
 
     let mut ctx = PaintContext::new();
     app.paint(&mut ctx);
@@ -61,9 +84,9 @@ fn a_gallery_text_field_accepts_typed_input() {
     assert!(
         list.iter().any(|command| matches!(
             command,
-            DrawCommand::DrawText { text, .. } if text == "hi"
+            DrawCommand::DrawText { text, .. } if text == "a b"
         )),
-        "the typed text is painted"
+        "the typed text (with its space) is painted"
     );
 }
 

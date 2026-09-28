@@ -498,6 +498,13 @@ backward-compatible addition and record it here.
   an interactive editor with caret, selection, password masking and IME preedit;
   `TextArea` (multi-line, wrapping, caret-following scroll) was added. Neither
   reads `draw_theme` values except through tokens; no `Widget` variant was added.
+  Selection and clipboard followed: the tree-aware pointer callback now carries a
+  `PointerPhase` (`Down`/`Move`/`Up`/`DoubleClick`) so a field can drag-select,
+  `draw_core` gained `InputEvent::DoubleClick` (host-detected, word selection),
+  and `draw_ui` gained a `Clipboard` trait (`set_clipboard` / `clipboard`,
+  `MemoryClipboard`) installed by the host for copy / cut / paste. Additive except
+  the brand-new `PointerTreeCallback` / `Component::on_pointer_tree` signature
+  (no external users).
 
 - **`quill_winit`: a shared, non-core winit + wgpu host layer** (Stage: text
   input): every window host copied window / surface / backend / swap-chain

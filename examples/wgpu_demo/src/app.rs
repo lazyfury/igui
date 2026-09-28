@@ -108,6 +108,7 @@ impl App {
         if let Some(metrics) = metrics {
             self.demo.set_text_metrics(metrics);
         }
+        self.demo.set_clipboard(self.host.clipboard());
 
         // With a transparent macOS title bar the content fills the title-bar
         // area, so reserve a top safe area on the sidebar for the traffic lights.

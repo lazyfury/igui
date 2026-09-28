@@ -186,8 +186,12 @@ logical size plus the world -> screen `canvas_transform`.)
   `winit` + `wgpu` window/surface/backend lifecycle, input translation (including
   IME), `DrawList` presentation and IME candidate-window placement;
   `examples/wgpu_demo` is the reference migration and the gallery exercises both
-  fields. Backends needed no new `DrawCommand`. See `docs/components.md` §Text
-  fields and `docs/design-system.md` §Recorded core additions.
+  fields. Selection followed: drag-select via a tree-aware `PointerPhase`
+  pointer callback, host-detected `InputEvent::DoubleClick` for word selection,
+  and a host `Clipboard` for copy / cut / paste (`quill_winit` wraps arboard with
+  an in-process fallback). Backends needed no new `DrawCommand`. See
+  `docs/components.md` §Text fields and `docs/design-system.md` §Recorded core
+  additions.
 
 ## Debugging & performance inspection
 

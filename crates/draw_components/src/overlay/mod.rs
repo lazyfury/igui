@@ -210,6 +210,11 @@ impl Overlays {
         self.dirty = true;
     }
 
+    /// Uses `clipboard` for text fields inside overlays (a modal input).
+    pub fn set_clipboard(&mut self, clipboard: Rc<RefCell<dyn draw_ui::Clipboard>>) {
+        draw_ui::set_clipboard(&mut self.tree, clipboard);
+    }
+
     /// Opens a modal confirmation dialog.
     ///
     /// Close it with [`Overlays::on_confirm`], [`Overlays::on_cancel`], a click

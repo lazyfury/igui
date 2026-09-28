@@ -70,7 +70,7 @@ pub struct Spec {
     pub on_pointer: Option<Box<dyn FnMut(Rect, Vec2)>>,
     /// Tree-aware absolute-position pointer callback (text fields: place the
     /// caret and repaint). Dispatched before [`Spec::on_pointer`].
-    pub on_pointer_tree: Option<Box<dyn FnMut(&mut SceneTree, Rect, Vec2)>>,
+    pub on_pointer_tree: Option<Box<dyn FnMut(&mut SceneTree, draw_ui::PointerPhase, Rect, Vec2)>>,
     pub on_scroll: Option<Box<dyn FnMut(Vec2)>>,
     pub cursor_provider: Option<Box<dyn Fn() -> Cursor>>,
     /// Whether the control accepts focused key / text / IME input.
@@ -287,7 +287,7 @@ pub trait Component: Sized {
     /// (text fields placing their caret).
     fn on_pointer_tree(
         mut self,
-        callback: impl FnMut(&mut SceneTree, Rect, Vec2) + 'static,
+        callback: impl FnMut(&mut SceneTree, draw_ui::PointerPhase, Rect, Vec2) + 'static,
     ) -> Self {
         self.spec().on_pointer_tree = Some(Box::new(callback));
         self

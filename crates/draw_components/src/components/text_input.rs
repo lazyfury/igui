@@ -147,10 +147,13 @@ crate::impl_scene_child!(TextInput);
 mod tests {
     use super::*;
     use crate::Flex;
-    use draw_core::{Edges, ImeEvent, InputEvent, Key, Modifiers, Size, ViewportSize};
+    use std::cell::RefCell;
+    use std::rc::Rc;
+
+    use draw_core::{Edges, ImeEvent, InputEvent, Key, Modifiers, Size, Vec2, ViewportSize};
     use draw_scene::SceneTree;
     use draw_theme::{default_theme, Mode};
-    use draw_ui::{MouseFilter, Widget};
+    use draw_ui::{Clipboard, MouseFilter, Widget};
 
     fn mount(tree: &mut SceneTree, input: TextInput) -> draw_core::NodeId {
         let page = tree.add_child(
@@ -202,6 +205,86 @@ mod tests {
     }
 
     #[test]
+    fn dragging_extends_the_selection() {
+        let theme = default_theme(Mode::Dark);
+        let mut tree = SceneTree::new();
+        let input = TextInput::new(theme).value("hello world").min_width(200.0);
+        let shared = input.shared();
+        let id = mount(&mut tree, input);
+        focus(&mut tree, id);
+        let rect = tree.data::<draw_ui::Control>(id).unwrap().data.rect;
+        draw_ui::handle_input(
+            &mut tree,
+            &InputEvent::PointerMove {
+                position: Vec2::new(rect.left() + 2.0, rect.center().y),
+            },
+        );
+        assert!(shared.borrow().has_selection());
+    }
+
+    #[test]
+    fn a_double_click_selects_the_word() {
+        let theme = default_theme(Mode::Dark);
+        let mut tree = SceneTree::new();
+        let input = TextInput::new(theme).value("foo bar").min_width(200.0);
+        let shared = input.shared();
+        let id = mount(&mut tree, input);
+        focus(&mut tree, id);
+        let rect = tree.data::<draw_ui::Control>(id).unwrap().data.rect;
+        // Beyond the text: the caret clamps to the end, inside "bar".
+        draw_ui::handle_input(
+            &mut tree,
+            &InputEvent::DoubleClick {
+                position: Vec2::new(rect.right() - 2.0, rect.center().y),
+            },
+        );
+        assert_eq!(shared.borrow().selected_text(), Some("bar"));
+    }
+
+    #[test]
+    fn copy_cut_and_paste_use_the_clipboard() {
+        let theme = default_theme(Mode::Dark);
+        let mut tree = SceneTree::new();
+        let clipboard = Rc::new(RefCell::new(draw_ui::MemoryClipboard::default()));
+        draw_ui::set_clipboard(&mut tree, clipboard.clone());
+        let input = TextInput::new(theme).value("hello world").min_width(200.0);
+        let shared = input.shared();
+        let id = mount(&mut tree, input);
+        focus(&mut tree, id);
+        shared.borrow_mut().select_all();
+        let ctrl = Modifiers {
+            ctrl: true,
+            ..Modifiers::NONE
+        };
+        draw_ui::handle_input(&mut tree, &InputEvent::ModifiersChanged(ctrl));
+
+        draw_ui::handle_input(
+            &mut tree,
+            &InputEvent::KeyDown {
+                key: Key::Character('c'),
+            },
+        );
+        assert_eq!(clipboard.borrow().get().as_deref(), Some("hello world"));
+
+        draw_ui::handle_input(
+            &mut tree,
+            &InputEvent::KeyDown {
+                key: Key::Character('x'),
+            },
+        );
+        assert_eq!(clipboard.borrow().get().as_deref(), Some("hello world"));
+        assert_eq!(shared.borrow().text(), "");
+
+        draw_ui::handle_input(
+            &mut tree,
+            &InputEvent::KeyDown {
+                key: Key::Character('v'),
+            },
+        );
+        assert_eq!(shared.borrow().text(), "hello world");
+    }
+
+    #[test]
     fn space_and_tab_are_inserted() {
         let theme = default_theme(Mode::Dark);
         let mut tree = SceneTree::new();
@@ -209,9 +292,10 @@ mod tests {
         let shared = input.shared();
         let id = mount(&mut tree, input);
         focus(&mut tree, id);
-        // Hosts derive Space/Tab text from the named key; the field inserts it.
-        draw_ui::handle_input(&mut tree, &InputEvent::TextInput { text: " ".into() });
-        draw_ui::handle_input(&mut tree, &InputEvent::TextInput { text: "\t".into() });
+        // Space and Tab are named keys the field inserts itself (guarded by the
+        // IME preedit); no host `TextInput` is involved.
+        draw_ui::handle_input(&mut tree, &InputEvent::KeyDown { key: Key::Space });
+        draw_ui::handle_input(&mut tree, &InputEvent::KeyDown { key: Key::Tab });
         assert_eq!(shared.borrow().text(), " \t");
     }
 

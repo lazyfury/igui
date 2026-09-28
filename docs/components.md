@@ -323,10 +323,31 @@ selection replacement, `select_all`, char- and word-wise movement
 the tree's `TextMeasurer`, so the caret lines up exactly with the drawn glyphs.
 The measurer is resolved **per paint** from `draw_ui::text_measurer_handle`
 (captured at mount), so a host that installs real font metrics after building the
-tree still gets an aligned caret. Space and Tab arrive as `InputEvent::TextInput`
-(hosts derive their text from the named key; `quill_winit` does this for winit),
-while printable keys are consumed by the focused field so a host shortcut cannot
-also fire while typing.
+tree still gets an aligned caret. Space and Tab are **named keys the field
+inserts itself** (`Key::Space` / `Key::Tab`, skipped while an IME preedit is
+active — the IME owns the space that selects a candidate); printable characters
+arrive as `InputEvent::TextInput`, and the field consumes them so a host
+shortcut cannot also fire while typing. Hosts must not also send Space/Tab as
+`TextInput` (that would double-insert).
+
+### Selection & clipboard
+
+- **Drag** to select: the field receives a tree-aware pointer callback
+  (`Component::on_pointer_tree`) with a `PointerPhase`
+  (`Down`/`Move`/`Up`/`DoubleClick`). `Down` places the caret, `Move` extends the
+  selection (and scrolls a `TextArea` when the pointer goes past its top/bottom),
+  `Up` ends the drag.
+- **Double-click** selects the word under the pointer. The host detects the
+  double click (it owns the clock) and sends `InputEvent::DoubleClick` after the
+  matching `PointerDown`; `quill_winit` does this, and `draw_ui::handle_input`
+  routes it to the field as `PointerPhase::DoubleClick`.
+- **Copy / cut / paste** on `Ctrl`/`Cmd+C`/`X`/`V` go through a host clipboard:
+  install one with `draw_ui::set_clipboard(tree, Rc<RefCell<dyn Clipboard>>)`
+  (`draw_ui::MemoryClipboard` is a process-local fallback for tests).
+  `quill_winit::Host::clipboard()` wraps the system clipboard (arboard) with an
+  in-process fallback; `DemoApp::set_clipboard` installs it for the app and the
+  overlay layer. A host with no clipboard simply leaves it unset and copy/paste
+  are no-ops.
 
 ### Focus and routing
 

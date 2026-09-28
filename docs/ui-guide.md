@@ -95,13 +95,16 @@ Input and interaction:
 - Route events with `draw_ui::route_input(&mut tree, &event) -> EventResult`.
   Views handle their own shortcuts first (e.g. `R`/`Esc`) and return
   `EventResult::Handled`.
-- `InputEvent::{PointerDown, PointerUp, PointerMove, PointerLeave, Wheel,
-  KeyDown, KeyUp, TextInput, ModifiersChanged, Ime}` (`draw_core`). Hosts map
-  platform events to these. `TextInput` is committed text, `Ime(ImeEvent)` is an
-  input-method composition, and `ModifiersChanged(Modifiers)` carries the held
+- `InputEvent::{PointerDown, PointerUp, PointerMove, PointerLeave, DoubleClick,
+  Wheel, KeyDown, KeyUp, TextInput, ModifiersChanged, Ime}` (`draw_core`). Hosts
+  map platform events to these. `TextInput` is committed text, `Ime(ImeEvent)` is
+  an input-method composition, `DoubleClick` is a host-detected second click
+  (word selection), and `ModifiersChanged(Modifiers)` carries the held
   Shift/Ctrl/Alt/Cmd state that a later key or click consults. For an editable
   field, `docs/components.md` §Text fields describes the `on_key`/`on_text`/
-  `on_ime` callbacks and `draw_ui::focused_caret`.
+  `on_ime` callbacks and `draw_ui::focused_caret`; install a
+  `draw_ui::set_clipboard` handle for copy / cut / paste (`quill_winit`'s
+  `Host::clipboard` wraps the system clipboard).
 - Cursor: `draw_ui::hovered_cursor(&tree) -> Cursor`; map it in the host
   (`deepseek_balance/src/host.rs`). Per-control provider: `.dynamic_cursor(..)`.
 - Drag/resize: `.on_drag(..)` with `DragPhase::{Start, Move, End}` plus delta.

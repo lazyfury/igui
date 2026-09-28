@@ -325,6 +325,13 @@ impl DemoApp {
         self.overlays.set_text_measurer(measurer);
     }
 
+    /// Installs `clipboard` for both the main UI and the overlay layer, so the
+    /// gallery's text fields can copy / cut / paste.
+    pub fn set_clipboard(&mut self, clipboard: Rc<RefCell<dyn draw_ui::Clipboard>>) {
+        draw_ui::set_clipboard(&mut self.tree, clipboard.clone());
+        self.overlays.set_clipboard(clipboard);
+    }
+
     // -- pipeline ----------------------------------------------------------
 
     /// Drains requests (theme switch, overlay opens) and applies routers and

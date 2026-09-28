@@ -6,6 +6,7 @@
 //! text with the exact advances the backend renders with (proportional Latin +
 //! CJK when a system font is available).
 
+use std::cell::RefCell;
 use std::rc::Rc;
 
 use draw_backend_wgpu::FontMetrics;
@@ -76,6 +77,11 @@ impl Demo {
     /// (macOS traffic lights). See [`DemoApp::set_titlebar_inset`].
     pub fn set_titlebar_inset(&mut self, inset: f32) {
         self.app.set_titlebar_inset(inset);
+    }
+
+    /// Installs the host clipboard for the gallery's text fields.
+    pub fn set_clipboard(&mut self, clipboard: Rc<RefCell<dyn draw_ui::Clipboard>>) {
+        self.app.set_clipboard(clipboard);
     }
 
     /// Advances the animation and updates text for the new viewport.

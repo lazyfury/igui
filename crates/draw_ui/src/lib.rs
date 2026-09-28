@@ -40,11 +40,11 @@ mod widget;
 
 pub use cache::{paint_cached, PaintStatus, UiPaintCache};
 pub use control::{
-    set_caret_provider, set_ime_callback, set_key_callback, set_pointer_tree_callback,
-    set_text_callback, text_measurer, text_measurer_handle, CaretProvider, ClickCallback, Control,
-    ControlData, CursorProvider, DragCallback, DragPhase, GuiState, ImeCallback, KeyCallback,
-    MouseFilter, PointerCallback, PointerTreeCallback, ScrollCallback, SecondaryCallback,
-    TextCallback,
+    clipboard, set_caret_provider, set_clipboard, set_ime_callback, set_key_callback,
+    set_pointer_tree_callback, set_text_callback, text_measurer, text_measurer_handle,
+    CaretProvider, ClickCallback, Clipboard, Control, ControlData, CursorProvider, DragCallback,
+    DragPhase, GuiState, ImeCallback, KeyCallback, MemoryClipboard, MouseFilter, PointerCallback,
+    PointerPhase, PointerTreeCallback, ScrollCallback, SecondaryCallback, TextCallback,
 };
 pub use debug::DebugDrawOptions;
 pub use decor::{

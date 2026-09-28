@@ -17,7 +17,7 @@ use std::rc::Rc;
 use draw_core::{Cursor, EventResult, FontWeight, ImeEvent, Key, Rect, Size, Vec2};
 use draw_render::{PaintContext, TextAlign};
 use draw_theme::{ControlSize, TextSize, Theme};
-use draw_ui::{InteractState, TextEdit, TextMeasurer};
+use draw_ui::{InteractState, PointerPhase, TextEdit, TextMeasurer};
 
 use crate::base::Spec;
 
@@ -31,6 +31,8 @@ pub(crate) struct FieldState {
     /// The field's rectangle from the last paint, so callbacks that run before
     /// a layout (pointer, caret provider) still know where the field is.
     pub last_rect: Rc<Cell<Rect>>,
+    /// Whether a pointer drag (text selection) is in progress.
+    pub dragging: Rc<Cell<bool>>,
 }
 
 impl FieldState {
@@ -39,6 +41,7 @@ impl FieldState {
             edit: Rc::new(RefCell::new(TextEdit::new(text).multiline(multiline))),
             scroll: Rc::new(Cell::new(0.0)),
             last_rect: Rc::new(Cell::new(Rect::ZERO)),
+            dragging: Rc::new(Cell::new(false)),
         }
     }
 }
@@ -502,14 +505,47 @@ pub(crate) fn wire(
                     edit.insert_newline();
                     true
                 }
+                Key::Space if !edit.has_preedit() => {
+                    edit.insert(" ");
+                    true
+                }
+                Key::Tab if !edit.has_preedit() => {
+                    edit.insert("\t");
+                    true
+                }
                 Key::Character('a') if modifiers.ctrl || modifiers.meta => {
                     edit.select_all();
                     true
                 }
-                // Printable keys, Space and Tab are committed through
-                // `TextInput`; consume them here so a host shortcut cannot also
-                // fire while the field is focused.
-                Key::Character(_) | Key::Space | Key::Tab => true,
+                Key::Character('c') if modifiers.ctrl || modifiers.meta => {
+                    if let Some(selected) = edit.selected_text().map(str::to_string) {
+                        if let Some(clipboard) = draw_ui::clipboard(tree) {
+                            clipboard.borrow_mut().set(&selected);
+                        }
+                    }
+                    true
+                }
+                Key::Character('x') if modifiers.ctrl || modifiers.meta => {
+                    if let Some(selected) = edit.selected_text().map(str::to_string) {
+                        if let Some(clipboard) = draw_ui::clipboard(tree) {
+                            clipboard.borrow_mut().set(&selected);
+                        }
+                        edit.delete_selection();
+                    }
+                    true
+                }
+                Key::Character('v') if modifiers.ctrl || modifiers.meta => {
+                    if let Some(clipboard) = draw_ui::clipboard(tree) {
+                        if let Some(text) = clipboard.borrow().get() {
+                            edit.commit_text(&text);
+                        }
+                    }
+                    true
+                }
+                // Printable characters are committed through `TextInput`;
+                // consume them here so a host shortcut cannot also fire while
+                // the field is focused.
+                Key::Character(_) => true,
                 _ => false,
             };
             drop(edit);
@@ -559,18 +595,57 @@ pub(crate) fn wire(
         let theme = theme;
         let measurer = measurer.clone();
         let field = field.clone();
-        spec.on_pointer_tree = Some(Box::new(move |tree, rect, point| {
+        spec.on_pointer_tree = Some(Box::new(move |tree, phase, rect, point| {
+            match phase {
+                PointerPhase::Down => {
+                    let measurer = measurer.borrow().clone();
+                    let byte = caret_from_point(
+                        theme,
+                        measurer.as_ref(),
+                        &field,
+                        rect,
+                        point,
+                        masked,
+                        multiline,
+                    );
+                    field.edit.borrow_mut().set_caret(byte);
+                    field.dragging.set(true);
+                }
+                PointerPhase::Move => {
+                    if !field.dragging.get() {
+                        return;
+                    }
+                    let measurer = measurer.borrow().clone();
+                    drag_scroll(theme, measurer.as_ref(), &field, rect, point, multiline);
+                    let byte = caret_from_point(
+                        theme,
+                        measurer.as_ref(),
+                        &field,
+                        rect,
+                        point,
+                        masked,
+                        multiline,
+                    );
+                    field.edit.borrow_mut().extend_to(byte);
+                }
+                PointerPhase::Up => field.dragging.set(false),
+                PointerPhase::DoubleClick => {
+                    let measurer = measurer.borrow().clone();
+                    let byte = caret_from_point(
+                        theme,
+                        measurer.as_ref(),
+                        &field,
+                        rect,
+                        point,
+                        masked,
+                        multiline,
+                    );
+                    field.edit.borrow_mut().select_word_at(byte);
+                    field.dragging.set(false);
+                }
+            }
             let measurer = measurer.borrow().clone();
-            let byte = caret_from_point(
-                theme,
-                measurer.as_ref(),
-                &field,
-                rect,
-                point,
-                masked,
-                multiline,
-            );
-            field.edit.borrow_mut().set_caret(byte);
+            ensure_caret_visible(theme, measurer.as_ref(), &field, masked, multiline);
             draw_ui::request_paint(tree);
         }));
     }
@@ -584,6 +659,33 @@ pub(crate) fn wire(
             caret_rect(theme, measurer.as_ref(), &field, masked, multiline)
         }));
     }
+}
+
+/// While dragging a selection, scrolls a multiline field when the pointer goes
+/// above or below its content area, so the selection can extend past the view.
+fn drag_scroll(
+    theme: &dyn Theme,
+    measurer: &dyn TextMeasurer,
+    field: &FieldState,
+    rect: Rect,
+    point: Vec2,
+    multiline: bool,
+) {
+    if !multiline {
+        return;
+    }
+    let metrics = metrics(theme, measurer);
+    let top = rect.top() + metrics.pad_y;
+    let bottom = rect.top() + rect.size.height - metrics.pad_y;
+    let scroll = field.scroll.get();
+    let next = if point.y < top {
+        scroll - metrics.line_height
+    } else if point.y > bottom {
+        scroll + metrics.line_height
+    } else {
+        return;
+    };
+    field.scroll.set(next.max(0.0));
 }
 
 /// Scrolls a multiline field so the caret's line is inside the viewport.

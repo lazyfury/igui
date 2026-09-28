@@ -21,7 +21,9 @@
 //! `ApplicationHandler`, view model and draw loop. See [`Host`] for a full
 //! example skeleton.
 
+pub mod clipboard;
 pub mod host;
 pub mod input;
 
+pub use clipboard::SystemClipboard;
 pub use host::{FrameClock, Host, HostOptions, RenderOutcome, TitlebarMode, TITLEBAR_SAFE_AREA};

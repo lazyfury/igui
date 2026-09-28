@@ -10,7 +10,7 @@ use draw_core::{
 };
 use draw_scene::SceneTree;
 
-use crate::control::{control_visible, Control, MouseFilter};
+use crate::control::{control_visible, Control, MouseFilter, PointerPhase};
 use crate::widget::Widget;
 
 /// Controls whose parent is not itself a control (the UI roots).
@@ -112,7 +112,7 @@ pub fn handle_input(tree: &mut SceneTree, event: &InputEvent) -> EventResult {
                     .data::<Control>(pressed)
                     .and_then(|control| control.pointer_tree_callback.clone())
                 {
-                    (callback.borrow_mut())(tree, rect, *position);
+                    (callback.borrow_mut())(tree, PointerPhase::Move, rect, *position);
                     return EventResult::Handled;
                 }
                 if let Some(callback) = tree
@@ -169,7 +169,7 @@ pub fn handle_input(tree: &mut SceneTree, event: &InputEvent) -> EventResult {
                     .data::<Control>(id)
                     .and_then(|control| control.pointer_tree_callback.clone())
                 {
-                    (callback.borrow_mut())(tree, rect, *position);
+                    (callback.borrow_mut())(tree, PointerPhase::Down, rect, *position);
                 } else if let Some(callback) = tree
                     .data::<Control>(id)
                     .and_then(|control| control.pointer_callback.clone())
@@ -224,6 +224,18 @@ pub fn handle_input(tree: &mut SceneTree, event: &InputEvent) -> EventResult {
             let hit = hit_test(tree, *position);
             let pressed = crate::gui_state_of(tree).and_then(|state| state.pressed);
             if let Some(pressed) = pressed {
+                // A control that owns a tree-aware pointer interaction (a text
+                // field) sees the release so it can finish a selection drag.
+                let rect = tree
+                    .data::<Control>(pressed)
+                    .map(|control| control.data.rect)
+                    .unwrap_or(Rect::ZERO);
+                if let Some(callback) = tree
+                    .data::<Control>(pressed)
+                    .and_then(|control| control.pointer_tree_callback.clone())
+                {
+                    (callback.borrow_mut())(tree, PointerPhase::Up, rect, *position);
+                }
                 if let Some(control) = tree.data_mut::<Control>(pressed) {
                     if let Widget::Button(button) = &mut control.widget {
                         button.state.pressed = false;
@@ -235,6 +247,28 @@ pub fn handle_input(tree: &mut SceneTree, event: &InputEvent) -> EventResult {
             }
             crate::gui_state_mut(tree).pressed = None;
             EventResult::Handled
+        }
+        InputEvent::DoubleClick { position } => {
+            // The host already delivered the matching `PointerDown`; a double
+            // click only adds word selection to the control under the pointer.
+            let hit = hit_test(tree, *position);
+            let Some(id) = hit else {
+                return EventResult::Ignored;
+            };
+            crate::gui_state_mut(tree).focused = Some(id);
+            let rect = tree
+                .data::<Control>(id)
+                .map(|control| control.data.rect)
+                .unwrap_or(Rect::ZERO);
+            if let Some(callback) = tree
+                .data::<Control>(id)
+                .and_then(|control| control.pointer_tree_callback.clone())
+            {
+                (callback.borrow_mut())(tree, PointerPhase::DoubleClick, rect, *position);
+                EventResult::Handled
+            } else {
+                EventResult::Ignored
+            }
         }
         InputEvent::Wheel { position, delta } => {
             // Scrolling is owned, not global: the nearest ancestor of the
@@ -699,6 +733,52 @@ mod tests {
         handle_input(&mut tree, &InputEvent::PointerMove { position: moved });
         let (_, got_at) = seen.take().expect("move fires the callback");
         assert_eq!(got_at, moved);
+    }
+
+    #[test]
+    fn a_tree_pointer_callback_sees_down_move_up_and_double_click() {
+        let mut tree = SceneTree::new();
+        let root = tree.root();
+        let container = add(&mut tree, root, ControlData::fill_parent(), panel());
+        let target = slab(&mut tree, container, 10.0, 10.0, 60.0, 60.0, panel());
+        let seen: Rc<RefCell<Vec<PointerPhase>>> = Rc::new(RefCell::new(Vec::new()));
+        let seen_by_cb = seen.clone();
+        let callback: crate::control::PointerTreeCallback = Rc::new(RefCell::new(
+            move |_tree: &mut SceneTree, phase, _rect, _at| seen_by_cb.borrow_mut().push(phase),
+        ));
+        tree.data_mut::<Control>(target)
+            .unwrap()
+            .pointer_tree_callback = Some(callback);
+        crate::layout(&mut tree, ViewportSize::new(Size::new(200.0, 200.0)));
+        let center = tree.data::<Control>(target).unwrap().data.rect.center();
+
+        handle_input(
+            &mut tree,
+            &InputEvent::PointerDown {
+                position: center,
+                button: PointerButton::Left,
+            },
+        );
+        handle_input(&mut tree, &InputEvent::PointerMove { position: center });
+        handle_input(
+            &mut tree,
+            &InputEvent::PointerUp {
+                position: center,
+                button: PointerButton::Left,
+            },
+        );
+        handle_input(&mut tree, &InputEvent::DoubleClick { position: center });
+
+        assert_eq!(
+            *seen.borrow(),
+            vec![
+                PointerPhase::Down,
+                PointerPhase::Move,
+                PointerPhase::Up,
+                PointerPhase::DoubleClick,
+            ]
+        );
+        assert_eq!(crate::focused(&tree), Some(target));
     }
 
     #[test]

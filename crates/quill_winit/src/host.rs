@@ -36,23 +36,28 @@
 //! }
 //! ```
 
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Instant;
 
 use draw_backend_wgpu::{wgpu, FontConfig, WgpuBackend};
-use draw_core::{Color, Cursor, ImeEvent, InputEvent, Rect, Size, Vec2, ViewportSize};
+use draw_core::{
+    Color, Cursor, ImeEvent, InputEvent, PointerButton, Rect, Size, Vec2, ViewportSize,
+};
 use draw_render::{DrawList, RenderBackend};
 use draw_scene::SceneTree;
+use draw_ui::Clipboard;
 #[cfg(target_os = "macos")]
 use winit::platform::macos::WindowAttributesExtMacOS;
 use winit::{
     dpi::{LogicalSize, PhysicalPosition, PhysicalSize},
     event::{ElementState, Ime, WindowEvent},
     event_loop::ActiveEventLoop,
-    keyboard::{Key as WinitKey, NamedKey},
     window::{CursorIcon, Window},
 };
 
+use crate::clipboard::SystemClipboard;
 use crate::input;
 
 /// macOS transparent-title-bar safe area: content under the traffic lights
@@ -123,7 +128,15 @@ pub struct Host {
     config: Option<wgpu::SurfaceConfiguration>,
     scale_factor: f64,
     cursor: Vec2,
+    /// The platform IME is enabled (a composition may start).
     ime_active: bool,
+    /// A composition (preedit) is in progress: the platform owns the text, so
+    /// committed `KeyboardInput` text must be ignored until it ends.
+    composing: bool,
+    /// Left-button press tracker for double-click detection.
+    double_click: input::DoubleClickTracker,
+    /// System clipboard (text-field copy / cut / paste).
+    clipboard: Rc<RefCell<dyn Clipboard>>,
 }
 
 impl Host {
@@ -141,7 +154,16 @@ impl Host {
             scale_factor: 1.0,
             cursor: Vec2::ZERO,
             ime_active: false,
+            composing: false,
+            double_click: input::DoubleClickTracker::new(),
+            clipboard: Rc::new(RefCell::new(SystemClipboard::new())),
         }
+    }
+
+    /// The shared system clipboard, to install into a UI tree with
+    /// [`draw_ui::set_clipboard`].
+    pub fn clipboard(&self) -> Rc<RefCell<dyn Clipboard>> {
+        self.clipboard.clone()
     }
 
     /// Creates the window, surface, backend and swap chain.
@@ -336,10 +358,15 @@ impl Host {
             WindowEvent::MouseInput { state, button, .. } => {
                 let button = input::pointer_button(*button);
                 let position = self.cursor;
-                out.push(match state {
-                    ElementState::Pressed => InputEvent::PointerDown { position, button },
-                    ElementState::Released => InputEvent::PointerUp { position, button },
-                });
+                match state {
+                    ElementState::Pressed => {
+                        out.push(InputEvent::PointerDown { position, button });
+                        if button == PointerButton::Left && self.double_click.press(position) {
+                            out.push(InputEvent::DoubleClick { position });
+                        }
+                    }
+                    ElementState::Released => out.push(InputEvent::PointerUp { position, button }),
+                }
             }
             WindowEvent::MouseWheel { delta, .. } => {
                 let delta = input::wheel_pixels(*delta, self.scale_factor as f32);
@@ -361,27 +388,17 @@ impl Host {
                     });
                 }
                 // Committed text, but not while an IME composition owns the
-                // keyboard (the platform delivers that through `Ime`). Space
-                // and Tab are named keys whose `text` is not always set, so
-                // derive it from the logical key. Tab is allowed through the
+                // keyboard (the platform delivers that through `Ime`). Merely
+                // having the IME *enabled* must not drop plain keys: with a CJK
+                // IME active a space outside a composition is ordinary text.
+                // Space and Tab are named keys whose `text` is not always set,
+                // so derive it from the logical key. Tab is allowed through the
                 // control-character filter (text fields insert it).
-                if event.state == ElementState::Pressed && !self.ime_active {
-                    let committed =
-                        event
-                            .text
-                            .as_ref()
-                            .map(|text| text.to_string())
-                            .or_else(|| match &event.logical_key {
-                                WinitKey::Named(NamedKey::Space) => Some(" ".to_string()),
-                                WinitKey::Named(NamedKey::Tab) => Some("\t".to_string()),
-                                WinitKey::Character(text) => Some(text.to_string()),
-                                _ => None,
-                            });
-                    if let Some(text) = committed {
-                        if !text.is_empty() && text.chars().all(|ch| !ch.is_control() || ch == '\t')
-                        {
-                            out.push(InputEvent::TextInput { text });
-                        }
+                if event.state == ElementState::Pressed && !self.composing {
+                    if let Some(text) =
+                        input::committed_text(&event.logical_key, event.text.as_deref())
+                    {
+                        out.push(InputEvent::TextInput { text });
                     }
                 }
             }
@@ -392,22 +409,35 @@ impl Host {
                 }
                 Ime::Disabled => {
                     self.ime_active = false;
+                    self.composing = false;
                     out.push(InputEvent::Ime(ImeEvent::Disabled));
                 }
-                Ime::Preedit(text, cursor) => out.push(InputEvent::Ime(ImeEvent::Preedit {
-                    text: text.clone(),
-                    cursor: *cursor,
-                })),
-                Ime::Commit(text) => out.push(InputEvent::Ime(ImeEvent::Commit(text.clone()))),
+                Ime::Preedit(text, cursor) => {
+                    // An empty preedit means the composition was cleared.
+                    self.composing = !text.is_empty();
+                    out.push(InputEvent::Ime(ImeEvent::Preedit {
+                        text: text.clone(),
+                        cursor: *cursor,
+                    }));
+                }
+                Ime::Commit(text) => {
+                    self.composing = false;
+                    out.push(InputEvent::Ime(ImeEvent::Commit(text.clone())));
+                }
             },
             _ => {}
         }
         out
     }
 
-    /// Whether an IME composition is currently active.
+    /// Whether the platform IME is enabled.
     pub fn is_ime_active(&self) -> bool {
         self.ime_active
+    }
+
+    /// Whether an IME composition (preedit) is currently in progress.
+    pub fn is_composing(&self) -> bool {
+        self.composing
     }
 
     /// Enables or disables the platform IME for this window.
@@ -530,6 +560,7 @@ mod tests {
             vec![InputEvent::Ime(ImeEvent::Enabled)]
         );
         assert!(host.is_ime_active());
+        assert!(!host.is_composing());
         assert_eq!(
             host.translate(&WindowEvent::Ime(Ime::Preedit("ni".into(), Some((1, 1))))),
             vec![InputEvent::Ime(ImeEvent::Preedit {
@@ -537,10 +568,16 @@ mod tests {
                 cursor: Some((1, 1)),
             })]
         );
+        assert!(host.is_composing());
         assert_eq!(
             host.translate(&WindowEvent::Ime(Ime::Commit("你".into()))),
             vec![InputEvent::Ime(ImeEvent::Commit("你".into()))]
         );
+        assert!(!host.is_composing());
+        // An empty preedit also clears the composition flag.
+        host.translate(&WindowEvent::Ime(Ime::Preedit("x".into(), None)));
+        host.translate(&WindowEvent::Ime(Ime::Preedit(String::new(), None)));
+        assert!(!host.is_composing());
         assert_eq!(
             host.translate(&WindowEvent::Ime(Ime::Disabled)),
             vec![InputEvent::Ime(ImeEvent::Disabled)]
