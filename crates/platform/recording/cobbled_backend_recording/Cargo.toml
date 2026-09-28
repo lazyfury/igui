@@ -1,0 +1,13 @@
+[package]
+name = "cobbled_backend_recording"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+cobbled_core.workspace = true
+cobbled_render.workspace = true
+
+[dev-dependencies]
+cobbled_scene.workspace = true

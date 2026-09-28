@@ -232,6 +232,94 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f079e83a288787bcd14a6aea84cee5c87a67c5a3e660c30f557a3d24761b3527"
 
 [[package]]
+name = "cobbled_backend_recording"
+version = "0.1.0"
+dependencies = [
+ "cobbled_core",
+ "cobbled_render",
+]
+
+[[package]]
+name = "cobbled_backend_wgpu"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "cobbled_core",
+ "cobbled_font",
+ "cobbled_render",
+ "pollster",
+ "wgpu",
+]
+
+[[package]]
+name = "cobbled_components"
+version = "0.1.0"
+dependencies = [
+ "cobbled_core",
+ "cobbled_render",
+ "cobbled_scene",
+ "cobbled_theme",
+ "cobbled_ui",
+]
+
+[[package]]
+name = "cobbled_core"
+version = "0.1.0"
+
+[[package]]
+name = "cobbled_font"
+version = "0.1.0"
+dependencies = [
+ "ab_glyph",
+ "cobbled_core",
+ "font8x8",
+ "memmap2",
+ "rustybuzz",
+ "ttf-parser",
+ "unicode-bidi",
+ "unicode-script",
+]
+
+[[package]]
+name = "cobbled_profile"
+version = "0.1.0"
+dependencies = [
+ "cobbled_core",
+ "cobbled_render",
+]
+
+[[package]]
+name = "cobbled_render"
+version = "0.1.0"
+dependencies = [
+ "cobbled_core",
+]
+
+[[package]]
+name = "cobbled_scene"
+version = "0.1.0"
+dependencies = [
+ "cobbled_core",
+ "cobbled_render",
+]
+
+[[package]]
+name = "cobbled_theme"
+version = "0.1.0"
+dependencies = [
+ "cobbled_core",
+]
+
+[[package]]
+name = "cobbled_ui"
+version = "0.1.0"
+dependencies = [
+ "cobbled_core",
+ "cobbled_render",
+ "cobbled_scene",
+]
+
+[[package]]
 name = "codespan-reporting"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -358,94 +446,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8b14ccef22fc6f5a8f4d7d768562a182c04ce9a3b3157b91390b52ddfdf1a76"
 
 [[package]]
-name = "draw_backend_recording"
-version = "0.1.0"
-dependencies = [
- "draw_core",
- "draw_render",
-]
-
-[[package]]
-name = "draw_backend_wgpu"
-version = "0.1.0"
-dependencies = [
- "bytemuck",
- "draw_core",
- "draw_font",
- "draw_render",
- "pollster",
- "wgpu",
-]
-
-[[package]]
-name = "draw_components"
-version = "0.1.0"
-dependencies = [
- "draw_core",
- "draw_render",
- "draw_scene",
- "draw_theme",
- "draw_ui",
-]
-
-[[package]]
-name = "draw_core"
-version = "0.1.0"
-
-[[package]]
-name = "draw_font"
-version = "0.1.0"
-dependencies = [
- "ab_glyph",
- "draw_core",
- "font8x8",
- "memmap2",
- "rustybuzz",
- "ttf-parser",
- "unicode-bidi",
- "unicode-script",
-]
-
-[[package]]
-name = "draw_profile"
-version = "0.1.0"
-dependencies = [
- "draw_core",
- "draw_render",
-]
-
-[[package]]
-name = "draw_render"
-version = "0.1.0"
-dependencies = [
- "draw_core",
-]
-
-[[package]]
-name = "draw_scene"
-version = "0.1.0"
-dependencies = [
- "draw_core",
- "draw_render",
-]
-
-[[package]]
-name = "draw_theme"
-version = "0.1.0"
-dependencies = [
- "draw_core",
-]
-
-[[package]]
-name = "draw_ui"
-version = "0.1.0"
-dependencies = [
- "draw_core",
- "draw_render",
- "draw_scene",
-]
-
-[[package]]
 name = "equivalent"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -465,15 +465,15 @@ dependencies = [
 name = "file_browser"
 version = "0.1.0"
 dependencies = [
- "draw_backend_recording",
- "draw_backend_wgpu",
- "draw_components",
- "draw_core",
- "draw_profile",
- "draw_render",
- "draw_scene",
- "draw_theme",
- "draw_ui",
+ "cobbled_backend_recording",
+ "cobbled_backend_wgpu",
+ "cobbled_components",
+ "cobbled_core",
+ "cobbled_profile",
+ "cobbled_render",
+ "cobbled_scene",
+ "cobbled_theme",
+ "cobbled_ui",
  "winit",
 ]
 

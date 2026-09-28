@@ -1,0 +1,10 @@
+[package]
+name = "cobbled_scene"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+cobbled_core.workspace = true
+cobbled_render.workspace = true

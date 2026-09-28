@@ -1,4 +1,4 @@
-//! Animation previews: `draw_anim` drives an external value that a control's
+//! Animation previews: `cobbled_anim` drives an external value that a control's
 //! foreground reads at paint time.
 //!
 //! The `Animator` itself lives in [`crate::DemoApp`]; these cards only clone the
@@ -7,10 +7,10 @@
 //! scheduling frames while it runs — that is exactly what
 //! [`crate::DemoApp::needs_frame`] reports.
 
-use draw_anim::Easing;
-use draw_components::{Card, Component, Panel};
-use draw_core::{Color, Rect, Size, Vec2};
-use draw_theme::SurfaceLevel;
+use cobbled_anim::Easing;
+use cobbled_components::{Card, Component, Panel};
+use cobbled_core::{Color, Rect, Size, Vec2};
+use cobbled_theme::SurfaceLevel;
 
 use super::Ctx;
 

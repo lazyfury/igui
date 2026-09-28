@@ -1,10 +1,10 @@
-//! `wgpu_ffi` — a C ABI over [`draw_backend_wgpu`].
+//! `wgpu_ffi` — a C ABI over [`cobbled_backend_wgpu`].
 //!
 //! The C++ host owns the window; this crate owns the wgpu instance, surface,
 //! device and the Rust renderer. A frame is:
 //!
 //! ```text
-//! C++ builds a DrawList -> wgpu_ffi_render(handle, list) -> draw_backend_wgpu -> surface
+//! C++ builds a DrawList -> wgpu_ffi_render(handle, list) -> cobbled_backend_wgpu -> surface
 //! ```
 //!
 //! Two entry points, one backend:
@@ -16,8 +16,8 @@
 //!   back — the no-screenshot verification, and a direct comparison with the
 //!   C++ OpenGL backend's pixels.
 //!
-//! The list is the same opaque `QuillDrawList` the host built with `draw_ffi`;
-//! this crate reads it through [`draw_ffi::QuillDrawList::draw_list`].
+//! The list is the same opaque `QuillDrawList` the host built with `cobbled_ffi`;
+//! this crate reads it through [`cobbled_ffi::QuillDrawList::draw_list`].
 //!
 //! # Platform
 //!
@@ -32,10 +32,10 @@
 use std::ffi::c_void;
 use std::ptr::NonNull;
 
-use draw_backend_wgpu::{wgpu, WgpuBackend};
-use draw_core::{Color, Size, ViewportSize};
-use draw_ffi::QuillDrawList;
-use draw_render::RenderBackend;
+use cobbled_backend_wgpu::{wgpu, WgpuBackend};
+use cobbled_core::{Color, Size, ViewportSize};
+use cobbled_ffi::QuillDrawList;
+use cobbled_render::RenderBackend;
 use wgpu::rwh::{AppKitDisplayHandle, AppKitWindowHandle, RawDisplayHandle, RawWindowHandle};
 
 /// An opaque, Rust-owned wgpu renderer: instance, optional surface, backend.
@@ -327,7 +327,7 @@ pub unsafe extern "C" fn wgpu_ffi_read_pixels(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use draw_ffi::{
+    use cobbled_ffi::{
         quill_draw_list_fill_rect, quill_draw_list_free, quill_draw_list_new, QuillColor,
         QuillPaint, QuillRect,
     };

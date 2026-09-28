@@ -1,0 +1,78 @@
+//! `cobbled_game` — 2D game capabilities built on the scene tree.
+//!
+//! This crate is the Godot-style game layer: it depends on `cobbled_scene` (the
+//! single `SceneTree`, `Node2D`, `Camera2D`, `CanvasLayer`) and never on a
+//! backend or browser API. Sprites are ordinary `Node2D` nodes with a
+//! [`cobbled_scene::Visual::Sprite`], so the existing paint/layer/camera pipeline
+//! draws them unchanged.
+//!
+//! It is deliberately split from `cobbled_ui`: a game without a HUD never compiles
+//! the UI crates (`cobbled_game` does **not** imply `ui`). The `quill` facade's
+//! `game` feature forwards this crate.
+//!
+//! ```ignore
+//! use cobbled_game::{upload_texture, Sprite};
+//! use cobbled_render::TextureId;
+//!
+//! let png = std::fs::read("player.png")?;
+//! let image = cobbled_assets::decode_png(&png)?;
+//! let texture = TextureId::new(1);
+//! upload_texture(&mut backend, texture, &image)?;
+//!
+//! let player = tree.add_child(tree.root(), Sprite::new(texture, image.size()));
+//! ```
+//!
+//! Scope: sprites (region/atlas, flip, nine-slice) and their texture upload
+//! helper, sprite-sheet frame animation ([`SpriteFrames`] +
+//! [`SpriteAnimations`]), lightweight [`Timers`], typed [`Signal`]s, collision
+//! queries with [`Area`] enter/exit triggers, and a [`FixedTimestep`] clock for
+//! fixed-step hosts. The optional `ui` feature adds `GameView`, an embedded
+//! sub-viewport Control. Rigid bodies and audio are out of scope.
+//!
+//! # `needs_frame`
+//!
+//! A host that renders on demand folds this crate's activity into its frame
+//! request: `cobbled_anim::Animator::is_animating()` (transform/colour tweens),
+//! [`SpriteAnimations::is_animating`] (frame stepping) and
+//! [`Timers::is_animating`] (pending timers), plus the UI/scene signals.
+
+/// Crate name, kept for lightweight smoke checks.
+pub const CRATE: &str = "cobbled_game";
+
+mod animation;
+mod area;
+mod clock;
+mod frames;
+#[cfg(feature = "ui")]
+mod game_view;
+mod shape;
+mod signal;
+mod sprite;
+mod texture;
+mod timer;
+
+pub use animation::SpriteAnimations;
+pub use area::{Area, Areas};
+pub use clock::{FixedTimestep, Tick};
+pub use frames::SpriteFrames;
+#[cfg(feature = "ui")]
+pub use game_view::GameView;
+pub use shape::{aabb_circle_overlap, aabb_overlap, circle_overlap, CollisionShape, WorldShape};
+pub use signal::Signal;
+pub use sprite::Sprite;
+pub use texture::upload_texture;
+pub use timer::{TimerId, Timers};
+
+// Convenient handles a game needs from the core layers.
+pub use cobbled_core::{NodeId, Rect, Size, Vec2};
+pub use cobbled_render::TextureId;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn crate_identity() {
+        assert_eq!(CRATE, "cobbled_game");
+    }
+}

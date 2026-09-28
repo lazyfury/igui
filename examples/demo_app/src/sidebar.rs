@@ -2,10 +2,10 @@
 
 use std::rc::Rc;
 
-use draw_components::{Button, Column, Component, Flex, NodeRef, Panel, Row, Text};
-use draw_core::{Color, Edges};
-use draw_theme::{radius, space, Mode, Theme, Tone};
-use draw_ui::{Align, SizeBasis, SurfaceStyle};
+use cobbled_components::{Button, Column, Component, Flex, NodeRef, Panel, Row, Text};
+use cobbled_core::{Color, Edges};
+use cobbled_theme::{radius, space, Mode, Theme, Tone};
+use cobbled_ui::{Align, SizeBasis, SurfaceStyle};
 
 use crate::catalog;
 use crate::GalleryState;
@@ -67,7 +67,7 @@ pub fn build(theme: &'static dyn Theme, state: &GalleryState, primary_slot: &Nod
         .children(rows)
         .child(Flex::new().padding(Edges::ZERO).grow(1.0))
         .child(toggle)
-        .child(Text::caption("draw_components · v0.1.0", theme).tone(Tone::Subtle))
+        .child(Text::caption("cobbled_components · v0.1.0", theme).tone(Tone::Subtle))
 }
 
 /// One selectable group row (selection + hover share the nav surface).
@@ -106,9 +106,9 @@ fn app_icon(theme: &'static dyn Theme, size: f32) -> Panel {
         .min_size(size, size)
         .surface(SurfaceStyle::new(theme.palette().accent).radius(radius::SM))
         .foreground(move |ctx, rect, _| {
-            draw_ui::fill_rounded_rect(
+            cobbled_ui::fill_rounded_rect(
                 ctx,
-                draw_ui::inset(rect, 5.0),
+                cobbled_ui::inset(rect, 5.0),
                 1.0,
                 theme.palette().on_accent,
             );

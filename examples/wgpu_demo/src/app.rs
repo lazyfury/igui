@@ -1,7 +1,7 @@
 //! The `winit` window runner for the wgpu demo (native only).
 //!
-//! The platform plumbing is now a set of [`quill_winit`] plugins assembled
-//! through [`quill_app::AppBuilder`]. This file is only the demo's own logic:
+//! The platform plumbing is now a set of [`cobbled_winit`] plugins assembled
+//! through [`cobbled_app::AppBuilder`]. This file is only the demo's own logic:
 //! it times the pipeline phases, drives the shared gallery and paints the
 //! debug / performance overlays.
 
@@ -9,18 +9,18 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::time::Instant;
 
-use draw_backend_wgpu::{FontConfig, FontMode};
-use draw_core::{EventResult, InputEvent, Key};
-use draw_debug_ui::{DebugOverlay, PerformanceOverlay};
-use draw_profile::{inspect, FrameCounters, FrameStats, InspectionReport, Profiler, StageTimes};
-use draw_render::{DrawList, PaintContext};
-use draw_ui::{focused_caret, TextMeasurer};
-use quill_app::{
+use cobbled_app::{
     App, AppBuilder, AppConfig, AppLogic, EventContext, FrameContext, FrameObserver, InitContext,
     Plugin,
 };
-use quill_headless::{HeadlessPlugin, RecordingHandle};
-use quill_winit::{
+use cobbled_backend_wgpu::{FontConfig, FontMode};
+use cobbled_core::{EventResult, InputEvent, Key};
+use cobbled_debug_ui::{DebugOverlay, PerformanceOverlay};
+use cobbled_headless::{HeadlessPlugin, RecordingHandle};
+use cobbled_profile::{inspect, FrameCounters, FrameStats, InspectionReport, Profiler, StageTimes};
+use cobbled_render::{DrawList, PaintContext};
+use cobbled_ui::{focused_caret, TextMeasurer};
+use cobbled_winit::{
     BackendTextMeasurer, ClipboardPlugin, GpuConfig, ImePlugin, KeyboardPlugin, PointerPlugin,
     SharedBackend, TextMeasurePlugin, TitlebarMode as WinitTitlebar, WgpuPlugin, WindowConfig,
     WinitPlugin, TITLEBAR_SAFE_AREA,
@@ -34,7 +34,7 @@ pub fn run(options: Options) {
     build_app(options, false).run();
 }
 
-/// Runs the shared gallery headlessly through `quill_headless` (no window) and
+/// Runs the shared gallery headlessly through `cobbled_headless` (no window) and
 /// reports what was drawn. Returns an error when nothing was rendered.
 pub fn selfcheck() -> Result<(), String> {
     let mut app = build_app(Options::default(), true);
@@ -305,7 +305,7 @@ impl AppLogic for DemoLogic {
         if let Some(measurer) = ctx.service::<Rc<dyn TextMeasurer>>() {
             self.demo.set_text_measurer(measurer.clone());
         }
-        if let Some(clipboard) = ctx.service::<Rc<RefCell<dyn draw_ui::Clipboard>>>() {
+        if let Some(clipboard) = ctx.service::<Rc<RefCell<dyn cobbled_ui::Clipboard>>>() {
             self.demo.set_clipboard(clipboard.clone());
         }
         if let Some(backend) = ctx.service::<SharedBackend>() {
@@ -363,11 +363,11 @@ impl AppLogic for DemoLogic {
         self.demo.needs_frame()
     }
 
-    fn cursor(&self) -> Option<draw_core::Cursor> {
+    fn cursor(&self) -> Option<cobbled_core::Cursor> {
         Some(self.demo.cursor())
     }
 
-    fn caret(&self) -> Option<draw_core::Rect> {
+    fn caret(&self) -> Option<cobbled_core::Rect> {
         focused_caret(self.demo.tree())
     }
 }

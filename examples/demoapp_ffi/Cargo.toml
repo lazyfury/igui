@@ -12,8 +12,8 @@ publish = false
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [dependencies]
-draw_core.workspace = true
-draw_render.workspace = true
-draw_theme.workspace = true
-draw_ffi.workspace = true
+cobbled_core.workspace = true
+cobbled_render.workspace = true
+cobbled_theme.workspace = true
+cobbled_ffi.workspace = true
 demo_app = { path = "../demo_app" }

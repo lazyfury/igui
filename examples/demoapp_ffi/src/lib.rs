@@ -1,18 +1,18 @@
 //! `demoapp_ffi` — a C ABI over the real `demo_app` gallery.
 //!
-//! Where `draw_ffi` exposes the core to a host that builds its own UI, this
+//! Where `cobbled_ffi` exposes the core to a host that builds its own UI, this
 //! crate exposes the *whole* Rust gallery: a foreign host creates a `DemoApp`,
 //! drives its frame (viewport, update, layout) and reads back the resulting
-//! `DrawList` through `draw_ffi`'s command record.
+//! `DrawList` through `cobbled_ffi`'s command record.
 //!
 //! ```text
-//! C++ host -> demoapp_* -> DemoApp (draw_components/draw_ui) -> DrawList -> C++ backend
+//! C++ host -> demoapp_* -> DemoApp (cobbled_components/cobbled_ui) -> DrawList -> C++ backend
 //! ```
 //!
 //! # Text
 //!
-//! `DemoApp` lays out with `draw_ui`'s built-in `ApproxTextMeasurer` (it does
-//! not depend on `draw_font`), and it emits `DrawText` commands for every label.
+//! `DemoApp` lays out with `cobbled_ui`'s built-in `ApproxTextMeasurer` (it does
+//! not depend on `cobbled_font`), and it emits `DrawText` commands for every label.
 //! ABI v1 has no text record, so a host reading the list back sees those as
 //! `Unsupported` and draws only the chrome. That is a real limitation of the
 //! comparison, not a bug: the geometry, layout and colors are the real app's.
@@ -21,13 +21,13 @@
 //!
 //! A null handle is a no-op (or a null list); every other handle must come from
 //! [`demoapp_new`] and be released with [`demoapp_free`]. The list returned by
-//! [`demoapp_paint`] is freed with `quill_draw_list_free` from `draw_ffi`.
+//! [`demoapp_paint`] is freed with `quill_draw_list_free` from `cobbled_ffi`.
 
+use cobbled_core::{Size, ViewportSize};
+use cobbled_ffi::{wrap_draw_list, QuillDrawList};
+use cobbled_render::PaintContext;
+use cobbled_theme::Mode;
 use demo_app::DemoApp;
-use draw_core::{Size, ViewportSize};
-use draw_ffi::{wrap_draw_list, QuillDrawList};
-use draw_render::PaintContext;
-use draw_theme::Mode;
 
 /// An opaque, Rust-owned `DemoApp` plus the viewport the host last set.
 pub struct DemoAppHandle {
@@ -145,7 +145,7 @@ pub unsafe extern "C" fn demoapp_paint(handle: *const DemoAppHandle) -> *mut Qui
 #[cfg(test)]
 mod tests {
     use super::*;
-    use draw_ffi::{
+    use cobbled_ffi::{
         quill_draw_list_command, quill_draw_list_free, quill_draw_list_len, QuillCommandTag,
     };
 

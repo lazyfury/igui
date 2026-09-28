@@ -3,22 +3,22 @@
 > For the app-level walkthrough (frame loop, hosting, conventions), start with
 > `docs/ui-guide.md`; this page is the widget/layout/input reference.
 
-UI is built from **components** on one `draw_scene::SceneTree`. A component is a
+UI is built from **components** on one `cobbled_scene::SceneTree`. A component is a
 value that builds exactly one primary control node; mount a whole scene with
 `.into_tree()` (or `SceneTree::add_child`) and nest with `.child()`.
 
 All UI runtime state lives on the tree (control data, widget, decorators, click
-callback, GUI state, layout cache, text measurer). `draw_ui` is a set of free
+callback, GUI state, layout cache, text measurer). `cobbled_ui` is a set of free
 functions over `&SceneTree` / `&mut SceneTree` — there is no `Ui` object. The
 theme is a plain value passed to component constructors; it is never stored on
 the tree.
 
-`draw_components` is the widget API. Its `base` module owns the host-facing
+`cobbled_components` is the widget API. Its `base` module owns the host-facing
 `Component` trait and the unstyled primitives (`Flex`, `Panel`, `Label`, `Grid`,
 `VBox`, `HBox`, `Column`, `Row`, plus the low-level `base::Button`); the crate
 root adds the themed library (`Text`, `Card`, `Button`, `Checkbox`, `Switch`,
 `ResizeHandle`, …) and the `Router` view switcher. Input routing lives in
-`draw_ui` alongside layout and paint.
+`cobbled_ui` alongside layout and paint.
 
 ## Create & compose components
 
@@ -26,9 +26,9 @@ Compose declaratively with `.child(..)` / `.children([..])`, then mount the
 whole scene once with `.into_tree()`:
 
 ```rust
-use draw_components::base::Button;
-use draw_components::{Column, Label, Panel, Row};
-use draw_scene::SceneTree;
+use cobbled_components::base::Button;
+use cobbled_components::{Column, Label, Panel, Row};
+use cobbled_scene::SceneTree;
 
 let tree = Column::new()
     .gap(8.0)
@@ -40,8 +40,8 @@ let tree = Column::new()
     )
     .into_tree();
 
-draw_ui::layout(&mut tree, viewport);
-draw_ui::paint(&tree, &mut ctx);
+cobbled_ui::layout(&mut tree, viewport);
+cobbled_ui::paint(&tree, &mut ctx);
 ```
 
 `tree.add_child(parent, child)` returns the new `NodeId` and stays for runtime
@@ -67,7 +67,7 @@ right = parent.left + parent.width * anchor.right + offset.right
 ```
 
 ```rust
-use draw_core::Edges;
+use cobbled_core::Edges;
 
 // fill the parent
 tree.add_child(
@@ -92,8 +92,8 @@ tree.add_child(
 `Flex`:
 
 ```rust
-use draw_components::Flex;
-use draw_ui::{Align, Justify};
+use cobbled_components::Flex;
+use cobbled_ui::{Align, Justify};
 
 let row = tree.add_child(
     panel,
@@ -116,7 +116,7 @@ let row = tree.add_child(
 Per-child sizing is a `Component` modifier:
 
 ```rust
-use draw_ui::SizeBasis;
+use cobbled_ui::SizeBasis;
 
 tree.add_child(
     row,
@@ -135,8 +135,8 @@ one child.
 ### Grid
 
 ```rust
-use draw_components::Grid;
-use draw_ui::{Align, AlignContent, GridPlacement, Track};
+use cobbled_components::Grid;
+use cobbled_ui::{Align, AlignContent, GridPlacement, Track};
 
 let grid = tree.add_child(
     panel,
@@ -149,7 +149,7 @@ let grid = tree.add_child(
 );
 
 // explicit cell placement via the released context id
-draw_components::update_control(&mut tree, cell, |data| {
+cobbled_components::update_control(&mut tree, cell, |data| {
     data.layout.grid = GridPlacement::new(1, 0).column_span(2);
 });
 ```
@@ -176,10 +176,10 @@ tree.add_child(
 );
 ```
 
-Weight is a per-label token too (`draw_core::FontWeight`):
+Weight is a per-label token too (`cobbled_core::FontWeight`):
 
 ```rust
-use draw_components::FontWeight;
+use cobbled_components::FontWeight;
 
 tree.add_child(panel, Text::heading("Settings", theme).bold());
 tree.add_child(panel, Text::new("Value", theme).weight(FontWeight::BOLD));
@@ -195,9 +195,9 @@ backend-neutral while the host supplies real metrics:
 
 ```rust
 use std::rc::Rc;
-use draw_ui::FixedWidthTextMeasurer;
+use cobbled_ui::FixedWidthTextMeasurer;
 
-draw_ui::set_text_measurer(&mut tree, Rc::new(FixedWidthTextMeasurer::default()));
+cobbled_ui::set_text_measurer(&mut tree, Rc::new(FixedWidthTextMeasurer::default()));
 ```
 
 The default is `ApproxTextMeasurer` (proportional estimate). Injecting a
@@ -211,9 +211,9 @@ and skips measure/arrange unless invalidated. Inserting controls, changing
 anchors/offsets/layout style, changing text, swapping the measurer, or a new
 viewport size all mark it dirty. A change only dirties that node and its
 ancestors, so clean sibling subtrees whose resolved rects are unchanged are
-skipped (partial relayout). Call `draw_ui::layout(&mut tree, viewport)` after
-changes; `draw_ui::layout_count(&tree)` and `draw_ui::last_arranged_nodes(&tree)`
-report the work done, and `draw_ui::invalidate_layout(&mut tree)` forces a full
+skipped (partial relayout). Call `cobbled_ui::layout(&mut tree, viewport)` after
+changes; `cobbled_ui::layout_count(&tree)` and `cobbled_ui::last_arranged_nodes(&tree)`
+report the work done, and `cobbled_ui::invalidate_layout(&mut tree)` forces a full
 pass.
 
 Within a pass, repeated measurements of the same control are memoized, and paint
@@ -223,18 +223,18 @@ reuses a per-control cache of wrapped/clipped lines until its text, font, width,
 ## Respond to input
 
 ```rust
-use draw_core::{EventResult, InputEvent, PointerButton};
+use cobbled_core::{EventResult, InputEvent, PointerButton};
 
-let result: EventResult = draw_ui::handle_input(
+let result: EventResult = cobbled_ui::handle_input(
     &mut tree,
     &InputEvent::PointerDown {
-        position: draw_core::Vec2::new(100.0, 100.0),
+        position: cobbled_core::Vec2::new(100.0, 100.0),
         button: PointerButton::Left,
     },
 );
 
-draw_components::set_on_click(&mut tree, button, || { /* ... */ }); // or Button::on_click builder
-let count = draw_components::click_count(&tree, button);
+cobbled_components::set_on_click(&mut tree, button, || { /* ... */ }); // or Button::on_click builder
+let count = cobbled_components::click_count(&tree, button);
 ```
 
 Hit testing returns the topmost control under a point, honoring `MouseFilter`
@@ -244,7 +244,7 @@ focused button. MVP does target dispatch; capture/bubble is a future extension.
 ### Drag / resize
 
 A node can own a pointer drag with `Component::on_drag` (or
-`draw_components::set_on_drag`). While held, the node captures the pointer: every
+`cobbled_components::set_on_drag`). While held, the node captures the pointer: every
 `PointerMove` is routed to it (even outside its rect) as a delta in logical
 pixels, and `PointerUp` releases it. The callback receives a `DragPhase`
 (`Start`/`Move`/`End`) plus the delta, so a component can react to the start and
@@ -253,7 +253,7 @@ end of a drag from inside itself.
 ```rust
 tree.add_child(
     split,
-    draw_components::ResizeHandle::vertical(theme)
+    cobbled_components::ResizeHandle::vertical(theme)
         .target(sidebar)                 // pane whose flex basis changes
         .width(width.clone())            // Rc<Cell<f32>> current size
         .min(140.0)
@@ -278,7 +278,7 @@ ceiling) or the flexible pane disappears.
 
 ### Cursor feedback
 
-`ControlData.cursor` carries a backend-neutral `draw_core::Cursor`
+`ControlData.cursor` carries a backend-neutral `cobbled_core::Cursor`
 (`Default`/`Pointer`/`Text`/`ColResize`/`RowResize`/`Grab`/`Grabbing`). Set it
 with `Component::cursor(..)`; `ResizeHandle` sets `ColResize`/`RowResize` itself.
 For a cursor that depends on the component's own state, use
@@ -286,11 +286,11 @@ For a cursor that depends on the component's own state, use
 hovered): `ResizeHandle` returns `Grabbing` while dragging and the resize cursor
 otherwise.
 
-`draw_ui::hovered_cursor(&tree)` returns the hovered control's cursor (nearest
+`cobbled_ui::hovered_cursor(&tree)` returns the hovered control's cursor (nearest
 ancestor that set one, dynamic provider first), falling back to `Pointer` for
 anything with a click/drag callback. The cursor *value* is backend-neutral; only
 the final application is platform code: hosts map it onto winit `CursorIcon`
-or the CSS `cursor` property (`draw_wasm::App::cursor`).
+or the CSS `cursor` property (`cobbled_wasm::App::cursor`).
 
 ## Text fields
 
@@ -300,7 +300,7 @@ and capture the keyboard while focused. The caller reads (and may write) the
 live state through [`shared`]` -> Rc<RefCell<TextEdit>>`:
 
 ```rust
-use draw_components::{TextArea, TextInput};
+use cobbled_components::{TextArea, TextInput};
 
 let search = TextInput::new(theme).placeholder("Search…").min_width(220.0);
 let query = search.shared();
@@ -314,14 +314,14 @@ tree.add_child(root, note);
 let text = query.borrow().text().to_string();
 ```
 
-`TextEdit` (in `draw_ui::text_edit`) is a dependency-free editing state machine:
+`TextEdit` (in `cobbled_ui::text_edit`) is a dependency-free editing state machine:
 text, caret and selection as **byte offsets on `char` boundaries**, and an IME
 preedit. It supports insert / newline / space / tab, backspace / forward delete,
 selection replacement, `select_all`, char- and word-wise movement
 (`move_left(select, word)`), home / end and up / down across logical lines, plus
 `set_preedit` / `commit_text`. The component turns those offsets into pixels with
 the tree's `TextMeasurer`, so the caret lines up exactly with the drawn glyphs.
-The measurer is resolved **per paint** from `draw_ui::text_measurer_handle`
+The measurer is resolved **per paint** from `cobbled_ui::text_measurer_handle`
 (captured at mount), so a host that installs real font metrics after building the
 tree still gets an aligned caret. Space and Tab are **named keys the field
 inserts itself** (`Key::Space` / `Key::Tab`, skipped while an IME preedit is
@@ -339,12 +339,12 @@ shortcut cannot also fire while typing. Hosts must not also send Space/Tab as
   `Up` ends the drag.
 - **Double-click** selects the word under the pointer. The host detects the
   double click (it owns the clock) and sends `InputEvent::DoubleClick` after the
-  matching `PointerDown`; `quill_winit` does this, and `draw_ui::handle_input`
+  matching `PointerDown`; `cobbled_winit` does this, and `cobbled_ui::handle_input`
   routes it to the field as `PointerPhase::DoubleClick`.
 - **Copy / cut / paste** on `Ctrl`/`Cmd+C`/`X`/`V` go through a host clipboard:
-  install one with `draw_ui::set_clipboard(tree, Rc<RefCell<dyn Clipboard>>)`
-  (`draw_ui::MemoryClipboard` is a process-local fallback for tests).
-  `quill_winit::ClipboardPlugin` installs a `Clipboard` service wrapping the
+  install one with `cobbled_ui::set_clipboard(tree, Rc<RefCell<dyn Clipboard>>)`
+  (`cobbled_ui::MemoryClipboard` is a process-local fallback for tests).
+  `cobbled_winit::ClipboardPlugin` installs a `Clipboard` service wrapping the
   system clipboard (arboard) with an in-process fallback; `DemoApp::set_clipboard`
   installs it for the app and the overlay layer. A host with no clipboard simply leaves it unset and copy/paste
   are no-ops.
@@ -362,8 +362,8 @@ nearest ancestor carrying the matching callback:
   candidate-window placement;
 - `Component::focusable(true)`.
 
-A click focuses the control under the pointer; `draw_ui::focused_caret(&tree)`
-returns the focused control's caret rect and `draw_ui::request_paint(&mut tree)`
+A click focuses the control under the pointer; `cobbled_ui::focused_caret(&tree)`
+returns the focused control's caret rect and `cobbled_ui::request_paint(&mut tree)`
 invalidates the paint cache after a paint-only edit. Key events are separate from
 committed text: a host emits `InputEvent::KeyDown` for named keys and
 `InputEvent::TextInput` for typed/committed characters, and
@@ -379,11 +379,11 @@ selects all).
 
 ### Host wiring
 
-A native host needs three things (all provided by `quill_winit`'s plugins, see
+A native host needs three things (all provided by `cobbled_winit`'s plugins, see
 `docs/ui-guide.md` §6): forward `WindowEvent::Ime` as `InputEvent::Ime`
 (`ImePlugin`), forward `ModifiersChanged` and committed text (`KeyboardPlugin`),
 and each frame let `ImePlugin` place the IME window from `App::caret()` (which a
-UI app returns as `draw_ui::focused_caret(tree)`). In the WASM host the canvas
+UI app returns as `cobbled_ui::focused_caret(tree)`). In the WASM host the canvas
 runner forwards `compositionstart/update/end` as the same events.
 
 ## Scroll & virtualized lists
@@ -391,10 +391,10 @@ runner forwards `compositionstart/update/end` as the same events.
 Two pieces make scrolling possible in the core, and `List` builds on both.
 
 **Clipping** is opt-in and lives on `ControlData.clip`: a control that clips
-hands its own rectangle to its whole subtree (`draw_ui::set_clip`,
+hands its own rectangle to its whole subtree (`cobbled_ui::set_clip`,
 `Component::clip(true)`). Nested clips intersect, and a subtree whose
 intersection is empty is skipped entirely — nothing painted, nothing
-hit-testable. `draw_ui::layout` resolves the rectangle in the same pre-order pass
+hit-testable. `cobbled_ui::layout` resolves the rectangle in the same pre-order pass
 that writes the rectangles back, so it is a pure function of the geometry and
 needs no dirty propagation of its own; paint emits one `save` + `clip_rect` per
 clipped region and pops it with `restore`. A tree where nothing clips emits no
@@ -402,7 +402,7 @@ clip commands and pays nothing.
 
 **Wheel routing**: `handle_input` hit-tests `InputEvent::Wheel { position,
 delta }` and hands it to the nearest ancestor with a scroll callback
-(`draw_components::set_on_scroll`, or `Component::on_scroll` — the wheel counterpart of
+(`cobbled_components::set_on_scroll`, or `Component::on_scroll` — the wheel counterpart of
 `on_click`/`on_drag`). It returns `Handled` only when a callback took it, so an
 unclaimed wheel still reaches the host.
 
@@ -415,14 +415,14 @@ the function is a pure one-liner with tests. Neither `wgpu_demo` (winit
 translation yet, so a list inside those demos does not scroll until it is added —
 `handle_input` is the contract, the pump is the host's job.
 
-`draw_components::List` mounts only the rows its viewport can show and recycles
+`cobbled_components::List` mounts only the rows its viewport can show and recycles
 them as it scrolls, so the node count, the layout work and the emitted commands
 follow the viewport rather than the data:
 
 ```rust
 use std::cell::Cell;
 use std::rc::Rc;
-use draw_components::{List, ListColumn};
+use cobbled_components::{List, ListColumn};
 
 let entries = /* your data */;
 let count = Rc::new(Cell::new(entries.len()));
@@ -438,9 +438,9 @@ let state = list.state();                    // take the handle before mounting
 tree.add_child(pane, list.grow(1.0));
 
 // Once per frame, after layout:
-draw_ui::layout(&mut tree, viewport);
+cobbled_ui::layout(&mut tree, viewport);
 if state.sync(&mut tree) {                   // mounts/moves/re-binds the pool
-    draw_ui::layout(&mut tree, viewport);    // a changed pool wants new rects
+    cobbled_ui::layout(&mut tree, viewport);    // a changed pool wants new rects
 }
 ```
 
@@ -486,15 +486,15 @@ with a draggable scrollbar. The child keeps its natural height; the viewport
 clips.
 
 ```rust
-use draw_components::ScrollView;
+use cobbled_components::ScrollView;
 
 let view = ScrollView::new(theme).child(long_column);
 let state = view.state();                 // take the handle before mounting
 tree.add_child(pane, view);
 
-draw_ui::layout(&mut tree, viewport);
+cobbled_ui::layout(&mut tree, viewport);
 if state.sync(&mut tree) {                // applies the offset + scrollbar
-    draw_ui::layout(&mut tree, viewport); // a moved offset wants new rects
+    cobbled_ui::layout(&mut tree, viewport); // a moved offset wants new rects
 }
 ```
 
@@ -509,16 +509,16 @@ overflows; `.scrollbar(false)` keeps the clip without the bar. This is what the
 
 ## Switch views (Router)
 
-`draw_components::Router` shows exactly one of several child views in a
+`cobbled_components::Router` shows exactly one of several child views in a
 container and hides the rest. All views stay mounted (their state survives a
-switch), and `draw_ui` skips hidden controls in measure / arrange / paint /
+switch), and `cobbled_ui` skips hidden controls in measure / arrange / paint /
 hit-test, so only the active view occupies the pane.
 
 ```rust
 use std::cell::Cell;
 use std::rc::Rc;
-use draw_components::{Button, Panel, Router};
-use draw_core::Color;
+use cobbled_components::{Button, Panel, Router};
+use cobbled_core::Color;
 
 let route = Rc::new(Cell::new(0));
 let pane = tree.add_child(root, Panel::new().color(Color::TRANSPARENT).flat());
@@ -550,7 +550,7 @@ an anchor and handles Escape / click-outside. The host opens it in its frame
 update, so click callbacks (which cannot borrow the host) only record a request.
 
 ```rust
-use draw_components::{Menu, MenuItem};
+use cobbled_components::{Menu, MenuItem};
 
 // A menu title click records `Some(index)` in a shared cell...
 Button::ghost("File", theme).on_click({ let r = request.clone(); move || r.set(Some(0)) });
@@ -578,15 +578,15 @@ the tree (clicking the open title closes it; clicking another switches).
 
 ## Icons
 
-`draw_components::Glyph` + `Icon` draw small monochrome symbols from geometry
+`cobbled_components::Glyph` + `Icon` draw small monochrome symbols from geometry
 (lines, stroked circles and dots) — **no SVG files and no image assets**, so the
 core stays file- and backend-free. `paint_glyph` paints a glyph into any
 rectangle (the `Checkbox` check mark uses it), and `Icon` is the themed
 component:
 
 ```rust
-use draw_components::{Glyph, Icon};
-use draw_theme::Tone;
+use cobbled_components::{Glyph, Icon};
+use cobbled_theme::Tone;
 
 tree.add_child(row, Icon::new(Glyph::Warning, theme).tone(Tone::Warning));
 tree.add_child(row, Icon::new(Glyph::Search, theme).size(20.0));
@@ -596,29 +596,29 @@ Glyphs: `Check`, `Cross`, `Dash`, `Minus`, `Plus`, `ChevronDown` / `Up` /
 `Left` / `Right`, `Warning`, `Info`, `Search`, `Dot`, `Grid`, `List`,
 `TextLines`, `Square`, `Toggle`. `Icon` takes `size`, `tone` / `color` and an
 optional `stroke` width; for a custom shape call
-`draw_components::paint_glyph(..)` inside a `foreground` decorator.
+`cobbled_components::paint_glyph(..)` inside a `foreground` decorator.
 
 ## Request redraw
 
 The UI is immediate-mode over a persistent tree. Mutate state, call
-`draw_ui::layout(&mut tree, viewport)`, then paint a fresh `DrawList` each frame:
+`cobbled_ui::layout(&mut tree, viewport)`, then paint a fresh `DrawList` each frame:
 
 ```rust
-let mut ctx = draw_render::PaintContext::new();
-draw_ui::paint(&tree, &mut ctx);
+let mut ctx = cobbled_render::PaintContext::new();
+cobbled_ui::paint(&tree, &mut ctx);
 let list = ctx.into_draw_list();
 ```
 
 ## Extend with a custom component
 
-Implement `draw_components::Component` for your own builder and mount it with
+Implement `cobbled_components::Component` for your own builder and mount it with
 `.into_tree()` / `add_child`:
 
 ```rust
-use draw_components::{Component, Flex, Spec};
-use draw_core::{Color, NodeId};
-use draw_scene::SceneTree;
-use draw_ui::Widget;
+use cobbled_components::{Component, Flex, Spec};
+use cobbled_core::{Color, NodeId};
+use cobbled_scene::SceneTree;
+use cobbled_ui::Widget;
 
 struct Badge {
     spec: Spec,
@@ -640,12 +640,12 @@ impl Component for Badge {
             text: self.text.clone(),
             font_size: 12.0,
             color: self.color,
-            options: draw_ui::TextOptions::no_wrap(),
+            options: cobbled_ui::TextOptions::no_wrap(),
         }
     }
 }
 
-draw_components::impl_scene_child!(Badge);
+cobbled_components::impl_scene_child!(Badge);
 ```
 
 The default `build` creates the control, installs `widget()`, and applies the
@@ -696,7 +696,7 @@ mount time.
   let title = NodeRef::new();
   let header = Row::new().child(Text::subheading("Quill", theme).ref_(&title));
   let tree = Column::new().child(header).into_tree();
-  if let Some(id) = title.get() { draw_components::set_text(&mut tree, id, "Inbox"); }
+  if let Some(id) = title.get() { cobbled_components::set_text(&mut tree, id, "Inbox"); }
   ```
 
 - **Add children in `prepare`** with `Spec::child` / `Spec::children` —

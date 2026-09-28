@@ -9,41 +9,41 @@ license.workspace = true
 default = []
 # UI: scene + layout/paint/input + design system.
 ui = [
-    "dep:draw_core",
-    "dep:draw_render",
-    "dep:draw_scene",
-    "dep:draw_theme",
-    "dep:draw_ui",
-    "dep:draw_components",
-    # When `game` is also enabled, surface `draw_game::GameView` (weak dep: does
-    # not pull draw_game on by itself).
-    "draw_game?/ui",
+    "dep:cobbled_core",
+    "dep:cobbled_render",
+    "dep:cobbled_scene",
+    "dep:cobbled_theme",
+    "dep:cobbled_ui",
+    "dep:cobbled_components",
+    # When `game` is also enabled, surface `cobbled_game::GameView` (weak dep: does
+    # not pull cobbled_game on by itself).
+    "cobbled_game?/ui",
 ]
 # Animation, independent of `ui` and `game`.
-anim = ["dep:draw_anim", "dep:draw_core", "dep:draw_scene"]
-# Application runtime: the plugin-based `quill_app` builder (no platform).
-app = ["dep:quill_app", "dep:draw_core", "dep:draw_render"]
+anim = ["dep:cobbled_anim", "dep:cobbled_core", "dep:cobbled_scene"]
+# Application runtime: the plugin-based `cobbled_app` builder (no platform).
+app = ["dep:cobbled_app", "dep:cobbled_core", "dep:cobbled_render"]
 # Headless recording presenter for `--selfcheck`; no `winit`.
-headless = ["app", "dep:quill_headless", "dep:draw_backend_recording"]
+headless = ["app", "dep:cobbled_headless", "dep:cobbled_backend_recording"]
 # 2D game layer. Does not imply `ui`; `anim` stays independent.
 game = [
-    "dep:draw_game",
-    "dep:draw_assets",
-    "dep:draw_core",
-    "dep:draw_render",
-    "dep:draw_scene",
+    "dep:cobbled_game",
+    "dep:cobbled_assets",
+    "dep:cobbled_core",
+    "dep:cobbled_render",
+    "dep:cobbled_scene",
 ]
 
 [dependencies]
-draw_core = { workspace = true, optional = true }
-draw_render = { workspace = true, optional = true }
-draw_scene = { workspace = true, optional = true }
-draw_theme = { workspace = true, optional = true }
-draw_ui = { workspace = true, optional = true }
-draw_components = { workspace = true, optional = true }
-draw_anim = { workspace = true, optional = true }
-draw_game = { workspace = true, optional = true }
-draw_assets = { workspace = true, optional = true }
-quill_app = { workspace = true, optional = true }
-quill_headless = { workspace = true, optional = true }
-draw_backend_recording = { workspace = true, optional = true }
+cobbled_core = { workspace = true, optional = true }
+cobbled_render = { workspace = true, optional = true }
+cobbled_scene = { workspace = true, optional = true }
+cobbled_theme = { workspace = true, optional = true }
+cobbled_ui = { workspace = true, optional = true }
+cobbled_components = { workspace = true, optional = true }
+cobbled_anim = { workspace = true, optional = true }
+cobbled_game = { workspace = true, optional = true }
+cobbled_assets = { workspace = true, optional = true }
+cobbled_app = { workspace = true, optional = true }
+cobbled_headless = { workspace = true, optional = true }
+cobbled_backend_recording = { workspace = true, optional = true }

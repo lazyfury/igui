@@ -4,10 +4,10 @@
 //! helpers here paint solid or framed swatches without the default [`Panel`]
 //! fill (which would otherwise show through as a grid of grey boxes).
 
-use draw_components::{Component, Panel};
-use draw_core::Color;
-use draw_theme::{radius, Theme};
-use draw_ui::SurfaceStyle;
+use cobbled_components::{Component, Panel};
+use cobbled_core::Color;
+use cobbled_theme::{radius, Theme};
+use cobbled_ui::SurfaceStyle;
 
 pub(crate) mod content;
 pub(crate) mod icons;

@@ -43,11 +43,11 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use draw_backend_wgpu::{wgpu, FontConfig, FontMetrics, FontMode, WgpuBackend};
-use draw_core::{FontWeight, InputEvent, Key, PointerButton, Rect, Size, Vec2, ViewportSize};
-use draw_render::{PaintContext, RenderBackend};
-use draw_theme::{default_theme, Mode as ThemeMode};
-use draw_ui::TextMeasurer;
+use cobbled_backend_wgpu::{wgpu, FontConfig, FontMetrics, FontMode, WgpuBackend};
+use cobbled_core::{FontWeight, InputEvent, Key, PointerButton, Rect, Size, Vec2, ViewportSize};
+use cobbled_render::{PaintContext, RenderBackend};
+use cobbled_theme::{default_theme, Mode as ThemeMode};
+use cobbled_ui::TextMeasurer;
 use winit::application::ApplicationHandler;
 use winit::dpi::{LogicalSize, PhysicalPosition};
 use winit::event::{ElementState, MouseButton, WindowEvent};
@@ -471,7 +471,7 @@ struct Badge {
     backend: WgpuBackend,
     config: wgpu::SurfaceConfiguration,
     /// The view: one `Column` with two `Text` lines, laid out and painted
-    /// through `draw_ui` like any other view in this repo. It paints no
+    /// through `cobbled_ui` like any other view in this repo. It paints no
     /// backdrop, so the window stays transparent around the text.
     view: BadgeApp,
 }
@@ -1961,9 +1961,9 @@ fn surface_alpha_mode(
 /// four corners — is genuinely transparent. Matching the view's token means the
 /// rounded fill and the clear colour around it are the same colour, which is
 /// what keeps the ordinary window looking exactly as it did.
-fn clear_color(transparent: bool, background: draw_core::Color) -> draw_core::Color {
+fn clear_color(transparent: bool, background: cobbled_core::Color) -> cobbled_core::Color {
     if transparent {
-        draw_core::Color::new(background.r, background.g, background.b, 0.0)
+        cobbled_core::Color::new(background.r, background.g, background.b, 0.0)
     } else {
         background
     }
@@ -1986,15 +1986,15 @@ fn report(result: &Result<Balance, String>) {
     }
 }
 
-fn cursor_icon(cursor: draw_core::Cursor) -> CursorIcon {
+fn cursor_icon(cursor: cobbled_core::Cursor) -> CursorIcon {
     match cursor {
-        draw_core::Cursor::Default => CursorIcon::Default,
-        draw_core::Cursor::Pointer => CursorIcon::Pointer,
-        draw_core::Cursor::Text => CursorIcon::Text,
-        draw_core::Cursor::ColResize => CursorIcon::ColResize,
-        draw_core::Cursor::RowResize => CursorIcon::RowResize,
-        draw_core::Cursor::Grab => CursorIcon::Grab,
-        draw_core::Cursor::Grabbing => CursorIcon::Grabbing,
+        cobbled_core::Cursor::Default => CursorIcon::Default,
+        cobbled_core::Cursor::Pointer => CursorIcon::Pointer,
+        cobbled_core::Cursor::Text => CursorIcon::Text,
+        cobbled_core::Cursor::ColResize => CursorIcon::ColResize,
+        cobbled_core::Cursor::RowResize => CursorIcon::RowResize,
+        cobbled_core::Cursor::Grab => CursorIcon::Grab,
+        cobbled_core::Cursor::Grabbing => CursorIcon::Grabbing,
     }
 }
 
@@ -2371,7 +2371,7 @@ mod tests {
     /// corners see through to the desktop.
     #[test]
     fn only_a_transparent_window_clears_to_a_transparent_backdrop() {
-        let background = draw_core::Color::new(0.039, 0.039, 0.039, 1.0);
+        let background = cobbled_core::Color::new(0.039, 0.039, 0.039, 1.0);
 
         let panel = clear_color(true, background);
         assert_eq!((panel.r, panel.g, panel.b), (0.039, 0.039, 0.039));

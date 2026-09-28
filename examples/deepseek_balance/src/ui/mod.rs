@@ -1,7 +1,7 @@
 //! The balance view, built from the workspace's own layers.
 //!
 //! Everything here is backend-neutral: the view is a `SceneTree` of
-//! `draw_components` components laid out by `draw_ui`. The host (see
+//! `cobbled_components` components laid out by `cobbled_ui`. The host (see
 //! [`crate::host`]) owns the window, the wgpu backend and the network thread,
 //! exactly like `examples/wgpu_demo` owns the window for `demo_app`.
 //!
@@ -49,17 +49,17 @@ use std::rc::Rc;
 use std::time::{Duration, Instant};
 
 use deepseek_util::time::{clock, now_epoch, timestamp};
-use draw_components::{Button, Card, Column, Component, Divider, Flex, NodeRef, Ref, Row, Text};
-use draw_core::{
+use cobbled_components::{Button, Card, Column, Component, Divider, Flex, NodeRef, Ref, Row, Text};
+use cobbled_core::{
     Color, Cursor, Edges, EventResult, InputEvent, Key, NodeId, Rect, Size, Transform2D, Vec2,
     ViewportSize,
 };
-use draw_render::PaintContext;
-use draw_scene::{SceneChild, SceneTree};
+use cobbled_render::PaintContext;
+use cobbled_scene::{SceneChild, SceneTree};
 #[cfg(test)]
-use draw_theme::{default_theme, Mode};
-use draw_theme::{radius, space, SurfaceLevel, Theme, Tone};
-use draw_ui::{fill_rounded_rect, Align, Justify, MouseFilter, SurfaceStyle, TextMeasurer};
+use cobbled_theme::{default_theme, Mode};
+use cobbled_theme::{radius, space, SurfaceLevel, Theme, Tone};
+use cobbled_ui::{fill_rounded_rect, Align, Justify, MouseFilter, SurfaceStyle, TextMeasurer};
 
 use crate::api::Balance;
 use crate::go::{GoUsage, WindowKind};
@@ -133,7 +133,7 @@ pub const DEFAULT_MIN_REFRESH_GAP: Duration = Duration::from_secs(10);
 ///
 /// The button is drawn [`RefreshState::Busy`] and [`RefreshState::Cooling`] with
 /// a translucent black film over its accent fill. A film rather than a token
-/// swap because `draw_components::Button` has a fixed variant and a fixed label
+/// swap because `cobbled_components::Button` has a fixed variant and a fixed label
 /// colour: no palette entry can be both legible on `on_accent` and look disabled
 /// in both themes. Keeping the accent's hue means the label keeps the contrast it
 /// was designed for, and the wash only has to read as "not now".
@@ -279,7 +279,7 @@ pub struct BalanceApp {
     refresh_button: NodeId,
     /// The label nodes of every refresh button, one per page.
     ///
-    /// `draw_ui::Widget::set_text` writes `Label` and raw `Button` widgets only,
+    /// `cobbled_ui::Widget::set_text` writes `Label` and raw `Button` widgets only,
     /// and the themed `Button` is a flex row *wrapping* a label — so the text has
     /// to be written one level down. Found once at mount ([`label_of`]) instead of
     /// every frame.
@@ -474,7 +474,7 @@ impl BalanceApp {
 
     /// Installs `measurer` so layout measures text with the backend's real font.
     pub fn set_text_measurer(&mut self, measurer: Rc<dyn TextMeasurer>) {
-        draw_ui::set_text_measurer(&mut self.tree, measurer);
+        cobbled_ui::set_text_measurer(&mut self.tree, measurer);
     }
 
     /// Whether a request is in flight. The host asks before the badge exists
@@ -531,7 +531,7 @@ impl BalanceApp {
             Tab::DeepSeek => self.deepseek_tab,
             Tab::Go => self.go_tab,
         };
-        draw_ui::control(&self.tree, id).map(|control| control.rect.center())
+        cobbled_ui::control(&self.tree, id).map(|control| control.rect.center())
     }
 
     /// The Go status line's text.
@@ -632,13 +632,13 @@ impl BalanceApp {
     /// Center of the refresh button in logical viewport coordinates.
     #[cfg(test)]
     pub fn button_center(&self) -> Option<Vec2> {
-        draw_ui::control(&self.tree, self.refresh_button).map(|control| control.rect.center())
+        cobbled_ui::control(&self.tree, self.refresh_button).map(|control| control.rect.center())
     }
 
     /// Rect of the refresh button.
     #[cfg(test)]
     pub fn button_rect(&self) -> Option<Rect> {
-        draw_ui::control(&self.tree, self.refresh_button).map(|control| control.rect)
+        cobbled_ui::control(&self.tree, self.refresh_button).map(|control| control.rect)
     }
 
     // -- pipeline ----------------------------------------------------------
@@ -680,7 +680,7 @@ impl BalanceApp {
     /// Resolves layout for `viewport`.
     pub fn layout(&mut self, viewport: ViewportSize) {
         self.viewport = viewport;
-        draw_ui::layout(&mut self.tree, viewport);
+        cobbled_ui::layout(&mut self.tree, viewport);
         self.tree.update();
     }
 
@@ -702,7 +702,7 @@ impl BalanceApp {
             arrow(ctx, window, fill);
         }
         fill_rounded_rect(ctx, body, PANEL_RADIUS, fill);
-        draw_ui::paint(&self.tree, ctx);
+        cobbled_ui::paint(&self.tree, ctx);
     }
 
     /// The part of the window the panel's rounded body covers: everything, or
@@ -731,23 +731,23 @@ impl BalanceApp {
                 return EventResult::Handled;
             }
         }
-        draw_ui::route_input(&mut self.tree, event)
+        cobbled_ui::route_input(&mut self.tree, event)
     }
 
     /// Controls in the view. The self-check feeds this into the frame
     /// counters, so it is a plain read-only accessor, not test-only.
     pub fn control_count(&self) -> usize {
-        draw_ui::control_count(&self.tree)
+        cobbled_ui::control_count(&self.tree)
     }
 
     /// Read-only view of the scene tree, for the self-check's dump.
-    pub fn tree(&self) -> &draw_scene::SceneTree {
+    pub fn tree(&self) -> &cobbled_scene::SceneTree {
         &self.tree
     }
 
     /// Cursor the host should show for the current pointer position.
     pub fn cursor(&self) -> Cursor {
-        draw_ui::hovered_cursor(&self.tree)
+        cobbled_ui::hovered_cursor(&self.tree)
     }
 
     /// The theme the view was built with. The host reads it to match its own
@@ -796,9 +796,9 @@ impl BalanceApp {
         // reply lands.
         self.feed.inflight.set(SOURCES_PER_REFRESH);
         self.blocked_until = Some(now + self.min_gap);
-        draw_components::set_text(&mut self.tree, self.status, STATUS_BUSY);
+        cobbled_components::set_text(&mut self.tree, self.status, STATUS_BUSY);
         self.set_error("");
-        draw_components::set_text(&mut self.tree, self.go_status, STATUS_BUSY);
+        cobbled_components::set_text(&mut self.tree, self.go_status, STATUS_BUSY);
         self.set_go_error("");
     }
 
@@ -819,7 +819,7 @@ impl BalanceApp {
         self.feed.state.set(state);
         let label = state.label();
         for node in &self.refresh_labels {
-            draw_components::set_text(&mut self.tree, *node, label.clone());
+            cobbled_components::set_text(&mut self.tree, *node, label.clone());
         }
         true
     }
@@ -865,7 +865,7 @@ impl BalanceApp {
         }
         match line.as_deref() {
             Some(text) => {
-                draw_components::set_text(&mut self.tree, self.countdown, text);
+                cobbled_components::set_text(&mut self.tree, self.countdown, text);
                 self.set_visible(self.countdown, true);
             }
             None => self.set_visible(self.countdown, false),
@@ -894,7 +894,7 @@ impl BalanceApp {
                 // that press is the retry. There is still only one request in
                 // flight at a time, which is what the `inflight` gate is for.
                 self.blocked_until = None;
-                draw_components::set_text(&mut self.tree, self.status, STATUS_FAILED);
+                cobbled_components::set_text(&mut self.tree, self.status, STATUS_FAILED);
                 self.set_error(&message);
             }
         }
@@ -913,7 +913,7 @@ impl BalanceApp {
             Ok(usage) => self.show_go_usage(usage),
             Err(message) => {
                 self.blocked_until = None;
-                draw_components::set_text(&mut self.tree, self.go_status, GO_STATUS_FAILED);
+                cobbled_components::set_text(&mut self.tree, self.go_status, GO_STATUS_FAILED);
                 self.set_go_error(&message);
             }
         }
@@ -940,7 +940,7 @@ impl BalanceApp {
 
     /// Writes each Go window row: remainder first, then the time to reset.
     fn show_go_usage(&mut self, usage: GoUsage) {
-        draw_components::set_text(
+        cobbled_components::set_text(
             &mut self.tree,
             self.go_status,
             format!("更新于 {}", timestamp()),
@@ -966,7 +966,7 @@ impl BalanceApp {
             })
             .collect();
         for (node, value) in rows {
-            draw_components::set_text(&mut self.tree, node, value);
+            cobbled_components::set_text(&mut self.tree, node, value);
         }
 
         self.last_go = Some(usage);
@@ -980,7 +980,7 @@ impl BalanceApp {
             timestamp(),
             balance.balance_infos.len()
         );
-        draw_components::set_text(&mut self.tree, self.status, stamp);
+        cobbled_components::set_text(&mut self.tree, self.status, stamp);
         self.set_error("");
 
         let (ok, bad) = (self.available_ok, self.available_bad);
@@ -1005,14 +1005,14 @@ impl BalanceApp {
         for (index, (card, currency, total, granted, topped_up)) in slots.into_iter().enumerate() {
             match balance.balance_infos.get(index) {
                 Some(info) => {
-                    draw_components::set_text(&mut self.tree, currency, info.currency.clone());
-                    draw_components::set_text(&mut self.tree, total, info.total_balance.clone());
-                    draw_components::set_text(
+                    cobbled_components::set_text(&mut self.tree, currency, info.currency.clone());
+                    cobbled_components::set_text(&mut self.tree, total, info.total_balance.clone());
+                    cobbled_components::set_text(
                         &mut self.tree,
                         granted,
                         info.granted_balance.clone(),
                     );
-                    draw_components::set_text(
+                    cobbled_components::set_text(
                         &mut self.tree,
                         topped_up,
                         info.topped_up_balance.clone(),
@@ -1027,11 +1027,11 @@ impl BalanceApp {
     }
 
     /// Shows or hides `id`, invalidating layout exactly when the value changes
-    /// (the pattern `draw_components::Router` uses).
+    /// (the pattern `cobbled_components::Router` uses).
     fn set_visible(&mut self, id: NodeId, visible: bool) {
         if self.tree.is_visible(id) != Some(visible) {
             self.tree.set_visible(id, visible);
-            draw_ui::mark_dirty(&mut self.tree, id);
+            cobbled_ui::mark_dirty(&mut self.tree, id);
         }
     }
 
@@ -1042,7 +1042,7 @@ impl BalanceApp {
         let visible = !message.is_empty();
         self.set_visible(self.error, visible);
         self.set_visible(self.divider, visible);
-        draw_components::set_text(&mut self.tree, self.error, message);
+        cobbled_components::set_text(&mut self.tree, self.error, message);
     }
 
     /// The Go page's error line, with the same collapse rule as [`set_error`].
@@ -1050,7 +1050,7 @@ impl BalanceApp {
         let visible = !message.is_empty();
         self.set_visible(self.go_error, visible);
         self.set_visible(self.go_error_divider, visible);
-        draw_components::set_text(&mut self.tree, self.go_error, message);
+        cobbled_components::set_text(&mut self.tree, self.go_error, message);
     }
 }
 
@@ -1096,13 +1096,13 @@ mod tests;
 
 use build::*;
 fn text(tree: &SceneTree, id: NodeId) -> Option<&str> {
-    draw_ui::widget(tree, id).and_then(|widget| widget.text())
+    cobbled_ui::widget(tree, id).and_then(|widget| widget.text())
 }
 
 /// The first text-bearing child of `control`, i.e. the label a composite
 /// component wraps.
 ///
-/// `draw_components::Button` builds a flex row and puts the caption in a child
+/// `cobbled_components::Button` builds a flex row and puts the caption in a child
 /// label, and `Widget::set_text` only writes `Label` and raw `Button` widgets —
 /// so writing the caption means writing to this node, not to the button.
 fn label_of(tree: &SceneTree, control: NodeId) -> Option<NodeId> {

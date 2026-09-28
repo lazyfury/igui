@@ -4,8 +4,8 @@ quill provides two independent, backend-neutral debug tools:
 
 | Tool | Crate | Draws |
 |---|---|---|
-| Component debug drawing | `draw_ui` + `draw_debug_ui::DebugOverlay` | yellow border + `Name #id` per control |
-| Performance panel | `draw_profile` + `draw_debug_ui::PerformanceOverlay` | FPS, phase timings, counters, findings |
+| Component debug drawing | `cobbled_ui` + `cobbled_debug_ui::DebugOverlay` | yellow border + `Name #id` per control |
+| Performance panel | `cobbled_profile` + `cobbled_debug_ui::PerformanceOverlay` | FPS, phase timings, counters, findings |
 
 Both emit ordinary `DrawCommand`s, so any backend renders them, and both are
 verified with native `cargo test`.
@@ -20,24 +20,24 @@ in its top-left corner — the classic engine "debug bounds" view.
 ### Directly from the UI
 
 ```rust
-use draw_ui::DebugDrawOptions;
+use cobbled_ui::DebugDrawOptions;
 
-// after `draw_ui::paint(&tree, &mut ctx)`:
-draw_ui::paint_debug(&tree, &mut ctx, &DebugDrawOptions::default());
+// after `cobbled_ui::paint(&tree, &mut ctx)`:
+cobbled_ui::paint_debug(&tree, &mut ctx, &DebugDrawOptions::default());
 ```
 
 `DebugDrawOptions` controls the look:
 
 ```rust
-use draw_core::Color;
-use draw_ui::DebugDrawOptions;
+use cobbled_core::Color;
+use cobbled_ui::DebugDrawOptions;
 
 let options = DebugDrawOptions {
     border_color: Color::YELLOW,
     text_color: Color::YELLOW,
     width: 1.0,
     font_size: 11.0,
-    label_offset: draw_core::Vec2::new(2.0, 0.0), // from the control's top-left
+    label_offset: cobbled_core::Vec2::new(2.0, 0.0), // from the control's top-left
     show_names: true,
     show_ids: true,
 };
@@ -47,14 +47,14 @@ The label is `"{name} #{id}"`; disable `show_names` / `show_ids` to change it.
 
 ### With a togglable overlay
 
-`draw_debug_ui::DebugOverlay` wraps the above with an open/closed state:
+`cobbled_debug_ui::DebugOverlay` wraps the above with an open/closed state:
 
 ```rust
-use draw_debug_ui::DebugOverlay;
+use cobbled_debug_ui::DebugOverlay;
 
 let mut debug = DebugOverlay::new(); // visible by default
 
-// per frame, after `draw_ui::paint(&tree, &mut ctx)`:
+// per frame, after `cobbled_ui::paint(&tree, &mut ctx)`:
 debug.paint(&tree, &mut ctx);
 
 // toggle (e.g. an F3 key binding)
@@ -65,15 +65,15 @@ It owns no tree, so it draws over any tree you pass in.
 
 ---
 
-## 2. Performance inspection (`draw_profile`)
+## 2. Performance inspection (`cobbled_profile`)
 
-`draw_profile` never reads the clock itself. The host samples `Instant` per
+`cobbled_profile` never reads the clock itself. The host samples `Instant` per
 pipeline phase and feeds milliseconds in, which keeps the model deterministic
 and the tests exact.
 
 ```rust
 use std::time::Instant;
-use draw_profile::{inspect, FrameCounters, FrameStats, Profiler, StageTimes};
+use cobbled_profile::{inspect, FrameCounters, FrameStats, Profiler, StageTimes};
 
 let mut profiler = Profiler::new();
 
@@ -84,7 +84,7 @@ let t1 = Instant::now();
 demo.layout(viewport);
 let t2 = Instant::now();
 
-let mut ctx = draw_render::PaintContext::new();
+let mut ctx = cobbled_render::PaintContext::new();
 demo.paint(&mut ctx);
 let list = ctx.into_draw_list();
 let t3 = Instant::now();
@@ -147,7 +147,7 @@ if let Some(summary) = profiler.summary() {
 Thresholds:
 
 ```rust
-use draw_profile::{inspect_with, InspectionConfig};
+use cobbled_profile::{inspect_with, InspectionConfig};
 
 let config = InspectionConfig {
     max_draw_commands: 2048, // default
@@ -162,11 +162,11 @@ let report = inspect_with(&list, &stats, &config);
 ## 3. Performance panel (`PerformanceOverlay`)
 
 `PerformanceOverlay` renders a `Profiler` + `InspectionReport` as an ordinary
-`draw_ui` panel in a viewport corner. It owns its own `SceneTree` subtree, so it
+`cobbled_ui` panel in a viewport corner. It owns its own `SceneTree` subtree, so it
 does not disturb the application's layout or hit-testing.
 
 ```rust
-use draw_debug_ui::{Corner, OverlayConfig, PerformanceOverlay};
+use cobbled_debug_ui::{Corner, OverlayConfig, PerformanceOverlay};
 
 let mut perf = PerformanceOverlay::new();
 

@@ -6,11 +6,11 @@
 //!
 //! | feature | adds |
 //! |---|---|
-//! | `ui` | `draw_core`, `draw_render`, `draw_scene`, `draw_theme`, `draw_ui`, `draw_components` |
-//! | `anim` | `draw_anim` (+ the `draw_core` / `draw_scene` it targets) |
-//! | `game` | `draw_game` + `draw_assets` (+ `draw_core` / `draw_render` / `draw_scene`) |
-//! | `app` | `quill_app` — the plugin-based `App` runtime (+ `draw_core` / `draw_render`) |
-//! | `headless` | `quill_headless` — a recording `Presenter` for headless self-checks (implies `app`) |
+//! | `ui` | `cobbled_core`, `cobbled_render`, `cobbled_scene`, `cobbled_theme`, `cobbled_ui`, `cobbled_components` |
+//! | `anim` | `cobbled_anim` (+ the `cobbled_core` / `cobbled_scene` it targets) |
+//! | `game` | `cobbled_game` + `cobbled_assets` (+ `cobbled_core` / `cobbled_render` / `cobbled_scene`) |
+//! | `app` | `cobbled_app` — the plugin-based `App` runtime (+ `cobbled_core` / `cobbled_render`) |
+//! | `headless` | `cobbled_headless` — a recording `Presenter` for headless self-checks (implies `app`) |
 //!
 //! Disabled crates are not compiled at all. A UI-only app enables `ui` and a
 //! backend; it never enables `game` or `anim`. `game` does **not** imply `ui`,
@@ -30,37 +30,37 @@
 pub const CRATE: &str = "quill";
 
 #[cfg(any(feature = "ui", feature = "anim", feature = "game", feature = "app"))]
-pub use draw_core;
+pub use cobbled_core;
 
 #[cfg(any(feature = "ui", feature = "anim", feature = "game"))]
-pub use draw_scene;
+pub use cobbled_scene;
 
 #[cfg(any(feature = "ui", feature = "game", feature = "app"))]
-pub use draw_render;
+pub use cobbled_render;
 
 #[cfg(feature = "ui")]
-pub use draw_theme;
+pub use cobbled_theme;
 
 #[cfg(feature = "ui")]
-pub use draw_ui;
+pub use cobbled_ui;
 
 #[cfg(feature = "ui")]
-pub use draw_components;
+pub use cobbled_components;
 
 #[cfg(feature = "anim")]
-pub use draw_anim;
+pub use cobbled_anim;
 
 #[cfg(feature = "game")]
-pub use draw_game;
+pub use cobbled_game;
 
 #[cfg(feature = "game")]
-pub use draw_assets;
+pub use cobbled_assets;
 
 #[cfg(feature = "app")]
-pub use quill_app;
+pub use cobbled_app;
 
 #[cfg(feature = "headless")]
-pub use quill_headless;
+pub use cobbled_headless;
 
 #[cfg(test)]
 mod tests {

@@ -30,9 +30,9 @@ viewport-responsive panel (resize the window).
 ## Create your first scene
 
 ```rust
-use draw_core::Vec2;
-use draw_scene::{SceneTree, Visual};
-use draw_core::{Color, Size};
+use cobbled_core::Vec2;
+use cobbled_scene::{SceneTree, Visual};
+use cobbled_core::{Color, Size};
 
 let mut tree = SceneTree::new();
 let root = tree.root();
@@ -48,7 +48,7 @@ tree.update(); // derive world transforms / visibility
 ## Paint it to a `DrawList`
 
 ```rust
-use draw_render::PaintContext;
+use cobbled_render::PaintContext;
 
 let mut ctx = PaintContext::new();
 tree.paint(&mut ctx);
@@ -65,11 +65,11 @@ Components compose into one node tree. Attach a component with
 passed to the constructors, never stored on the tree.
 
 ```rust
-use draw_components::base::Button;
-use draw_components::{Component, Flex, Label, Panel, VBox};
-use draw_core::{Size, ViewportSize};
-use draw_scene::SceneTree;
-use draw_theme::{default_theme, Mode, Theme};
+use cobbled_components::base::Button;
+use cobbled_components::{Component, Flex, Label, Panel, VBox};
+use cobbled_core::{Size, ViewportSize};
+use cobbled_scene::SceneTree;
+use cobbled_theme::{default_theme, Mode, Theme};
 
 let theme: &'static dyn Theme = default_theme(Mode::Dark);
 let mut tree = SceneTree::new();
@@ -90,23 +90,23 @@ tree.add_child(
     Panel::new().child(Label::new("Composed")).child(Button::new("Save")),
 );
 
-draw_ui::layout(&mut tree, ViewportSize::new(Size::new(800.0, 600.0)));
+cobbled_ui::layout(&mut tree, ViewportSize::new(Size::new(800.0, 600.0)));
 
 // Pointer/keyboard input (backend-neutral):
-draw_ui::route_input(
+cobbled_ui::route_input(
     &mut tree,
-    &draw_core::InputEvent::PointerDown {
-        position: draw_core::Vec2::new(100.0, 100.0),
-        button: draw_core::PointerButton::Left,
+    &cobbled_core::InputEvent::PointerDown {
+        position: cobbled_core::Vec2::new(100.0, 100.0),
+        button: cobbled_core::PointerButton::Left,
     },
 );
 
 // Paint into a DrawList:
-let mut ctx = draw_render::PaintContext::new();
-draw_ui::paint(&tree, &mut ctx);
+let mut ctx = cobbled_render::PaintContext::new();
+cobbled_ui::paint(&tree, &mut ctx);
 ```
 
-Themed components (`draw_components::Text`, `Card`, `Button`, `Checkbox`, …)
+Themed components (`cobbled_components::Text`, `Card`, `Button`, `Checkbox`, …)
 take the theme as their first argument: `Text::heading("Notes", theme)`,
 `Card::new(theme)`. Start with `docs/ui-guide.md` for the app-level guide (frame
 loop, hosting, conventions); `docs/components.md` is the widget/layout/input
@@ -117,7 +117,7 @@ reference. `examples/web_demo` is a runnable browser example.
 Outline every visible control in yellow with a `Name #id` label:
 
 ```rust
-use draw_debug_ui::DebugOverlay;
+use cobbled_debug_ui::DebugOverlay;
 
 let mut debug = DebugOverlay::new();
 
@@ -125,7 +125,7 @@ let mut debug = DebugOverlay::new();
 debug.paint(&tree, &mut ctx);
 ```
 
-`draw_ui::paint_debug` does the drawing; `DebugOverlay` just adds an
+`cobbled_ui::paint_debug` does the drawing; `DebugOverlay` just adds an
 open/closed toggle. See `docs/debug.md`.
 
 ## Inspect performance
@@ -133,8 +133,8 @@ open/closed toggle. See `docs/debug.md`.
 Measure the pipeline phases, aggregate them, and show a debug panel:
 
 ```rust
-use draw_profile::{inspect, FrameCounters, FrameStats, Profiler, StageTimes};
-use draw_debug_ui::DebugOverlay;
+use cobbled_profile::{inspect, FrameCounters, FrameStats, Profiler, StageTimes};
+use cobbled_debug_ui::DebugOverlay;
 
 let mut profiler = Profiler::new();
 let mut overlay = DebugOverlay::new();
@@ -154,6 +154,6 @@ overlay.update(&profiler, &report, viewport);
 overlay.paint(&mut ctx); // painted after your own UI
 ```
 
-`draw_profile` never reads the clock itself; the host feeds in milliseconds, so
+`cobbled_profile` never reads the clock itself; the host feeds in milliseconds, so
 metrics are deterministic and testable. See `docs/debug.md` for the full guide
 (phase wiring, thresholds, finding codes, overlay styling).

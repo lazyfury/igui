@@ -15,9 +15,9 @@ mod demo {
     use wasm_bindgen::prelude::*;
     use web_sys::CanvasRenderingContext2d;
 
-    use draw_core::{Cursor, EventResult, InputEvent, ViewportSize};
-    use draw_render::PaintContext;
-    use draw_wasm::{App, CanvasTextMeasurer};
+    use cobbled_core::{Cursor, EventResult, InputEvent, ViewportSize};
+    use cobbled_render::PaintContext;
+    use cobbled_wasm::{App, CanvasTextMeasurer};
 
     use demo_app::DemoApp;
 
@@ -77,6 +77,6 @@ mod demo {
 
     #[wasm_bindgen(start)]
     pub fn main() -> Result<(), JsValue> {
-        draw_wasm::start("canvas", WebDemo::new())
+        cobbled_wasm::start("canvas", WebDemo::new())
     }
 }

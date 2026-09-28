@@ -7,12 +7,12 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use draw_components::{
+use cobbled_components::{
     Card, Column, Component, Grid, ListState, Router, ScrollView, ScrollViewState, Text,
 };
-use draw_core::Edges;
-use draw_theme::{space, Theme, Tone};
-use draw_ui::{AlignContent, Track};
+use cobbled_core::Edges;
+use cobbled_theme::{space, Theme, Tone};
+use cobbled_ui::{AlignContent, Track};
 
 use crate::catalog::{self, Item};
 use crate::GalleryState;

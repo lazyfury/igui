@@ -1,9 +1,9 @@
 //! Text previews: the type scale, weights, overflow/ellipsis and word breaking.
 
-use draw_components::{Card, Column, Component, Grid, Label, Panel, Text};
-use draw_core::{Color, Edges};
-use draw_theme::{space, Tone};
-use draw_ui::{Track, WordBreak};
+use cobbled_components::{Card, Column, Component, Grid, Label, Panel, Text};
+use cobbled_core::{Color, Edges};
+use cobbled_theme::{space, Tone};
+use cobbled_ui::{Track, WordBreak};
 
 use super::super::Ctx;
 
@@ -29,9 +29,9 @@ pub(crate) fn weight(card: Card, ctx: &mut Ctx) -> Card {
     card.child(
         Column::new()
             .gap(space::XS)
-            .child(Text::new("Regular · 400", theme).weight(draw_core::FontWeight::NORMAL))
-            .child(Text::new("Medium · 500", theme).weight(draw_core::FontWeight::MEDIUM))
-            .child(Text::new("Bold · 700", theme).weight(draw_core::FontWeight::BOLD)),
+            .child(Text::new("Regular · 400", theme).weight(cobbled_core::FontWeight::NORMAL))
+            .child(Text::new("Medium · 500", theme).weight(cobbled_core::FontWeight::MEDIUM))
+            .child(Text::new("Bold · 700", theme).weight(cobbled_core::FontWeight::BOLD)),
     )
 }
 

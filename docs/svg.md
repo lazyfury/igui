@@ -1,14 +1,14 @@
-# draw_svg — backend-neutral SVG / icon packs
+# cobbled_svg — backend-neutral SVG / icon packs
 
-`crates/core/draw_svg` renders a small SVG subset into the quill IR. It is
-backend-neutral (depends only on `draw_core` + `draw_render`) and has **no
+`crates/core/cobbled_svg` renders a small SVG subset into the quill IR. It is
+backend-neutral (depends only on `cobbled_core` + `cobbled_render`) and has **no
 external dependency**: it parses SVG itself and emits the existing `Line` and
 `FillCircle` commands, so any backend can draw it.
 
 ## Why this shape
 
 SVG is a vector format, not an image codec. Rather than link a heavy rasterizer
-(`resvg`/`usvg`/`tiny-skia`) into the core, `draw_svg` flattens curves to
+(`resvg`/`usvg`/`tiny-skia`) into the core, `cobbled_svg` flattens curves to
 polylines and strokes them with primitives the IR already has:
 
 ```
@@ -41,10 +41,10 @@ target size, not resampled from a bitmap).
 ## API
 
 ```rust
-use draw_core::{Color, Rect, Size, Vec2};
-use draw_render::PaintContext;
+use cobbled_core::{Color, Rect, Size, Vec2};
+use cobbled_render::PaintContext;
 
-let svg = draw_svg::SvgDocument::parse(source)?;
+let svg = cobbled_svg::SvgDocument::parse(source)?;
 let mut ctx = PaintContext::new();
 svg.draw(&mut ctx, Rect::from_min_size(Vec2::ZERO, Size::splat(24.0)), Color::BLACK);
 ```
@@ -52,13 +52,13 @@ svg.draw(&mut ctx, Rect::from_min_size(Vec2::ZERO, Size::splat(24.0)), Color::BL
 `draw` maps the `viewBox` into the target rectangle with
 `preserveAspectRatio="xMidYMid meet"` semantics (uniform scale, centred) and
 resolves `stroke="currentColor"` from the color you pass. Because it writes
-straight into a `PaintContext`, an icon can be drawn inside any `draw_ui`
-decorator (via `draw_ui::foreground_decor`) without a texture or a raster cache.
+straight into a `PaintContext`, an icon can be drawn inside any `cobbled_ui`
+decorator (via `cobbled_ui::foreground_decor`) without a texture or a raster cache.
 
-`draw_svg::IconPack` indexes a directory tree of `.svg` files by file stem:
+`cobbled_svg::IconPack` indexes a directory tree of `.svg` files by file stem:
 
 ```rust
-let pack = draw_svg::IconPack::open("assets/lucide/icons")?;
+let pack = cobbled_svg::IconPack::open("assets/lucide/icons")?;
 let brush = pack.load("brush").unwrap()?;
 ```
 
@@ -90,7 +90,7 @@ tar -xzf lucide.tgz package/icons   # 2112 icons
 Validate the whole pack against the parser (ignored by default):
 
 ```bash
-cargo test -p draw_svg -- --ignored --nocapture every_icon $PWD/package/icons
+cargo test -p cobbled_svg -- --ignored --nocapture every_icon $PWD/package/icons
 ```
 
 That test parses every icon, draws it at 24×24, and fails if any icon errors or

@@ -5,7 +5,7 @@
 //! viewport and `DrawCommand` sequence — the data a real backend would have
 //! turned into pixels. Two layers read that recording:
 //!
-//! 1. `draw_profile::inspect` audits the frame structurally (degenerate
+//! 1. `cobbled_profile::inspect` audits the frame structurally (degenerate
 //!    geometry, `NaN` values, unbalanced `Save`/`Restore`, opacity out of
 //!    range, command budget) and returns a severity-ranked report.
 //! 2. Semantic checks look *inside* the commands: the title, the refresh
@@ -19,11 +19,11 @@
 //! - `cargo test` (this module's `#[cfg(test)]`) asserts the same conditions,
 //!   so a UI regression fails without opening a window.
 
-use draw_backend_recording::{RecordedFrame, RecordingBackend};
-use draw_core::{Color, Rect, Size, Vec2, ViewportSize};
-use draw_profile::{inspect, FrameCounters, FrameStats, InspectionReport, Severity};
-use draw_render::{CornerRadii, DrawCommand, PaintContext, RenderBackend};
-use draw_theme::{default_theme, Mode};
+use cobbled_backend_recording::{RecordedFrame, RecordingBackend};
+use cobbled_core::{Color, Rect, Size, Vec2, ViewportSize};
+use cobbled_profile::{inspect, FrameCounters, FrameStats, InspectionReport, Severity};
+use cobbled_render::{CornerRadii, DrawCommand, PaintContext, RenderBackend};
+use cobbled_theme::{default_theme, Mode};
 
 use crate::api::{Balance, BalanceInfo};
 use crate::badge::{self, BadgeApp};
@@ -292,7 +292,7 @@ fn dump_frame(frame: &RecordedFrame) {
 
 /// Prints the visible UI tree: structure, widget kind and each control's
 /// laid-out rect, so a layout problem is visible without rendering.
-fn dump_tree(tree: &draw_scene::SceneTree, controls: usize) {
+fn dump_tree(tree: &cobbled_scene::SceneTree, controls: usize) {
     let total = tree.iter().count();
     println!("  ui tree: {total} nodes, {controls} controls (hidden subtrees pruned)");
     for id in tree.iter_visible() {
@@ -303,19 +303,19 @@ fn dump_tree(tree: &draw_scene::SceneTree, controls: usize) {
             depth += 1;
             parent = tree.parent(pid);
         }
-        let control = draw_ui::control(tree, id)
+        let control = cobbled_ui::control(tree, id)
             .map(|c| format!(" rect={}", rect_s(c.rect)))
             .unwrap_or_default();
-        let widget = match draw_ui::widget(tree, id) {
-            Some(draw_ui::Widget::Panel { color, .. }) => {
+        let widget = match cobbled_ui::widget(tree, id) {
+            Some(cobbled_ui::Widget::Panel { color, .. }) => {
                 format!(" Panel {}", color_s(*color))
             }
-            Some(draw_ui::Widget::Flex(_)) => " Flex".to_string(),
-            Some(draw_ui::Widget::Grid(_)) => " Grid".to_string(),
-            Some(draw_ui::Widget::Label {
+            Some(cobbled_ui::Widget::Flex(_)) => " Flex".to_string(),
+            Some(cobbled_ui::Widget::Grid(_)) => " Grid".to_string(),
+            Some(cobbled_ui::Widget::Label {
                 text, font_size, ..
             }) => format!(" Label \"{}\" font={}", text, num(*font_size)),
-            Some(draw_ui::Widget::Button(button)) => {
+            Some(cobbled_ui::Widget::Button(button)) => {
                 format!(" Button \"{}\"", button.text)
             }
             None => String::new(),
@@ -610,7 +610,7 @@ fn run_badge(dump: Dump) -> Vec<String> {
     );
 
     if dump.wants_tree() {
-        dump_tree(app.tree(), draw_ui::control_count(app.tree()));
+        dump_tree(app.tree(), cobbled_ui::control_count(app.tree()));
     }
     if dump.wants_commands() {
         dump_frame(&frame);
@@ -619,7 +619,7 @@ fn run_badge(dump: Dump) -> Vec<String> {
     let mut stats = FrameStats::new(0);
     stats.counters = FrameCounters::new(
         0,
-        draw_ui::control_count(app.tree()),
+        cobbled_ui::control_count(app.tree()),
         frame.command_count(),
         1,
     );
@@ -713,7 +713,7 @@ pub fn run(dump: Dump) -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use draw_core::Color;
+    use cobbled_core::Color;
 
     fn window_app() -> BalanceApp {
         BalanceApp::new(
@@ -789,7 +789,7 @@ mod tests {
         let mut stats = FrameStats::new(0);
         stats.counters = FrameCounters::new(
             0,
-            draw_ui::control_count(app.tree()),
+            cobbled_ui::control_count(app.tree()),
             frame.command_count(),
             1,
         );

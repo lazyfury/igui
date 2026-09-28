@@ -1,0 +1,21 @@
+[package]
+name = "cobbled_winit"
+version.workspace = true
+edition.workspace = true
+# `winit` / `wgpu` (pulled in by `cobbled_backend_wgpu`) need a newer Rust than
+# the workspace default, exactly like `examples/wgpu_demo`.
+rust-version = "1.76"
+license.workspace = true
+description = "Shared winit + wgpu window hosting for quill apps."
+publish = false
+
+[dependencies]
+cobbled_core.workspace = true
+cobbled_render.workspace = true
+cobbled_ui.workspace = true
+cobbled_backend_wgpu.workspace = true
+cobbled_app.workspace = true
+winit = "0.30"
+# System clipboard for text-field copy / cut / paste; falls back to an
+# in-process clipboard when the platform has none (headless / sandboxed).
+arboard = "3"

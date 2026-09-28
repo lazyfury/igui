@@ -1,5 +1,5 @@
 /*
- * wgpu_ffi.h — C ABI over `draw_backend_wgpu` (`wgpu_ffi`).
+ * wgpu_ffi.h — C ABI over `cobbled_backend_wgpu` (`wgpu_ffi`).
  *
  * The host owns the window and the DrawList; this library owns the wgpu
  * instance, surface, device and the Rust renderer. A null view creates a

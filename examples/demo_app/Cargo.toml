@@ -7,13 +7,13 @@ license.workspace = true
 publish = false
 
 [dependencies]
-draw_core.workspace = true
-draw_render.workspace = true
-draw_scene.workspace = true
-draw_ui.workspace = true
-draw_theme.workspace = true
-draw_components.workspace = true
-draw_anim.workspace = true
+cobbled_core.workspace = true
+cobbled_render.workspace = true
+cobbled_scene.workspace = true
+cobbled_ui.workspace = true
+cobbled_theme.workspace = true
+cobbled_components.workspace = true
+cobbled_anim.workspace = true
 
 [dev-dependencies]
-draw_backend_recording.workspace = true
+cobbled_backend_recording.workspace = true

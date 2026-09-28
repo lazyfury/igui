@@ -9,7 +9,7 @@ the conventions the demos follow. It is derived from `examples/demo_app`,
 - **Reference by API name?** `docs/components.md` (widgets, layout, input,
   extension) and `docs/design-system.md` (tokens, themed components).
 - There is **no `quill` facade crate yet** (planned, Stage 25 Phase 9): depend on
-  the individual `draw_*` crates.
+  the individual `cobbled_*` crates.
 
 ## 1. The frame loop
 
@@ -20,17 +20,17 @@ immediate-mode over it.
 // 1. state -> view: advance app state, then rebuild/refresh the tree
 app.update(viewport, dt);
 // 2. resolve geometry (and flush deferred tree changes)
-draw_ui::layout(&mut tree, viewport);
+cobbled_ui::layout(&mut tree, viewport);
 tree.update();
 // 3. emit this frame's backend-neutral draw list
-let mut ctx = draw_render::PaintContext::new();
-draw_ui::paint(&tree, &mut ctx);
+let mut ctx = cobbled_render::PaintContext::new();
+cobbled_ui::paint(&tree, &mut ctx);
 let list = ctx.into_draw_list();
 // 4. hand `list` to a backend (wgpu / canvas / recording)
 ```
 
-- `draw_ui::layout(&mut tree, viewport)` is a two-pass measure + arrange. It is
-  cached: only dirty subtrees relayout (`draw_ui::mark_dirty`, `invalidate_layout`).
+- `cobbled_ui::layout(&mut tree, viewport)` is a two-pass measure + arrange. It is
+  cached: only dirty subtrees relayout (`cobbled_ui::mark_dirty`, `invalidate_layout`).
 - `tree.update()` runs deferred component work; `demo_app` calls it inside
   `DemoApp::layout` (`examples/demo_app/src/lib.rs`).
 - `paint` walks the tree and emits into `PaintContext`; `into_draw_list()` is the
@@ -42,8 +42,8 @@ A **component** is a value that builds exactly one control node. Compose with
 `.child(..)` / `.children([..])`, then mount once with `.into_tree()`.
 
 ```rust
-use draw_components::{Button, Card, Column, Divider, Row, Text};
-use draw_theme::{default_theme, space, Mode};
+use cobbled_components::{Button, Card, Column, Divider, Row, Text};
+use cobbled_theme::{default_theme, space, Mode};
 
 let theme = default_theme(Mode::Dark);
 let tree = Column::new()
@@ -92,39 +92,39 @@ let button = Button::primary("Refresh", theme).on_click({
 
 Input and interaction:
 
-- Route events with `draw_ui::route_input(&mut tree, &event) -> EventResult`.
+- Route events with `cobbled_ui::route_input(&mut tree, &event) -> EventResult`.
   Views handle their own shortcuts first (e.g. `R`/`Esc`) and return
   `EventResult::Handled`.
 - `InputEvent::{PointerDown, PointerUp, PointerMove, PointerLeave, DoubleClick,
-  Wheel, KeyDown, KeyUp, TextInput, ModifiersChanged, Ime}` (`draw_core`). Hosts
+  Wheel, KeyDown, KeyUp, TextInput, ModifiersChanged, Ime}` (`cobbled_core`). Hosts
   map platform events to these. `TextInput` is committed text, `Ime(ImeEvent)` is
   an input-method composition, `DoubleClick` is a host-detected second click
   (word selection), and `ModifiersChanged(Modifiers)` carries the held
   Shift/Ctrl/Alt/Cmd state that a later key or click consults. For an editable
   field, `docs/components.md` §Text fields describes the `on_key`/`on_text`/
-  `on_ime` callbacks and `draw_ui::focused_caret`; install a
-  `draw_ui::set_clipboard` handle for copy / cut / paste (`quill_winit`'s
+  `on_ime` callbacks and `cobbled_ui::focused_caret`; install a
+  `cobbled_ui::set_clipboard` handle for copy / cut / paste (`cobbled_winit`'s
   `ClipboardPlugin` wraps the system clipboard).
-- Cursor: `draw_ui::hovered_cursor(&tree) -> Cursor`; map it in the host
+- Cursor: `cobbled_ui::hovered_cursor(&tree) -> Cursor`; map it in the host
   (`deepseek_balance/src/host.rs`). Per-control provider: `.dynamic_cursor(..)`.
 - Drag/resize: `.on_drag(..)` with `DragPhase::{Start, Move, End}` plus delta.
 - Scroll: `.on_scroll(..)`; wheel routes to the nearest control with a scroll
   callback. Virtualized lists own this (`docs/components.md` §Scroll).
 
 Reach a mounted node with `NodeRef` + `.ref_(&slot)` / `.with_ref(..)`, then
-`draw_components::{set_text, set_on_click, set_on_drag, set_on_scroll}`:
+`cobbled_components::{set_text, set_on_click, set_on_drag, set_on_scroll}`:
 
 ```rust
 let title = NodeRef::new();
 let tree = Column::new().child(Text::heading("…", theme).ref_(&title)).into_tree();
 if let Some(id) = title.get() {
-    draw_components::set_text(&mut tree, id, "Inbox");
+    cobbled_components::set_text(&mut tree, id, "Inbox");
 }
 ```
 
 ## 4. Change what's shown without rebuilding
 
-- **Hide/show a page** with `SceneTree::set_visible` (+ `draw_ui::mark_dirty`):
+- **Hide/show a page** with `SceneTree::set_visible` (+ `cobbled_ui::mark_dirty`):
   the hidden subtree leaves layout entirely. This is how `deepseek_balance` and
   `file_browser` do tabs.
 - **Highlight the active tab** with `.dynamic_background(move |_state| ...)`,
@@ -144,15 +144,15 @@ if let Some(id) = title.get() {
   `paint(ctx)` → `handle_input(event)`. `demo_app` wires all four.
 - `Router`: named/added views with `go` / `go_name`; one route is laid out.
 
-## 6. Hosting (the `quill_app` plugin runtime)
+## 6. Hosting (the `cobbled_app` plugin runtime)
 
-Window hosting is assembled, not inherited. The **non-core** `quill_app` crate
-owns the runtime and never names `winit`/`wgpu`; `quill_winit` provides the
+Window hosting is assembled, not inherited. The **non-core** `cobbled_app` crate
+owns the runtime and never names `winit`/`wgpu`; `cobbled_winit` provides the
 platform plugins. An app supplies an `AppLogic` (`update → layout → paint`) and
 composes the rest:
 
 ```rust,ignore
-quill_app::App::new(AppConfig::default())
+cobbled_app::App::new(AppConfig::default())
     .plugin(WinitPlugin::new(WindowConfig { ime: true, ..Default::default() }))
     .plugin(WgpuPlugin::default())        // surface / backend / Presenter
     .plugin(PointerPlugin)
@@ -178,20 +178,20 @@ quill_app::App::new(AppConfig::default())
   the graphics / IME lifecycle observers build on it. `WgpuPlugin` owns the
   surface / swap chain and surface-loss recovery; `ImePlugin` places the IME
   candidate window from `App::caret()` after each frame.
-- Headless: `quill_headless::HeadlessPlugin` implements the `Presenter` over
+- Headless: `cobbled_headless::HeadlessPlugin` implements the `Presenter` over
   `RecordingBackend`, so a `--selfcheck` runs the **same** `AppLogic` with no
   window and no `winit` (see §7).
 - `quill` exposes the runtime behind the `app` feature (`headless` implies
   `app`).
 
-`quill_winit::input` keeps the raw mappings (`map_key`, `pointer_button`,
+`cobbled_winit::input` keeps the raw mappings (`map_key`, `pointer_button`,
 `wheel_pixels`, `modifiers`, `cursor_icon`) for a host that keeps its own loop.
 `examples/wgpu_demo` is the reference (`src/app.rs`), including a winit-free
 `--selfcheck`.
 
-Backend-neutral alternative: `draw_backend_recording::RecordingBackend` records a
+Backend-neutral alternative: `cobbled_backend_recording::RecordingBackend` records a
 `DrawList` headlessly (used by `--selfcheck` and the benches). To size a window to
-its content, `draw_ui::content_size(&tree, available)` gives the intrinsic size
+its content, `cobbled_ui::content_size(&tree, available)` gives the intrinsic size
 (`deepseek_balance` uses it for the menu-bar panel).
 
 ## 7. Verify without a screenshot
@@ -200,7 +200,7 @@ The workspace rule is **no screenshot / screen recording**. Verify a frame by
 reading its own data instead:
 
 - Assert the `DrawList` command sequence, or paint into `RecordingBackend` and
-  run `draw_profile::inspect` for structural errors (NaN geometry, unbalanced
+  run `cobbled_profile::inspect` for structural errors (NaN geometry, unbalanced
   `Save`/`Restore`, command budget).
 - Check semantic text/positions from the recorded commands.
 - `examples/deepseek_balance/src/selfcheck.rs` is the model: `--selfcheck` records
@@ -209,8 +209,8 @@ reading its own data instead:
 
 ## 8. Conventions (规范)
 
-- **Backend-neutral core.** `draw_core` / `draw_scene` / `draw_ui` /
-  `draw_components` must not touch `web_sys`, `wgpu`, the DOM or the platform.
+- **Backend-neutral core.** `cobbled_core` / `cobbled_scene` / `cobbled_ui` /
+  `cobbled_components` must not touch `web_sys`, `wgpu`, the DOM or the platform.
   Backends only consume `DrawList`.
 - **One concern per module.** Views build trees; hosts own the platform loop and
   I/O; formatting/parsing live in small helpers, not in the widget code.
@@ -218,7 +218,7 @@ reading its own data instead:
   component constructors and use `theme.palette().*` /
   `theme.surface(SurfaceLevel::..)` / `space` / `radius` / `TextSize`; never
   hard-code hex. Dark is a token swap, not a second code path, and an app can
-  implement `draw_theme::Theme` to override any token.
+  implement `cobbled_theme::Theme` to override any token.
 - **State is external.** View state in `Rc<Cell<_>>`/`Rc<RefCell<_>>` passed to
   callbacks; reach nodes by `NodeRef`, not by walking the tree.
 - **Compose, then mount.** Build leaf components as locals, compose the root,
@@ -246,18 +246,18 @@ reading its own data instead:
 
 Read this section before scanning the repo; then open only the file you need.
 
-- Build UI: `draw_components::{Flex, Row, Column, Card, Text, Button, Divider,
+- Build UI: `cobbled_components::{Flex, Row, Column, Card, Text, Button, Divider,
   List, ResizeHandle, Overlays, Router, NodeRef, Ref, set_text, set_on_click,
   set_on_drag, set_on_scroll}`.
-- Mount/route/paint: `draw_scene::SceneChild::into_tree`,
+- Mount/route/paint: `cobbled_scene::SceneChild::into_tree`,
   `SceneTree::{add_child, set_visible, update}`,
-  `draw_ui::{layout, paint, route_input, set_text_measurer, mark_dirty, control,
+  `cobbled_ui::{layout, paint, route_input, set_text_measurer, mark_dirty, control,
   widget, content_size, hovered_cursor}`.
-- Tokens: `draw_theme::{Theme, DefaultTheme, Tone, SurfaceLevel, space, radius,
-  TextSize}`; use `draw_theme::default_theme(Mode::Dark)` / `compact_theme(..)`,
+- Tokens: `cobbled_theme::{Theme, DefaultTheme, Tone, SurfaceLevel, space, radius,
+  TextSize}`; use `cobbled_theme::default_theme(Mode::Dark)` / `compact_theme(..)`,
   or implement `Theme` for your own type, and pass the `&'static dyn Theme`.
-- Types/input: `draw_core::{Rect, Size, Vec2, Edges, Color, InputEvent,
-  EventResult, Cursor, Key}`; IR/commands: `draw_render::{PaintContext,
+- Types/input: `cobbled_core::{Rect, Size, Vec2, Edges, Color, InputEvent,
+  EventResult, Cursor, Key}`; IR/commands: `cobbled_render::{PaintContext,
   DrawList, DrawCommand}`.
 - The five calls that answer most questions: `into_tree`, `layout`, `paint`,
   `route_input`, `set_text` — plus `theme.palette()`/`theme.surface(..)` for

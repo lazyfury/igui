@@ -1,7 +1,7 @@
 //! 多窗口测试用的第二个窗口：一张无边框、无装饰的浮层，贴在桌面左下角。
 //!
 //! 视图**用组件搭**（[`Column`] + [`Text`]），不再手发绘制命令：和主视图同一套
-//! `draw_ui::layout` / `draw_ui::paint`，只是这棵树小到只有一列两行字。
+//! `cobbled_ui::layout` / `cobbled_ui::paint`，只是这棵树小到只有一列两行字。
 //!
 //! 它**没有背景**：整窗不透明的只有这两行字，其余像素是窗口的透明清屏色，所以
 //! 桌面从字缝里透出来。也正因如此宿主把系统阴影也关了 —— AppKit 是拿窗口的 alpha
@@ -19,14 +19,14 @@
 
 use std::rc::Rc;
 
-use draw_components::{Column, Component, Flex, NodeRef, Text};
-use draw_core::{Color, Edges, NodeId, ViewportSize};
-use draw_render::PaintContext;
-use draw_scene::{SceneChild, SceneTree};
+use cobbled_components::{Column, Component, Flex, NodeRef, Text};
+use cobbled_core::{Color, Edges, NodeId, ViewportSize};
+use cobbled_render::PaintContext;
+use cobbled_scene::{SceneChild, SceneTree};
 #[cfg(test)]
-use draw_theme::{default_theme, Mode};
-use draw_theme::{space, TextSize, Theme};
-use draw_ui::{self, MouseFilter, TextMeasurer};
+use cobbled_theme::{default_theme, Mode};
+use cobbled_theme::{space, TextSize, Theme};
+use cobbled_ui::{self, MouseFilter, TextMeasurer};
 
 use crate::api::Balance;
 
@@ -155,12 +155,12 @@ impl BadgeApp {
     /// The title line as it stands.
     #[cfg(test)]
     pub fn title_text(&self) -> Option<&str> {
-        draw_ui::widget(&self.tree, self.title).and_then(|widget| widget.text())
+        cobbled_ui::widget(&self.tree, self.title).and_then(|widget| widget.text())
     }
 
     /// The value line as it stands (what the next frame would paint).
     pub fn balance_text(&self) -> Option<&str> {
-        draw_ui::widget(&self.tree, self.balance).and_then(|widget| widget.text())
+        cobbled_ui::widget(&self.tree, self.balance).and_then(|widget| widget.text())
     }
 
     /// Shows the active tab: its title, its value prefix and the state.
@@ -169,19 +169,19 @@ impl BadgeApp {
     /// so the two windows cannot disagree, and with the loading/failed states
     /// around it.
     pub fn show(&mut self, title: &str, prefix: &str, state: &State) {
-        draw_components::set_text(&mut self.tree, self.title, title);
-        draw_components::set_text(&mut self.tree, self.balance, state.line(prefix));
+        cobbled_components::set_text(&mut self.tree, self.title, title);
+        cobbled_components::set_text(&mut self.tree, self.balance, state.line(prefix));
     }
 
     /// Installs the backend's real font metrics so measured text matches
     /// rendered text — the same adapter the main view uses.
     pub fn set_text_measurer(&mut self, measurer: Rc<dyn TextMeasurer>) {
-        draw_ui::set_text_measurer(&mut self.tree, measurer);
+        cobbled_ui::set_text_measurer(&mut self.tree, measurer);
     }
 
     /// Arranges the tree for a surface of `viewport` logical pixels.
     pub fn layout(&mut self, viewport: ViewportSize) {
-        draw_ui::layout(&mut self.tree, viewport);
+        cobbled_ui::layout(&mut self.tree, viewport);
     }
 
     /// Paints the tree. Unlike the menu-bar panel there is no backdrop command
@@ -189,7 +189,7 @@ impl BadgeApp {
     /// not paint stays transparent — which is what lets the desktop show
     /// through.
     pub fn paint(&self, ctx: &mut PaintContext) {
-        draw_ui::paint(&self.tree, ctx);
+        cobbled_ui::paint(&self.tree, ctx);
     }
 }
 
@@ -197,8 +197,8 @@ impl BadgeApp {
 mod tests {
     use super::*;
     use crate::api::BalanceInfo;
-    use draw_core::{Size, Vec2};
-    use draw_render::{DrawCommand, TextAlign};
+    use cobbled_core::{Size, Vec2};
+    use cobbled_render::{DrawCommand, TextAlign};
 
     /// The canned reply the host would have fetched: one currency, so the
     /// headline is `¥110.00`.
@@ -294,11 +294,11 @@ mod tests {
         let mut boxes = Vec::new();
         for id in tree.iter_visible() {
             if matches!(
-                draw_ui::widget(tree, id),
-                Some(draw_ui::Widget::Label { .. })
+                cobbled_ui::widget(tree, id),
+                Some(cobbled_ui::Widget::Label { .. })
             ) {
                 boxes.push(
-                    draw_ui::control(tree, id)
+                    cobbled_ui::control(tree, id)
                         .expect("a label has a control")
                         .rect,
                 );
@@ -385,8 +385,8 @@ mod tests {
 
         let labels: Vec<String> = ids
             .iter()
-            .filter_map(|id| match draw_ui::widget(tree, *id) {
-                Some(draw_ui::Widget::Label { text, .. }) => Some(text.clone()),
+            .filter_map(|id| match cobbled_ui::widget(tree, *id) {
+                Some(cobbled_ui::Widget::Label { text, .. }) => Some(text.clone()),
                 _ => None,
             })
             .collect();

@@ -2,34 +2,34 @@
 resolver = "2"
 members = [
     # backend-neutral core
-    "crates/core/draw_core",
-    "crates/core/draw_scene",
-    "crates/core/draw_ui",
-    "crates/core/draw_theme",
-    "crates/core/draw_components",
-    "crates/core/draw_render",
-    "crates/core/draw_font",
-    "crates/core/draw_svg",
-    "crates/core/draw_assets",
-    "crates/core/draw_anim",
-    "crates/core/draw_game",
+    "crates/core/cobbled_core",
+    "crates/core/cobbled_scene",
+    "crates/core/cobbled_ui",
+    "crates/core/cobbled_theme",
+    "crates/core/cobbled_components",
+    "crates/core/cobbled_render",
+    "crates/core/cobbled_font",
+    "crates/core/cobbled_svg",
+    "crates/core/cobbled_assets",
+    "crates/core/cobbled_anim",
+    "crates/core/cobbled_game",
     # concrete backends
-    "crates/platform/canvas/draw_backend_canvas",
-    "crates/platform/recording/draw_backend_recording",
-    "crates/platform/wgpu/draw_backend_wgpu",
-    "crates/platform/wasm/draw_wasm",
+    "crates/platform/canvas/cobbled_backend_canvas",
+    "crates/platform/recording/cobbled_backend_recording",
+    "crates/platform/wgpu/cobbled_backend_wgpu",
+    "crates/platform/wasm/cobbled_wasm",
     # C ABI
-    "crates/ffi/draw_ffi",
+    "crates/ffi/cobbled_ffi",
     # observability
-    "crates/debug/draw_profile",
-    "crates/debug/draw_debug_ui",
+    "crates/debug/cobbled_profile",
+    "crates/debug/cobbled_debug_ui",
     # benchmarking
-    "crates/bench/draw_bench",
-    "crates/bench/draw_bench_suite",
+    "crates/bench/cobbled_bench",
+    "crates/bench/cobbled_bench_suite",
     # window hosts / application runtime
-    "crates/window/quill_winit",
-    "crates/app/quill_app",
-    "crates/app/quill_headless",
+    "crates/window/cobbled_winit",
+    "crates/app/cobbled_app",
+    "crates/app/cobbled_headless",
     "quill",
     "examples/web_demo",
     "examples/demo_app",
@@ -48,29 +48,29 @@ license = "MIT OR Apache-2.0"
 repository = ""
 
 [workspace.dependencies]
-draw_core = { path = "crates/core/draw_core" }
-draw_scene = { path = "crates/core/draw_scene" }
-draw_ui = { path = "crates/core/draw_ui" }
-draw_theme = { path = "crates/core/draw_theme" }
-draw_components = { path = "crates/core/draw_components" }
-draw_render = { path = "crates/core/draw_render" }
-draw_font = { path = "crates/core/draw_font" }
-draw_svg = { path = "crates/core/draw_svg" }
-draw_assets = { path = "crates/core/draw_assets" }
-draw_anim = { path = "crates/core/draw_anim" }
-draw_game = { path = "crates/core/draw_game" }
-draw_backend_canvas = { path = "crates/platform/canvas/draw_backend_canvas" }
-draw_backend_recording = { path = "crates/platform/recording/draw_backend_recording" }
-draw_backend_wgpu = { path = "crates/platform/wgpu/draw_backend_wgpu" }
-draw_wasm = { path = "crates/platform/wasm/draw_wasm" }
-draw_ffi = { path = "crates/ffi/draw_ffi" }
-draw_profile = { path = "crates/debug/draw_profile" }
-draw_debug_ui = { path = "crates/debug/draw_debug_ui" }
-draw_bench = { path = "crates/bench/draw_bench" }
-draw_bench_suite = { path = "crates/bench/draw_bench_suite" }
-quill_winit = { path = "crates/window/quill_winit" }
-quill_app = { path = "crates/app/quill_app" }
-quill_headless = { path = "crates/app/quill_headless" }
+cobbled_core = { path = "crates/core/cobbled_core" }
+cobbled_scene = { path = "crates/core/cobbled_scene" }
+cobbled_ui = { path = "crates/core/cobbled_ui" }
+cobbled_theme = { path = "crates/core/cobbled_theme" }
+cobbled_components = { path = "crates/core/cobbled_components" }
+cobbled_render = { path = "crates/core/cobbled_render" }
+cobbled_font = { path = "crates/core/cobbled_font" }
+cobbled_svg = { path = "crates/core/cobbled_svg" }
+cobbled_assets = { path = "crates/core/cobbled_assets" }
+cobbled_anim = { path = "crates/core/cobbled_anim" }
+cobbled_game = { path = "crates/core/cobbled_game" }
+cobbled_backend_canvas = { path = "crates/platform/canvas/cobbled_backend_canvas" }
+cobbled_backend_recording = { path = "crates/platform/recording/cobbled_backend_recording" }
+cobbled_backend_wgpu = { path = "crates/platform/wgpu/cobbled_backend_wgpu" }
+cobbled_wasm = { path = "crates/platform/wasm/cobbled_wasm" }
+cobbled_ffi = { path = "crates/ffi/cobbled_ffi" }
+cobbled_profile = { path = "crates/debug/cobbled_profile" }
+cobbled_debug_ui = { path = "crates/debug/cobbled_debug_ui" }
+cobbled_bench = { path = "crates/bench/cobbled_bench" }
+cobbled_bench_suite = { path = "crates/bench/cobbled_bench_suite" }
+cobbled_winit = { path = "crates/window/cobbled_winit" }
+cobbled_app = { path = "crates/app/cobbled_app" }
+cobbled_headless = { path = "crates/app/cobbled_headless" }
 demo_app = { path = "examples/demo_app" }
 
 [profile.release]

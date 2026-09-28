@@ -1,0 +1,18 @@
+[package]
+name = "cobbled_bench_suite"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+cobbled_bench.workspace = true
+cobbled_core.workspace = true
+cobbled_render.workspace = true
+cobbled_scene.workspace = true
+cobbled_ui.workspace = true
+cobbled_components.workspace = true
+
+[[bench]]
+name = "pipeline"
+harness = false

@@ -1,4 +1,4 @@
-//! Embedded PNG art decoded through `draw_assets`, so the demo exercises the
+//! Embedded PNG art decoded through `cobbled_assets`, so the demo exercises the
 //! real asset -> texture -> sprite pipeline with no external files.
 
 /// A 64x16 RGBA sheet of four 16x16 player frames.

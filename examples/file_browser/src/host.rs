@@ -6,7 +6,7 @@
 //! 1. **读目录在工作线程上。** 视图只说"我想看这个目录"
 //!    （[`Browser::take_navigation`]）；这里起一个线程跑 [`scan::scan`]，结果
 //!    通过 `EventLoopProxy` 送回主线程。扫一个有十万条目的目录时界面照常滚。
-//! 2. **把平台滚轮翻译成 `InputEvent::Wheel`。** `draw_ui::handle_input`
+//! 2. **把平台滚轮翻译成 `InputEvent::Wheel`。** `cobbled_ui::handle_input`
 //!    会把滚轮沿祖先链交给列表的滚动回调，但**得有人先把事件造出来** ——
 //!    winit 的 `MouseWheel` 不会自己变成 `InputEvent`。这一段就是那个泵。
 //! 3. **`--frames` 跑够帧数就退出**，让真实渲染管线能在无头环境里被验证。
@@ -15,11 +15,11 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Instant;
 
-use draw_backend_wgpu::{wgpu, FontConfig, FontMetrics, FontMode, WgpuBackend};
-use draw_core::{FontWeight, InputEvent, Key, PointerButton, Size, Vec2, ViewportSize};
-use draw_render::{PaintContext, RenderBackend};
-use draw_theme::{default_theme, Mode, SurfaceLevel, Theme};
-use draw_ui::TextMeasurer;
+use cobbled_backend_wgpu::{wgpu, FontConfig, FontMetrics, FontMode, WgpuBackend};
+use cobbled_core::{FontWeight, InputEvent, Key, PointerButton, Size, Vec2, ViewportSize};
+use cobbled_render::{PaintContext, RenderBackend};
+use cobbled_theme::{default_theme, Mode, SurfaceLevel, Theme};
+use cobbled_ui::TextMeasurer;
 use winit::application::ApplicationHandler;
 use winit::dpi::{LogicalSize, PhysicalPosition};
 use winit::event::{ElementState, MouseButton, MouseScrollDelta, WindowEvent};
@@ -437,8 +437,8 @@ fn wheel_pixels(delta: MouseScrollDelta, scale: f32) -> f32 {
     }
 }
 
-/// 窗口清屏色 = 主题的底层背景（`draw_ui` 之外的地方由后端填）。
-fn theme_background(theme: &'static dyn Theme) -> draw_core::Color {
+/// 窗口清屏色 = 主题的底层背景（`cobbled_ui` 之外的地方由后端填）。
+fn theme_background(theme: &'static dyn Theme) -> cobbled_core::Color {
     theme.surface(SurfaceLevel::Base)
 }
 

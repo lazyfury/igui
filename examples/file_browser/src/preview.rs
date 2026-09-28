@@ -16,8 +16,8 @@
 //!
 //! ## 已知取舍
 //!
-//! 文本模式看不出缩进：`draw_ui` 的换行是按词排的，会把**前导空白折叠掉**
-//! （`draw_ui::layout::text::wrap_hard_line`）。要保住缩进得让那一列的
+//! 文本模式看不出缩进：`cobbled_ui` 的换行是按词排的，会把**前导空白折叠掉**
+//! （`cobbled_ui::layout::text::wrap_hard_line`）。要保住缩进得让那一列的
 //! `TextOptions.wrap` 关掉 —— 但 `List` 的列目前没有这个开关，所以记在
 //! `docs/plan.md` 里，没为它动组件 API。
 //!
@@ -354,7 +354,7 @@ fn is_printable(byte: u8) -> bool {
 
 /// 文本模式的行号，从 1 开始。
 ///
-/// **不补前导空格**：`draw_ui` 的换行会把前导空白折叠掉（按词排版），补了也
+/// **不补前导空格**：`cobbled_ui` 的换行会把前导空白折叠掉（按词排版），补了也
 /// 白补。对齐靠列的定宽，不靠空格。
 pub fn format_line_number(index: usize) -> String {
     format!("{}", index + 1)

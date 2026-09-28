@@ -7,7 +7,7 @@ frame lifecycle is:
 begin_frame(ViewportSize) -> submit(&DrawList) (0..n) -> end_frame()
 ```
 
-## Canvas 2D (`draw_backend_canvas`)
+## Canvas 2D (`cobbled_backend_canvas`)
 
 `Canvas2dBackend` wraps a `web_sys::CanvasRenderingContext2d` and maps each
 `DrawCommand` to a Canvas API call.
@@ -38,26 +38,26 @@ begin_frame(ViewportSize) -> submit(&DrawList) (0..n) -> end_frame()
 | `DrawText` | `font` + `textAlign` + `fillText` |
 
 `TextureId` is resolved through `Canvas2dBackend::register_image`. No backend
-object ever appears in `draw_core` / `draw_scene` / `draw_ui` / `draw_render`.
+object ever appears in `cobbled_core` / `cobbled_scene` / `cobbled_ui` / `cobbled_render`.
 
-`DrawText` positions are baselines. `draw_backend_canvas::font_spec` is the
-single font spec the backend draws with; `draw_wasm::CanvasTextMeasurer` measures
+`DrawText` positions are baselines. `cobbled_backend_canvas::font_spec` is the
+single font spec the backend draws with; `cobbled_wasm::CanvasTextMeasurer` measures
 with the same spec (`measureText`, whole runs for shaping/kerning) and is
-injected via `draw_ui::set_text_measurer`, so layout ascents, run widths and
+injected via `cobbled_ui::set_text_measurer`, so layout ascents, run widths and
 painted baselines agree.
 
 The runner also reflects hover feedback: `App::pointer_cursor` (usually
-`draw_ui::hovered_is_button` or `draw_ui::is_interactive`) drives the canvas
+`cobbled_ui::hovered_is_button` or `cobbled_ui::is_interactive`) drives the canvas
 CSS `cursor` property (`pointer` / `default`).
 
-## Recording (`draw_backend_recording`)
+## Recording (`cobbled_backend_recording`)
 
 Records each frame's viewport and concatenated commands. Used for the headless
 test pipeline and `CommandAsserts`. This is the second backend used to validate
 that the same `DrawList` drives a different `RenderBackend` without any
 Scene/UI changes.
 
-## wgpu (`draw_backend_wgpu`)
+## wgpu (`cobbled_backend_wgpu`)
 
 `WgpuBackend` consumes the same `DrawList` and rasterizes it with `wgpu` into an
 offscreen `Rgba8Unorm` texture. `WgpuBackend::read_pixels` copies that texture
@@ -93,13 +93,13 @@ the GPU pass is a single textured-triangle pipeline (`src/shader.wgsl`):
   the default is `Linear`, and `Nearest` keeps texel edges for pixel art / a
   zoomed low-resolution canvas. The filter is a backend-side property of the
   `TextureId`; the neutral `DrawImage` command stays filter-free.
-- `DrawText` uses the [`draw_font`](font.md) service: a [`FontServer`] discovers
+- `DrawText` uses the [`cobbled_font`](font.md) service: a [`FontServer`] discovers
   system fonts, resolves family/weight, shapes with `rustybuzz`
   + `unicode-bidi` (per-character fallback), and rasterizes `ab_glyph` glyphs by
   glyph id on demand at the requested size into a `1024x1024` shelf-packed atlas
   uploaded to the GPU after each `submit`. UVs, shaped advances and baselines
   come from the font. `WgpuBackend::text_metrics()` exposes the same metrics as a
-  `FontMetrics` so hosts can build a matching `draw_ui::TextMeasurer` (whose
+  `FontMetrics` so hosts can build a matching `cobbled_ui::TextMeasurer` (whose
   `measure_run` sums shaped advances).
 - `FontConfig` chooses the look: `FontMode::System` (default) or
   `FontMode::Pixel` (the built-in bitmap), plus
@@ -109,7 +109,7 @@ the GPU pass is a single textured-triangle pipeline (`src/shader.wgsl`):
   at runtime. In pixel mode the 8x8 cell is drawn at `PIXEL_GLYPH_RATIO *
   font_size` (default 0.75, rounded to whole pixels; advances scale likewise) so
   it matches a proportional font's visual size instead of filling the whole em.
-- `DrawText`'s `weight` (`draw_core::FontWeight`, numeric 100–900) resolves to
+- `DrawText`'s `weight` (`cobbled_core::FontWeight`, numeric 100–900) resolves to
   the nearest face in the family — PingFang's `700` maps to its 600 semibold.
   All faces (weights + fallback scripts) rasterize into the **same** shared
   atlas, so one texture holds every glyph. `FontMetrics` exposes
@@ -126,10 +126,10 @@ logical pixels before feeding `InputEvent`s to the UI.
 ### Demo
 
 `examples/wgpu_demo` is a `winit` runner around the shared backend-neutral
-`examples/demo_app` app: it maps window events to `draw_core` `InputEvent`s, calls
+`examples/demo_app` app: it maps window events to `cobbled_core` `InputEvent`s, calls
 `DemoApp::update/layout`, renders with `WgpuBackend::begin_frame_with_view`, and
 presents the surface. It injects the backend's `FontMetrics` as a
-`draw_ui::TextMeasurer` (shaping included). The backend stays the only `wgpu` renderer; the demo only drives the window
+`cobbled_ui::TextMeasurer` (shaping included). The backend stays the only `wgpu` renderer; the demo only drives the window
 and the surface lifecycle. The same `DemoApp` runs under `examples/web_demo` on the
 Canvas backend.
 
@@ -143,7 +143,7 @@ present in a window, pass the surface texture view to
 
 ### Pixel verification
 
-`crates/platform/wgpu/draw_backend_wgpu/tests/render.rs` renders each command and asserts on
+`crates/platform/wgpu/cobbled_backend_wgpu/tests/render.rs` renders each command and asserts on
 read-back pixels: solid fills, clear color, DPR scaling, clipping, opacity,
 save/restore, baked transforms, circles, stroked rectangles, images, text, and a
 full `SceneTree -> DrawList -> WgpuBackend` pipeline. Tests skip (rather than
@@ -151,20 +151,20 @@ fail) when no GPU adapter is available.
 
 ## Adding a new backend
 
-1. Depend on `draw_render` (+ `draw_core` for shared types) only.
+1. Depend on `cobbled_render` (+ `cobbled_core` for shared types) only.
 2. Implement `RenderBackend` for your type.
 3. Do not modify Scene/UI: the same `DrawList` must drive the new backend.
 
 A backend does not have to be Rust. `examples/cpp_ffi` implements an OpenGL 3.3
-backend in C++ over the `draw_ffi` C ABI: it consumes the same `DrawList`
+backend in C++ over the `cobbled_ffi` C ABI: it consumes the same `DrawList`
 command stream, resolves transform/opacity/clip on the CPU and tessellates into
 triangles. See `docs/cpp-ffi.md`.
 
 ## Where browser-specific code lives
 
-Only `draw_backend_canvas`, `draw_wasm`, and `examples/web_demo` may reference
+Only `cobbled_backend_canvas`, `cobbled_wasm`, and `examples/web_demo` may reference
 `web-sys` / `wasm-bindgen` / DOM APIs (and only under
 `cfg(target_arch = "wasm32")`, so native `cargo test` stays headless).
 
-`draw_backend_wgpu` uses no browser APIs; it is a native crate and depends only
-on `draw_render` + `draw_core` (plus `wgpu`/`bytemuck`/`pollster`/`font8x8`).
+`cobbled_backend_wgpu` uses no browser APIs; it is a native crate and depends only
+on `cobbled_render` + `cobbled_core` (plus `wgpu`/`bytemuck`/`pollster`/`font8x8`).

@@ -12,20 +12,20 @@ Input -> SceneTree -> Update -> Layout -> Paint -> DrawList -> RenderBackend -> 
 
 | Crate | Responsibility |
 |---|---|
-| `draw_core` | math, color, IDs, base types |
-| `draw_render` | `DrawCommand`, `DrawList`, `PaintContext`, `RenderBackend` |
-| `draw_scene` | `Node`, `SceneTree`, `CanvasItem`, `Node2D`, transforms, `Viewport`/`Camera2D` |
-| `draw_ui` | `Control` runtime, layout, paint and input routing |
-| `draw_theme` | design tokens (palette, spacing, radius, type, motion) |
-| `draw_components` | component library: base builders (`Component`/`Spec`) + themed components |
-| `draw_profile` | frame timing/counters, `Profiler`, `inspect` / `InspectionReport` |
-| `draw_debug_ui` | component debug bounds (`DebugOverlay`) + performance panel (`PerformanceOverlay`) |
-| `draw_bench` | dependency-free benchmark harness (`BenchRunner`, `Baseline`, regression verdicts) |
-| `draw_bench_suite` | deterministic CPU pipeline benchmarks (scene / ui / pipeline) |
-| `draw_backend_canvas` | Canvas 2D backend |
-| `draw_backend_recording` | headless recording backend for tests |
-| `draw_backend_wgpu` | native `wgpu` backend (offscreen, pixel readback) |
-| `draw_wasm` | browser glue (events, RAF, canvas wiring) |
+| `cobbled_core` | math, color, IDs, base types |
+| `cobbled_render` | `DrawCommand`, `DrawList`, `PaintContext`, `RenderBackend` |
+| `cobbled_scene` | `Node`, `SceneTree`, `CanvasItem`, `Node2D`, transforms, `Viewport`/`Camera2D` |
+| `cobbled_ui` | `Control` runtime, layout, paint and input routing |
+| `cobbled_theme` | design tokens (palette, spacing, radius, type, motion) |
+| `cobbled_components` | component library: base builders (`Component`/`Spec`) + themed components |
+| `cobbled_profile` | frame timing/counters, `Profiler`, `inspect` / `InspectionReport` |
+| `cobbled_debug_ui` | component debug bounds (`DebugOverlay`) + performance panel (`PerformanceOverlay`) |
+| `cobbled_bench` | dependency-free benchmark harness (`BenchRunner`, `Baseline`, regression verdicts) |
+| `cobbled_bench_suite` | deterministic CPU pipeline benchmarks (scene / ui / pipeline) |
+| `cobbled_backend_canvas` | Canvas 2D backend |
+| `cobbled_backend_recording` | headless recording backend for tests |
+| `cobbled_backend_wgpu` | native `wgpu` backend (offscreen, pixel readback) |
+| `cobbled_wasm` | browser glue (events, RAF, canvas wiring) |
 
 Dependency direction is enforced by crate boundaries: the pure core crates never
 depend on browser APIs or a concrete backend. See `AGENTS.md`.
@@ -33,7 +33,7 @@ depend on browser APIs or a concrete backend. See `AGENTS.md`.
 ## Status
 
 Stage 25 (Godot-style unified scene) is accepted: one `SceneTree` owns world
-(`Node2D`) and UI (`Control`), with `draw_scene::{Viewport, Camera2D,
+(`Node2D`) and UI (`Control`), with `cobbled_scene::{Viewport, Camera2D,
 CanvasLayer}` and the `Scene -> DrawList` paint step. Three independent renderers
 consume the same backend-neutral `DrawList` — Canvas 2D (WASM), the headless
 recording backend, and native `wgpu` (offscreen + pixel readback). See
@@ -45,10 +45,10 @@ recording backend, and native `wgpu` (offscreen + pixel readback). See
 | Example | Shows |
 |---|---|
 | `examples/demo_app` | Shared three-column, macOS-style notes app (backend-neutral `DemoApp`) |
-| `examples/web_demo` | `demo_app` on the Canvas 2D backend (`draw_wasm`) |
+| `examples/web_demo` | `demo_app` on the Canvas 2D backend (`cobbled_wasm`) |
 | `examples/wgpu_demo` | `demo_app` on a native `wgpu` surface + component/perf debug overlays |
 | `examples/multi_tree` | Headless: repeated `into_tree()` calls yield independent trees (no shared ids/state) |
-| `examples/deepseek_balance` | Standalone macOS menu-bar tool: DeepSeek balance panel built from `draw_theme`/`draw_components` on a transparent `wgpu` surface |
+| `examples/deepseek_balance` | Standalone macOS menu-bar tool: DeepSeek balance panel built from `cobbled_theme`/`cobbled_components` on a transparent `wgpu` surface |
 
 ## Build & test
 
@@ -62,16 +62,16 @@ cargo bench --workspace --no-run
 ## Benchmark
 
 ```bash
-cargo bench -p draw_bench_suite                       # CPU pipeline suite
-cargo bench -p draw_bench_suite --bench pipeline -- --filter scene/update
-cargo bench -p draw_backend_wgpu --bench wgpu         # offscreen + readback (skips with no adapter)
+cargo bench -p cobbled_bench_suite                       # CPU pipeline suite
+cargo bench -p cobbled_bench_suite --bench pipeline -- --filter scene/update
+cargo bench -p cobbled_backend_wgpu --bench wgpu         # offscreen + readback (skips with no adapter)
 ```
 
 Save a baseline and later fail on a regression:
 
 ```bash
-cargo bench -p draw_bench_suite --bench pipeline -- --save-baseline benches/cpu.baseline.txt
-cargo bench -p draw_bench_suite --bench pipeline -- --baseline benches/cpu.baseline.txt
+cargo bench -p cobbled_bench_suite --bench pipeline -- --save-baseline benches/cpu.baseline.txt
+cargo bench -p cobbled_bench_suite --bench pipeline -- --baseline benches/cpu.baseline.txt
 ```
 
 See `docs/benchmarking.md`.

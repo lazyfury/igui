@@ -1,12 +1,12 @@
 # FontServer
 
-Status: **implemented** (`crates/core/draw_font`). The render IR and the UI stay
-text-free; `draw_backend_wgpu` consumes the service for rasterization/atlas.
+Status: **implemented** (`crates/core/cobbled_font`). The render IR and the UI stay
+text-free; `cobbled_backend_wgpu` consumes the service for rasterization/atlas.
 
 Decisions (2025-09):
 
-- **Crate**: `draw_font` (`draw_font -> draw_core`).
-- **Weight**: `FontWeight` is numeric (`draw_core`, 100–900).
+- **Crate**: `cobbled_font` (`cobbled_font -> cobbled_core`).
+- **Weight**: `FontWeight` is numeric (`cobbled_core`, 100–900).
 - **Fallback**: per-character font fallback is implemented.
 - **Canvas**: no font list / picker on the Canvas/WASM path; native/wgpu only.
 
@@ -32,7 +32,7 @@ Decisions (2025-09):
 ## API
 
 ```rust
-use draw_font::{FaceRef, FontConfig, FontRequest, FontServer};
+use cobbled_font::{FaceRef, FontConfig, FontRequest, FontServer};
 
 let server = FontServer::load_with(FontConfig::default());
 for family in server.families() {
@@ -53,17 +53,17 @@ let server = FontServer::load_with(FontConfig {
 ```
 
 `FontMetrics` wraps an `Rc<FontServer>` for hosts that build a
-`draw_ui::TextMeasurer`; it exposes `advance_weighted` / `measure_run_weighted`
+`cobbled_ui::TextMeasurer`; it exposes `advance_weighted` / `measure_run_weighted`
 so layout measures the same faces the backend draws.
 
 To override discovery with a single face, pass [`FontConfig::default_face`].
-`draw_font` reads no environment variables; a host that wants an env override
+`cobbled_font` reads no environment variables; a host that wants an env override
 resolves the file itself and builds the `FaceRef`. `QUILL_FONT_BOLD` is gone
 (weight resolution replaces it).
 
 ## Background (the old limits)
 
-- `candidate_paths()` in `draw_backend_wgpu` was a fixed list. PingFang is not
+- `candidate_paths()` in `cobbled_backend_wgpu` was a fixed list. PingFang is not
   in it, and it has no stable path on modern macOS — it lives under
   `/System/Library/AssetsV2/com_apple_MobileAsset_Font*/<hash>/AssetData/PingFang.ttc`.
 - The old loader always used face index 0. `PingFang.ttc` has **24 faces = 6
@@ -108,8 +108,8 @@ PingFang, concretely (measured from `PingFang.ttc`):
 
 ## Layout
 
-`draw_font` owns discovery, face loading, shaping, bidi and rasterization +
-atlas; `draw_backend_wgpu` holds an `Rc<FontServer>` and turns the returned
+`cobbled_font` owns discovery, face loading, shaping, bidi and rasterization +
+atlas; `cobbled_backend_wgpu` holds an `Rc<FontServer>` and turns the returned
 `GlyphSlot`s into quads (it no longer parses fonts). `FontServer::font.rs` in the
 backend is a thin re-export (`Font` = `FontServer`).
 
@@ -131,7 +131,7 @@ backend is a thin re-export (`Font` = `FontServer`).
 
 ## Weight
 
-`FontWeight` is a numeric newtype (`draw_core::FontWeight`, 1–1000) with named
+`FontWeight` is a numeric newtype (`cobbled_core::FontWeight`, 1–1000) with named
 steps (`NORMAL` 400, `BOLD` 700, `MEDIUM` 500, …). Resolution maps it to the
 nearest `usWeightClass` — PingFang has no 700, so `BOLD` resolves to 600. The
 Canvas backend passes the number straight into the CSS font shorthand.
@@ -153,10 +153,10 @@ The discovery scan does **not** leak (it drops bytes after reading metadata).
 
 ## Status
 
-- [x] `draw_font` crate + discovery (`families`, `resolve`, default family).
+- [x] `cobbled_font` crate + discovery (`families`, `resolve`, default family).
 - [x] Numeric `FontWeight` + nearest-weight resolution.
 - [x] Per-character fallback + shared atlas.
-- [x] `draw_backend_wgpu` consumes the service; Canvas weight is numeric.
+- [x] `cobbled_backend_wgpu` consumes the service; Canvas weight is numeric.
 - [x] `FontConfig::default_face` seed + deferred scan; discovery files mmap'd.
 - [ ] Variable-font `wght` axes.
 - [ ] Emoji / color-font fallback.

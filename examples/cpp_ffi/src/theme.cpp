@@ -9,7 +9,7 @@ constexpr Color c8(unsigned r, unsigned g, unsigned b, unsigned a = 255) {
                  static_cast<float>(b) / 255.0f, static_cast<float>(a) / 255.0f};
 }
 
-// draw_theme::Palette::dark() — keep in sync with palette.rs.
+// cobbled_theme::Palette::dark() — keep in sync with palette.rs.
 constexpr Color kAccent = c8(0x3B, 0x82, 0xF6);
 
 const Palette kDark = {

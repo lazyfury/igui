@@ -1,5 +1,5 @@
 //! Shared, backend-neutral **component gallery**: a catalog of every
-//! `draw_components` widget and core capability, grouped and previewed live.
+//! `cobbled_components` widget and core capability, grouped and previewed live.
 //!
 //! ```text
 //! ┌──────────────┬───────────────────────────────────────────────┐
@@ -31,17 +31,17 @@ mod sidebar;
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
-use draw_anim::{Animator, Easing, Repeat, TweenSpec};
-use draw_components::{
+use cobbled_anim::{Animator, Easing, Repeat, TweenSpec};
+use cobbled_components::{
     Component, Flex, ListState, NodeRef, Overlays, Panel, Router, ScrollViewState,
 };
-use draw_core::{
+use cobbled_core::{
     Color, Cursor, Edges, EventResult, InputEvent, NodeId, Rect, Size, Vec2, ViewportSize,
 };
-use draw_render::PaintContext;
-use draw_scene::{SceneChild, SceneTree};
-use draw_theme::{default_theme, Mode, Theme, Tone};
-use draw_ui::{MouseFilter, TextMeasurer, Widget};
+use cobbled_render::PaintContext;
+use cobbled_scene::{SceneChild, SceneTree};
+use cobbled_theme::{default_theme, Mode, Theme, Tone};
+use cobbled_ui::{MouseFilter, TextMeasurer, Widget};
 
 /// Shared, mutable gallery state.
 ///
@@ -156,7 +156,7 @@ pub struct DemoApp {
     lists: Vec<ListState>,
     routers: Vec<Router>,
     scrolls: Vec<ScrollViewState>,
-    /// Time-driven tweens for the Animation previews (`draw_anim`).
+    /// Time-driven tweens for the Animation previews (`cobbled_anim`).
     anim: Animator,
     /// Last UI paint generation, so [`DemoApp::needs_frame`] can tell whether
     /// the UI changed since it was painted.
@@ -291,7 +291,7 @@ impl DemoApp {
 
     /// Center of the tracked primary button in logical viewport coordinates.
     pub fn button_center(&self) -> Option<Vec2> {
-        draw_ui::control(&self.tree, self.primary).map(|control| control.rect.center())
+        cobbled_ui::control(&self.tree, self.primary).map(|control| control.rect.center())
     }
 
     /// Extra top padding currently reserved on the sidebar (0 unless a
@@ -310,25 +310,25 @@ impl DemoApp {
             return;
         }
         self.titlebar_inset = inset;
-        if let Some(control) = draw_components::control_mut(&mut self.tree, self.sidebar) {
+        if let Some(control) = cobbled_components::control_mut(&mut self.tree, self.sidebar) {
             if let Widget::Flex(flex) = &mut control.widget {
                 flex.padding.top = sidebar::SIDEBAR_PADDING_TOP + inset;
             }
         }
-        draw_ui::mark_dirty(&mut self.tree, self.sidebar);
+        cobbled_ui::mark_dirty(&mut self.tree, self.sidebar);
     }
 
     /// Installs `measurer` for both the main UI and the overlay layer.
     pub fn set_text_measurer(&mut self, measurer: Rc<dyn TextMeasurer>) {
         self.measurer = Some(measurer.clone());
-        draw_ui::set_text_measurer(&mut self.tree, measurer.clone());
+        cobbled_ui::set_text_measurer(&mut self.tree, measurer.clone());
         self.overlays.set_text_measurer(measurer);
     }
 
     /// Installs `clipboard` for both the main UI and the overlay layer, so the
     /// gallery's text fields can copy / cut / paste.
-    pub fn set_clipboard(&mut self, clipboard: Rc<RefCell<dyn draw_ui::Clipboard>>) {
-        draw_ui::set_clipboard(&mut self.tree, clipboard.clone());
+    pub fn set_clipboard(&mut self, clipboard: Rc<RefCell<dyn cobbled_ui::Clipboard>>) {
+        cobbled_ui::set_clipboard(&mut self.tree, clipboard.clone());
         self.overlays.set_clipboard(clipboard);
     }
 
@@ -404,16 +404,16 @@ impl DemoApp {
     pub fn needs_frame(&self) -> bool {
         self.anim.is_animating()
             || self.overlays.is_animating()
-            || draw_ui::needs_layout(&self.tree)
+            || cobbled_ui::needs_layout(&self.tree)
             || self.tree.needs_update()
-            || self.painted_generation.get() != draw_ui::paint_generation(&self.tree)
+            || self.painted_generation.get() != cobbled_ui::paint_generation(&self.tree)
     }
 
     /// Resolves UI layout for `viewport`, syncs the virtualized lists, then
     /// positions the overlays.
     pub fn layout(&mut self, viewport: ViewportSize) {
         self.viewport = viewport;
-        draw_ui::layout(&mut self.tree, viewport);
+        cobbled_ui::layout(&mut self.tree, viewport);
         self.tree.update();
 
         let mut changed = false;
@@ -424,7 +424,7 @@ impl DemoApp {
             changed |= state.sync(&mut self.tree);
         }
         if changed {
-            draw_ui::layout(&mut self.tree, viewport);
+            cobbled_ui::layout(&mut self.tree, viewport);
         }
         self.overlays.layout(&self.tree, viewport);
     }
@@ -438,10 +438,10 @@ impl DemoApp {
             Rect::from_min_size(Vec2::ZERO, size),
             self.theme.palette().background,
         );
-        draw_ui::paint(&self.tree, ctx);
+        cobbled_ui::paint(&self.tree, ctx);
         self.overlays.paint(ctx);
         self.painted_generation
-            .set(draw_ui::paint_generation(&self.tree));
+            .set(cobbled_ui::paint_generation(&self.tree));
     }
 
     /// Routes an event to the overlays first, then UI interactions.
@@ -449,23 +449,23 @@ impl DemoApp {
         if self.overlays.handle_input(event).is_handled() {
             return EventResult::Handled;
         }
-        draw_ui::route_input(&mut self.tree, event)
+        cobbled_ui::route_input(&mut self.tree, event)
     }
 
     /// Controls in the gallery UI.
     pub fn control_count(&self) -> usize {
-        draw_ui::control_count(&self.tree)
+        cobbled_ui::control_count(&self.tree)
     }
 
     /// Whether the pointer is over anything clickable. Hosts use this for
     /// cursor feedback.
     pub fn pointer_over_clickable(&self) -> bool {
-        draw_ui::hovered(&self.tree).is_some_and(|id| draw_ui::is_interactive(&self.tree, id))
+        cobbled_ui::hovered(&self.tree).is_some_and(|id| cobbled_ui::is_interactive(&self.tree, id))
     }
 
     /// Cursor the host should show for the current pointer position.
     pub fn cursor(&self) -> Cursor {
-        draw_ui::hovered_cursor(&self.tree)
+        cobbled_ui::hovered_cursor(&self.tree)
     }
 }
 

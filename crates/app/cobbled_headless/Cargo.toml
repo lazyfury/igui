@@ -1,0 +1,14 @@
+[package]
+name = "cobbled_headless"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Headless recording presenter for the cobbled_app runtime."
+publish = false
+
+[dependencies]
+cobbled_app.workspace = true
+cobbled_backend_recording.workspace = true
+cobbled_core.workspace = true
+cobbled_render.workspace = true
