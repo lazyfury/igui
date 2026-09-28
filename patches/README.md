@@ -21,8 +21,13 @@ git apply patches/cobbled-prefix.patch
 git am patches/cobbled-prefix.patch
 ```
 
-To undo, revert the commit (`git revert c512a8e`) or run the script with
-`--invert` (see `scripts/rename-crate-prefix.sh`).
+To undo, revert the commit (`git revert c512a8e`) or run the script with the
+previous prefix, e.g. `scripts/rename-crate-prefix.sh cobbled --apply`.
 
-The same transformation is scripted in `scripts/rename-crate-prefix.sh`
-(dry-run by default; `--apply`, `--invert`).
+The same transformation is scripted (parameterized by the new prefix) in
+`scripts/rename-crate-prefix.sh`:
+
+```bash
+scripts/rename-crate-prefix.sh <new-prefix>          # dry run
+scripts/rename-crate-prefix.sh <new-prefix> --apply  # rename
+```

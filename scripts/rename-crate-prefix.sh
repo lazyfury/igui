@@ -1,92 +1,123 @@
 #!/usr/bin/env bash
 #
-# rename-crate-prefix.sh — deterministic internal crate rename for the quill
+# rename-crate-prefix.sh — rename the internal crate prefix across the quill
 # workspace.
 #
-# This is the codified form of the `draw_*` -> `cobbled_*` rename (which also
-# moved `quill_app` / `quill_winit` / `quill_headless` to `cobbled_*`). The
-# public `quill` facade is never touched.
+# Usage:
+#   scripts/rename-crate-prefix.sh <new-prefix> [--apply] [--old p1,p2,...]
 #
-# It performs the *deterministic* half:
-#   1. rewrites every full crate name, word-bounded, in tracked text files
-#      (never the bare `draw_` prefix, so `draw_line` / `draw_rect` /
-#      `draw_list` are untouched);
+# Examples:
+#   scripts/rename-crate-prefix.sh xxkit                 # dry run (default)
+#   scripts/rename-crate-prefix.sh xxkit --apply         # cobbled_* -> xxkit_*
+#   scripts/rename-crate-prefix.sh cobbled --apply       # revert xxkit_* -> cobbled_*
+#
+# The public `quill` facade (package `quill`, directory `quill/`) is never
+# renamed. Internal crates are discovered from `crates/**/Cargo.toml`, and the
+# old prefix is auto-detected from their names (or passed with `--old`,
+# comma-separated, e.g. `--old draw,quill`).
+#
+# It performs the deterministic half:
+#   1. rewrites every full crate name in tracked text files. A *bare* prefix
+#      (`draw_`) is never replaced, so `draw_line` / `draw_rect` / `draw_list`
+#      are safe. Full names are replaced as substrings (longest first), so
+#      `lib<name>.a` and `<name>_build` follow too;
 #   2. `git mv`s the crate directories (directory name == crate name);
 # then prints the manual follow-ups that a `cargo check` / `test` round will
 # otherwise surface.
 #
-# Usage:
-#   scripts/rename-crate-prefix.sh                 # dry run (default)
-#   scripts/rename-crate-prefix.sh --apply         # apply
-#   scripts/rename-crate-prefix.sh --invert        # swap old/new (e.g. revert)
-#   scripts/rename-crate-prefix.sh --apply --invert
-#
-# Run it from anywhere inside the repository. It never commits.
-# Written for bash 3.2 (macOS default): no associative arrays.
+# Run from anywhere inside the repository. It never commits. bash 3.2 compatible.
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
 
-# old -> new. Forward = the cobbled rename. `--invert` swaps each pair, so the
-# same table reverts `cobbled_*` back to `draw_*` / `quill_app` / ... .
-mapping=(
-  "draw_core cobbled_core"
-  "draw_render cobbled_render"
-  "draw_scene cobbled_scene"
-  "draw_ui cobbled_ui"
-  "draw_theme cobbled_theme"
-  "draw_components cobbled_components"
-  "draw_font cobbled_font"
-  "draw_svg cobbled_svg"
-  "draw_assets cobbled_assets"
-  "draw_anim cobbled_anim"
-  "draw_game cobbled_game"
-  "draw_backend_canvas cobbled_backend_canvas"
-  "draw_backend_recording cobbled_backend_recording"
-  "draw_backend_wgpu cobbled_backend_wgpu"
-  "draw_wasm cobbled_wasm"
-  "draw_ffi cobbled_ffi"
-  "draw_profile cobbled_profile"
-  "draw_debug_ui cobbled_debug_ui"
-  "draw_bench_suite cobbled_bench_suite"
-  "draw_bench cobbled_bench"
-  "quill_app cobbled_app"
-  "quill_headless cobbled_headless"
-  "quill_winit cobbled_winit"
-)
-
 usage() {
-  sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//'
 }
 
+new=""
+old=""
 mode=dry
-invert=0
-for arg in "$@"; do
-  case "$arg" in
+while (($#)); do
+  case "$1" in
     --apply) mode=apply ;;
     --dry-run) mode=dry ;;
-    --invert) invert=1 ;;
+    --old) shift; old=${1:-} ;;
+    --old=*) old=${1#--old=} ;;
     -h|--help) usage; exit 0 ;;
-    *) echo "unknown argument: $arg" >&2; usage; exit 2 ;;
+    -*) echo "unknown option: $1" >&2; usage; exit 2 ;;
+    *) if [[ -z "$new" ]]; then new=$1; else echo "unexpected argument: $1" >&2; exit 2; fi ;;
   esac
+  shift
 done
 
+if [[ -z "$new" ]]; then
+  usage; exit 2
+fi
+if [[ ! "$new" =~ ^[a-z][a-z0-9_]*$ ]]; then
+  echo "new prefix must match ^[a-z][a-z0-9_]*\$ (got '$new')" >&2
+  exit 2
+fi
+
+# 1) discover internal crates (everything under crates/, never the facade).
 olds=()
-news=()
-for pair in "${mapping[@]}"; do
-  a=${pair%% *}
-  b=${pair##* }
-  if ((invert)); then
-    olds+=("$b"); news+=("$a")
-  else
-    olds+=("$a"); news+=("$b")
+suffixes=()
+first_segment=""
+mixed=0
+while IFS= read -r manifest; do
+  name=$(grep -m1 '^name = ' "$manifest" | sed -E 's/^name = "(.*)"/\1/')
+  [[ -z "$name" ]] && continue
+  segment=${name%%_*}
+  if [[ -z "$first_segment" ]]; then
+    first_segment=$segment
+  elif [[ "$segment" != "$first_segment" ]]; then
+    mixed=1
   fi
+  olds+=("$name")
+done < <(find crates -name Cargo.toml | sort)
+
+if (( ${#olds[@]} == 0 )); then
+  echo "no crates found under crates/" >&2
+  exit 1
+fi
+
+# 2) decide the source prefixes to strip.
+old_prefixes=()
+if [[ -n "$old" ]]; then
+  IFS=',' read -r -a old_prefixes <<< "$old"
+elif (( mixed == 0 )); then
+  old_prefixes=("$first_segment")
+else
+  echo "internal crates mix prefixes; pass --old <p1,p2,...>" >&2
+  exit 2
+fi
+
+# 3) build old -> new, preserving the suffix after the stripped prefix.
+news=()
+renamed=()
+for name in "${olds[@]}"; do
+  suffix=""
+  for p in "${old_prefixes[@]}"; do
+    if [[ "$name" == "${p}_"* ]]; then
+      suffix=${name#"${p}_"}
+      break
+    fi
+  done
+  if [[ -z "$suffix" ]]; then
+    continue
+  fi
+  renamed+=("$name")
+  news+=("${new}_${suffix}")
 done
 
-echo "rename-crate-prefix: mode=$mode invert=$invert"
+if (( ${#renamed[@]} == 0 )); then
+  echo "no crates match the source prefix(es) '${old_prefixes[*]}'" >&2
+  exit 1
+fi
+
+echo "rename-crate-prefix: ${old_prefixes[*]}_* -> ${new}_* (mode=$mode, ${#renamed[@]} crates)"
 i=0
-while ((i < ${#olds[@]})); do
-  printf '  %-28s -> %s\n' "${olds[$i]}" "${news[$i]}"
+while ((i < ${#renamed[@]})); do
+  printf '  %-28s -> %s\n' "${renamed[$i]}" "${news[$i]}"
   i=$((i + 1))
 done
 
@@ -96,29 +127,31 @@ if [[ "$mode" == dry ]]; then
   exit 0
 fi
 
-# 1) textual rewrite of full crate names (word-bounded).
+# 4) rewrite full crate names as substrings, longest first (so `x_bench` does
+#    not clobber `x_bench_suite`, and `libx_ffi.a` / `x_ffi_build` follow).
+order=$(for i in "${!renamed[@]}"; do echo "$i ${#renamed[$i]}"; done | sort -k2,2nr | awk '{print $1}')
 perl_expr=""
-i=0
-while ((i < ${#olds[@]})); do
-  perl_expr+="s/\\b${olds[$i]}\\b/${news[$i]}/g;"
-  i=$((i + 1))
+for i in $order; do
+  from=${renamed[$i]}
+  to=${news[$i]}
+  perl_expr+="s/\Q${from}\E/${to}/g;"
 done
 
-pattern=$(printf '%s\n' "${olds[@]}" | paste -sd'|' -)
 files=$(rg -l \
   -g '!target/**' -g '!examples/*/build/**' -g '!Cargo.lock' \
+  -g '!scripts/**' -g '!patches/**' \
   -g '*.rs' -g '*.toml' -g '*.md' -g '*.h' -g '*.hpp' -g '*.cpp' -g '*.txt' -g '*.sh' \
-  "$pattern" . || true)
+  "$(printf '%s\n' "${renamed[@]}" | paste -sd'|' -)" . || true)
 
 if [[ -n "$files" ]]; then
   # shellcheck disable=SC2086
   perl -0pi -e "$perl_expr" $files
 fi
 
-# 2) directory moves (the directory basename equals the crate name).
+# 5) directory moves (the directory basename equals the crate name).
 i=0
-while ((i < ${#olds[@]})); do
-  dir=$(find crates -type d -name "${olds[$i]}" | head -n 1 || true)
+while ((i < ${#renamed[@]})); do
+  dir=$(find crates -type d -name "${renamed[$i]}" | head -n 1 || true)
   if [[ -n "$dir" ]]; then
     git mv "$dir" "$(dirname "$dir")/${news[$i]}"
   fi
@@ -127,9 +160,8 @@ done
 
 cat <<'MANUAL'
 rename-crate-prefix: done. Manual follow-ups (find what the compiler misses):
-  - `cargo fmt --all` (import order changes with the prefix), then the gate.
-  - CMake / C ABI hosts: static-lib file name (`lib<name>.a`), custom target
-    names, `-p` flags in build scripts/CMakeLists.
-  - Docs: `draw_*` / old-prefix globs that a word-bounded replace does not match.
+  - `cargo fmt --all` (import order changes with the prefix), then the gate:
+    cargo check --workspace && cargo test --workspace && cargo bench --workspace --no-run
   - `pub const CRATE` values and their identity tests, log-prefix strings.
+  - Prose / wildcards the text pass did not match, and any generated artifact.
 MANUAL
