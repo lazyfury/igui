@@ -1,6 +1,6 @@
 # FontServer
 
-Status: **implemented** (`crates/core/igui_font`). The render IR and the UI stay
+Status: **implemented** (`crates/assets/igui_font`). The render IR and the UI stay
 text-free; `igui_backend_wgpu` consumes the service for rasterization/atlas.
 
 Decisions (2025-09):

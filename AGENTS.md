@@ -206,7 +206,10 @@ checkout.
 Planned (future stages, see `docs/godot-migration.md`): no numbered stage is
 open. Phase 8 (observability) and the host migrations below remain.
 
-Crates are grouped by role under `crates/`: `core/` (backend-neutral),
+Crates are grouped by role under `crates/`: `core/` (backend-neutral engine:
+`igui_core` / `igui_render` / `igui_scene` / `igui_ui` / `igui_anim` /
+`igui_game`), `components/` (design system: `igui_theme` + `igui_components`),
+`assets/` (backend-neutral services: `igui_font` / `igui_svg` / `igui_assets`),
 `platform/<backend>/` (concrete backends), `ffi/`, `debug/`, `bench/`,
 `window/` (window hosts) and `app/` (runtimes). Internal crates carry the
 **`igui_` prefix**; the public **facade is `igui`** (`igui/` at the repo
@@ -428,8 +431,8 @@ The suite is a contract, not a diary. Before adding or keeping a test:
 | Pipeline, coordinates, stage plan, backend replaceability | `docs/architecture.md` |
 | Backends (Canvas / wgpu / recording), adding a backend, browser boundary | `docs/backend.md` |
 | C ABI, C++ host, foreign-language backend | `docs/cpp-ffi.md` (`crates/ffi/igui_ffi`, `examples/cpp_ffi`) |
-| Fonts: discovery, family/weight resolution, fallback, shaping | `docs/font.md` (`crates/core/igui_font`) |
-| SVG / vector icons, loading an icon pack (Lucide) | `docs/svg.md` (`crates/core/igui_svg`) |
+| Fonts: discovery, family/weight resolution, fallback, shaping | `docs/font.md` (`crates/assets/igui_font`) |
+| SVG / vector icons, loading an icon pack (Lucide) | `docs/svg.md` (`crates/assets/igui_svg`) |
 | Controls, layout, components (API reference by name) | `docs/components.md` |
 | Design tokens, theme, component library | `docs/design-system.md` |
 | Roadmap / remaining primitives & components | `docs/plan.md` |

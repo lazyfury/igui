@@ -22,9 +22,9 @@ deepseek_util = { path = "util" }
 igui_core = { path = "../../crates/core/igui_core" }
 igui_render = { path = "../../crates/core/igui_render" }
 igui_scene = { path = "../../crates/core/igui_scene" }
-igui_theme = { path = "../../crates/core/igui_theme" }
+igui_theme = { path = "../../crates/components/igui_theme" }
 igui_ui = { path = "../../crates/core/igui_ui" }
-igui_components = { path = "../../crates/core/igui_components" }
+igui_components = { path = "../../crates/components/igui_components" }
 igui_backend_wgpu = { path = "../../crates/platform/wgpu/igui_backend_wgpu" }
 # Headless self-check (`--selfcheck`): record draw lists + inspect them,
 # so the UI can be verified without a window or a screenshot.

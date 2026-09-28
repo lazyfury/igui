@@ -1,6 +1,6 @@
 # igui_svg — backend-neutral SVG / icon packs
 
-`crates/core/igui_svg` renders a small SVG subset into the igui IR. It is
+`crates/assets/igui_svg` renders a small SVG subset into the igui IR. It is
 backend-neutral (depends only on `igui_core` + `igui_render`) and has **no
 external dependency**: it parses SVG itself and emits the existing `Line` and
 `FillCircle` commands, so any backend can draw it.

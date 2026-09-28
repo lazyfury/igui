@@ -5,12 +5,12 @@ members = [
     "crates/core/igui_core",
     "crates/core/igui_scene",
     "crates/core/igui_ui",
-    "crates/core/igui_theme",
-    "crates/core/igui_components",
+    "crates/components/igui_theme",
+    "crates/components/igui_components",
     "crates/core/igui_render",
-    "crates/core/igui_font",
-    "crates/core/igui_svg",
-    "crates/core/igui_assets",
+    "crates/assets/igui_font",
+    "crates/assets/igui_svg",
+    "crates/assets/igui_assets",
     "crates/core/igui_anim",
     "crates/core/igui_game",
     # concrete backends
@@ -51,12 +51,12 @@ repository = ""
 igui_core = { path = "crates/core/igui_core" }
 igui_scene = { path = "crates/core/igui_scene" }
 igui_ui = { path = "crates/core/igui_ui" }
-igui_theme = { path = "crates/core/igui_theme" }
-igui_components = { path = "crates/core/igui_components" }
+igui_theme = { path = "crates/components/igui_theme" }
+igui_components = { path = "crates/components/igui_components" }
 igui_render = { path = "crates/core/igui_render" }
-igui_font = { path = "crates/core/igui_font" }
-igui_svg = { path = "crates/core/igui_svg" }
-igui_assets = { path = "crates/core/igui_assets" }
+igui_font = { path = "crates/assets/igui_font" }
+igui_svg = { path = "crates/assets/igui_svg" }
+igui_assets = { path = "crates/assets/igui_assets" }
 igui_anim = { path = "crates/core/igui_anim" }
 igui_game = { path = "crates/core/igui_game" }
 igui_backend_canvas = { path = "crates/platform/canvas/igui_backend_canvas" }
