@@ -219,7 +219,7 @@ section keeps non-stage work items.
   a `List` scrolls under the wheel in all three hosts. Each keeps its own pure,
   unit-tested sign convention (winit negates an up-scroll; DOM already reports
   "down" as positive), so the core stays sign-agnostic.
-- `draw_svg` (`crates/draw_svg`): backend-neutral SVG vector rendering with **no
+- `draw_svg` (`crates/core/draw_svg`): backend-neutral SVG vector rendering with **no
 external dependency**. It parses a small SVG subset (the Lucide grammar:
 `path`/`rect`/`circle`/`ellipse`/`line`/`polyline`/`polygon`, full path data
 incl. arcs, `stroke`/`stroke-width`/`stroke-linecap`/`stroke-linejoin`/`viewBox`)

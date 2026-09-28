@@ -23,7 +23,7 @@ native demo's `ControlFlow::Wait`. It is caused by structural decisions:
 
 | # | Hard limit | Evidence |
 |---|---|---|
-| H1 | Two trees / two ownerships | `Ui` owns its own `SceneTree` (`crates/draw_ui/src/ui/mod.rs`), separate from any game tree |
+| H1 | Two trees / two ownerships | `Ui` owns its own `SceneTree` (`crates/core/draw_ui/src/ui/mod.rs`), separate from any game tree |
 | H2 | Layout in absolute viewport coords, detached from `CanvasItem.world_transform` | `ControlData::rect` is "absolute in logical viewport coordinates"; `Ui::paint` emits no `SetTransform` |
 | H3 | Nodes have no user data / lifecycle | `draw_scene::Node` fields are fixed; `NodeKind` is a closed enum; AGENTS rule 5 bans ECS |
 | H4 | Paint traversal and input routing are split | `SceneTree::paint` vs `Ui::paint`; `Ui::handle_input` vs game input |
@@ -320,7 +320,7 @@ causes make UI work throttle the frame rate:
    in the same frame, regardless of where the game root sits.
 2. **Full UI repaint every frame** — `draw_ui::paint` re-walks the control tree
    and rebuilds its `DrawList` even when nothing changed
-   (`crates/draw_ui/src/lib.rs`).
+   (`crates/core/draw_ui/src/lib.rs`).
 
 This plan adopts the single-threaded decoupling levels L1-L3; **L4 (a separate
 game thread) is explicitly out of scope**:

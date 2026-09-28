@@ -16,7 +16,7 @@ the OpenGL backend is C++, not a Rust `RenderBackend` implementation.
 
 ## What crosses the boundary
 
-`crates/draw_ffi` depends on `draw_core` + `draw_render` only (no backend, no
+`crates/ffi/draw_ffi` depends on `draw_core` + `draw_render` only (no backend, no
 scene/UI). Its `crate-type` is `staticlib` + `cdylib` + `rlib`, so a host links
 `libdraw_ffi.a` (or the `.dylib`) and includes `include/quill.h`.
 
@@ -35,7 +35,7 @@ scene/UI). Its `crate-type` is `staticlib` + `cdylib` + `rlib`, so a host links
   (the host refuses to run otherwise).
 
 The header is a hand-maintained mirror of the `#[repr(C)]` layout. If you change
-one, change the other and bump the version. `crates/draw_ffi/src/lib.rs` has
+one, change the other and bump the version. `crates/ffi/draw_ffi/src/lib.rs` has
 tests that pin the round-trip, the null-pointer safety and the version.
 
 ### Command-to-field map

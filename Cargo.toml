@@ -1,29 +1,35 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/draw_core",
-    "crates/draw_scene",
-    "crates/draw_ui",
-    "crates/draw_theme",
-    "crates/draw_components",
-    "crates/draw_render",
-    "crates/draw_ffi",
-    "crates/draw_font",
-    "crates/draw_svg",
-    "crates/draw_profile",
-    "crates/draw_debug_ui",
-    "crates/draw_bench",
-    "crates/draw_bench_suite",
-    "crates/draw_backend_canvas",
-    "crates/draw_backend_recording",
-    "crates/draw_backend_wgpu",
-    "crates/draw_wasm",
-    "crates/draw_anim",
-    "crates/draw_assets",
-    "crates/draw_game",
-    "crates/quill_winit",
-    "crates/quill_app",
-    "crates/quill_headless",
+    # backend-neutral core
+    "crates/core/draw_core",
+    "crates/core/draw_scene",
+    "crates/core/draw_ui",
+    "crates/core/draw_theme",
+    "crates/core/draw_components",
+    "crates/core/draw_render",
+    "crates/core/draw_font",
+    "crates/core/draw_svg",
+    "crates/core/draw_assets",
+    "crates/core/draw_anim",
+    "crates/core/draw_game",
+    # concrete backends
+    "crates/platform/canvas/draw_backend_canvas",
+    "crates/platform/recording/draw_backend_recording",
+    "crates/platform/wgpu/draw_backend_wgpu",
+    "crates/platform/wasm/draw_wasm",
+    # C ABI
+    "crates/ffi/draw_ffi",
+    # observability
+    "crates/debug/draw_profile",
+    "crates/debug/draw_debug_ui",
+    # benchmarking
+    "crates/bench/draw_bench",
+    "crates/bench/draw_bench_suite",
+    # window hosts / application runtime
+    "crates/window/quill_winit",
+    "crates/app/quill_app",
+    "crates/app/quill_headless",
     "quill",
     "examples/web_demo",
     "examples/demo_app",
@@ -42,29 +48,29 @@ license = "MIT OR Apache-2.0"
 repository = ""
 
 [workspace.dependencies]
-draw_core = { path = "crates/draw_core" }
-draw_scene = { path = "crates/draw_scene" }
-draw_ui = { path = "crates/draw_ui" }
-draw_theme = { path = "crates/draw_theme" }
-draw_components = { path = "crates/draw_components" }
-draw_render = { path = "crates/draw_render" }
-draw_ffi = { path = "crates/draw_ffi" }
-draw_font = { path = "crates/draw_font" }
-draw_svg = { path = "crates/draw_svg" }
-draw_profile = { path = "crates/draw_profile" }
-draw_debug_ui = { path = "crates/draw_debug_ui" }
-draw_bench = { path = "crates/draw_bench" }
-draw_bench_suite = { path = "crates/draw_bench_suite" }
-draw_backend_canvas = { path = "crates/draw_backend_canvas" }
-draw_backend_recording = { path = "crates/draw_backend_recording" }
-draw_backend_wgpu = { path = "crates/draw_backend_wgpu" }
-draw_wasm = { path = "crates/draw_wasm" }
-draw_anim = { path = "crates/draw_anim" }
-draw_assets = { path = "crates/draw_assets" }
-draw_game = { path = "crates/draw_game" }
-quill_winit = { path = "crates/quill_winit" }
-quill_app = { path = "crates/quill_app" }
-quill_headless = { path = "crates/quill_headless" }
+draw_core = { path = "crates/core/draw_core" }
+draw_scene = { path = "crates/core/draw_scene" }
+draw_ui = { path = "crates/core/draw_ui" }
+draw_theme = { path = "crates/core/draw_theme" }
+draw_components = { path = "crates/core/draw_components" }
+draw_render = { path = "crates/core/draw_render" }
+draw_font = { path = "crates/core/draw_font" }
+draw_svg = { path = "crates/core/draw_svg" }
+draw_assets = { path = "crates/core/draw_assets" }
+draw_anim = { path = "crates/core/draw_anim" }
+draw_game = { path = "crates/core/draw_game" }
+draw_backend_canvas = { path = "crates/platform/canvas/draw_backend_canvas" }
+draw_backend_recording = { path = "crates/platform/recording/draw_backend_recording" }
+draw_backend_wgpu = { path = "crates/platform/wgpu/draw_backend_wgpu" }
+draw_wasm = { path = "crates/platform/wasm/draw_wasm" }
+draw_ffi = { path = "crates/ffi/draw_ffi" }
+draw_profile = { path = "crates/debug/draw_profile" }
+draw_debug_ui = { path = "crates/debug/draw_debug_ui" }
+draw_bench = { path = "crates/bench/draw_bench" }
+draw_bench_suite = { path = "crates/bench/draw_bench_suite" }
+quill_winit = { path = "crates/window/quill_winit" }
+quill_app = { path = "crates/app/quill_app" }
+quill_headless = { path = "crates/app/quill_headless" }
 demo_app = { path = "examples/demo_app" }
 
 [profile.release]

@@ -160,4 +160,4 @@ over the panel; everything else is forwarded to the demo.
   Canvas backend; if only sRGB is offered, that is used as a fallback.
 - The backend is window-agnostic: it receives a surface texture view via
   `WgpuBackend::begin_frame_with_view` and the demo calls `present()`. The same
-  backend runs headlessly in `crates/draw_backend_wgpu/tests/render.rs`.
+  backend runs headlessly in `crates/platform/wgpu/draw_backend_wgpu/tests/render.rs`.

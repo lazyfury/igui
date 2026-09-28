@@ -11,14 +11,14 @@ C++ UI (ui.cpp) --Canvas--> draw_ffi (Rust) --> DrawList --GlBackend--> pixels
 
 ## The boundary
 
-`crates/draw_ffi` is the only Rust code in the picture. It exposes:
+`crates/ffi/draw_ffi` is the only Rust code in the picture. It exposes:
 
 - the core value types (`QuillVec2`, `QuillRect`, `QuillColor`,
   `QuillTransform`, `QuillCornerRadii`, `QuillPaint`) and
 - an opaque `QuillDrawList` with `quill_draw_list_*` builders and a flat
   `QuillCommand` record to read commands back.
 
-The C++ host includes `crates/draw_ffi/include/quill.h` (a hand-maintained
+The C++ host includes `crates/ffi/draw_ffi/include/quill.h` (a hand-maintained
 mirror of the `#[repr(C)]` layout) and links the `libdraw_ffi.a` static library.
 Nothing from `draw_scene` / `draw_ui` crosses the boundary — the UI is
 organized in C++ on purpose.

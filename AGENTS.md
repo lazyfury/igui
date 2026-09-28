@@ -78,7 +78,7 @@ draw_ffi      -> draw_core, draw_render
                  (C ABI over the core: the value types plus a `DrawList`
                   builder/iterator. No scene/UI and no backend — a
                   foreign-language host organizes its own UI and implements
-                  its own backend. Header: `crates/draw_ffi/include/quill.h`.)
+                  its own backend. Header: `crates/ffi/draw_ffi/include/quill.h`.)
 demoapp_ffi   -> demo_app, draw_ffi, draw_core, draw_render, draw_theme
                  (C ABI over the *real* `demo_app` gallery: a foreign host
                   creates a DemoApp, drives its frame and reads the resulting
@@ -206,6 +206,11 @@ Planned (future stages, see `docs/godot-migration.md`):
 ```
 # Stage 32: remaining `quill` facade backend features (wgpu/canvas/wasm/...)
 ```
+
+Crates are grouped by role under `crates/`: `core/` (backend-neutral),
+`platform/<backend>/` (concrete backends), `ffi/`, `debug/`, `bench/`,
+`window/` (window hosts) and `app/` (runtimes). Crate names are unchanged; the
+facade `quill` stays at the repo root and `examples/` are not grouped.
 
 The core crates stay fine-grained on purpose; applications use the `quill`
 facade with opt-in features (`ui`, `anim`, `game`, `app`, `headless`, `wgpu`,
@@ -387,9 +392,9 @@ The suite is a contract, not a diary. Before adding or keeping a test:
 | **Build an app UI: frame loop, widgets, hosting, conventions, cheat sheet** | **`docs/ui-guide.md`** (read this before scanning crates) |
 | Pipeline, coordinates, stage plan, backend replaceability | `docs/architecture.md` |
 | Backends (Canvas / wgpu / recording), adding a backend, browser boundary | `docs/backend.md` |
-| C ABI, C++ host, foreign-language backend | `docs/cpp-ffi.md` (`crates/draw_ffi`, `examples/cpp_ffi`) |
-| Fonts: discovery, family/weight resolution, fallback, shaping | `docs/font.md` (`crates/draw_font`) |
-| SVG / vector icons, loading an icon pack (Lucide) | `docs/svg.md` (`crates/draw_svg`) |
+| C ABI, C++ host, foreign-language backend | `docs/cpp-ffi.md` (`crates/ffi/draw_ffi`, `examples/cpp_ffi`) |
+| Fonts: discovery, family/weight resolution, fallback, shaping | `docs/font.md` (`crates/core/draw_font`) |
+| SVG / vector icons, loading an icon pack (Lucide) | `docs/svg.md` (`crates/core/draw_svg`) |
 | Controls, layout, components (API reference by name) | `docs/components.md` |
 | Design tokens, theme, component library | `docs/design-system.md` |
 | Roadmap / remaining primitives & components | `docs/plan.md` |
@@ -398,4 +403,4 @@ The suite is a contract, not a diary. Before adding or keeping a test:
 | Benchmarks & regression baselines | `docs/benchmarking.md` |
 | Test layers, no-screenshot rule | `docs/testing.md` |
 | Getting started / build & run | `docs/getting-started.md` |
-| Core types & crate APIs | `crates/*/src/*.rs` (module docs at the top) |
+| Core types & crate APIs | `crates/**/src/*.rs` (module docs at the top) |

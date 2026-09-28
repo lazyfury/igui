@@ -1,6 +1,6 @@
 # draw_svg — backend-neutral SVG / icon packs
 
-`crates/draw_svg` renders a small SVG subset into the quill IR. It is
+`crates/core/draw_svg` renders a small SVG subset into the quill IR. It is
 backend-neutral (depends only on `draw_core` + `draw_render`) and has **no
 external dependency**: it parses SVG itself and emits the existing `Line` and
 `FillCircle` commands, so any backend can draw it.

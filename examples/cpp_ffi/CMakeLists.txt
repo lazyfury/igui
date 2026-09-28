@@ -45,7 +45,7 @@ add_executable(cpp_ffi
 
 target_include_directories(cpp_ffi PRIVATE
   "${CMAKE_CURRENT_SOURCE_DIR}/src"
-  "${QUILL_ROOT}/crates/draw_ffi/include"
+  "${QUILL_ROOT}/crates/ffi/draw_ffi/include"
   "${QUILL_ROOT}/examples/demoapp_ffi/include"
   "${QUILL_ROOT}/examples/wgpu_ffi/include")
 

@@ -143,7 +143,7 @@ present in a window, pass the surface texture view to
 
 ### Pixel verification
 
-`crates/draw_backend_wgpu/tests/render.rs` renders each command and asserts on
+`crates/platform/wgpu/draw_backend_wgpu/tests/render.rs` renders each command and asserts on
 read-back pixels: solid fills, clear color, DPR scaling, clipping, opacity,
 save/restore, baked transforms, circles, stroked rectangles, images, text, and a
 full `SceneTree -> DrawList -> WgpuBackend` pipeline. Tests skip (rather than

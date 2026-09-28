@@ -1,6 +1,6 @@
 # FontServer
 
-Status: **implemented** (`crates/draw_font`). The render IR and the UI stay
+Status: **implemented** (`crates/core/draw_font`). The render IR and the UI stay
 text-free; `draw_backend_wgpu` consumes the service for rasterization/atlas.
 
 Decisions (2025-09):

@@ -191,7 +191,7 @@ and leaving are re-bound is the next ~12× if it ever matters;
 
 ## 3. GPU benchmark (`draw_backend_wgpu`)
 
-`crates/draw_backend_wgpu/benches/wgpu.rs` measures the offscreen path end to
+`crates/platform/wgpu/draw_backend_wgpu/benches/wgpu.rs` measures the offscreen path end to
 end: CPU command execution, GPU submission, and a blocking `read_pixels` sync.
 The readback makes each frame deterministic but dominates the number, so read it
 as "cost of a readback-synchronized frame", not raw raster time.

@@ -235,7 +235,7 @@ Validated by three independent renderers consuming the same IR:
 - `draw_backend_canvas` (HTML Canvas 2D, WASM) — `examples/web_demo`.
 - `draw_backend_recording` (headless recording backend) — `tests/pipeline.rs`.
 - `draw_backend_wgpu` (native `wgpu`, offscreen target + pixel readback, and
-  window-surface presentation) — `crates/draw_backend_wgpu/tests/render.rs`,
+  window-surface presentation) — `crates/platform/wgpu/draw_backend_wgpu/tests/render.rs`,
   `examples/wgpu_demo`.
 - A C++ OpenGL 3.3 backend (not Rust) consuming `draw_ffi`'s command stream —
   `examples/cpp_ffi`, verified by reading its own framebuffer back.

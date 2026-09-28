@@ -1,7 +1,7 @@
 // The design tokens, mirrored from `draw_theme` so the C++ components match
 // `demo_app` exactly.
 //
-// The values are copied from `crates/draw_theme/src/palette.rs` and
+// The values are copied from `crates/core/draw_theme/src/palette.rs` and
 // `scale.rs` (the dark palette and the comfortable density). If you change a
 // token there, change it here too — the point of the gallery is a like-for-like
 // comparison with the Rust component library.
