@@ -1,9 +1,11 @@
-//! Platform input → backend-neutral [`InputEvent`] translation.
+//! Platform input → backend-neutral [`InputEvent`](draw_core::InputEvent)
+//! translation.
 //!
 //! These are the pieces every window host used to copy: function-key and named
 //! key mapping, pointer-button mapping, the wheel sign convention, and the
-//! modifier set. [`Host::translate`](crate::Host::translate) builds the events;
-//! these functions stay public so a host that keeps its own loop can reuse them.
+//! modifier set. The [`PointerPlugin`](crate::PointerPlugin) /
+//! [`KeyboardPlugin`](crate::KeyboardPlugin) observers build the events; these
+//! functions stay public so a host that keeps its own loop can reuse them.
 
 use std::time::{Duration, Instant};
 

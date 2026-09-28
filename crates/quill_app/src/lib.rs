@@ -23,9 +23,8 @@
 //!   never touches a platform type.
 //! - [`Presenter`] is the graphics boundary (a window surface or a recorder);
 //!   the runtime hands it a `DrawList` and does not know which it is.
-//! - [`PlatformEvent`] / [`PlatformContext`] are an opaque bridge a platform
-//!   plugin (`quill_winit`) uses to observe native events without the runtime
-//!   knowing their type.
+//! - [`PlatformEvent`] is an opaque bridge a platform plugin (`quill_winit`)
+//!   uses to observe native events without the runtime knowing their type.
 //!
 //! The real platform plugins live in `quill_winit` (window + wgpu + input) and
 //! `quill_headless` (recording); this crate is what makes them swappable.

@@ -21,6 +21,10 @@ ui = [
 ]
 # Animation, independent of `ui` and `game`.
 anim = ["dep:draw_anim", "dep:draw_core", "dep:draw_scene"]
+# Application runtime: the plugin-based `quill_app` builder (no platform).
+app = ["dep:quill_app", "dep:draw_core", "dep:draw_render"]
+# Headless recording presenter for `--selfcheck`; no `winit`.
+headless = ["app", "dep:quill_headless", "dep:draw_backend_recording"]
 # 2D game layer. Does not imply `ui`; `anim` stays independent.
 game = [
     "dep:draw_game",
@@ -40,3 +44,6 @@ draw_components = { workspace = true, optional = true }
 draw_anim = { workspace = true, optional = true }
 draw_game = { workspace = true, optional = true }
 draw_assets = { workspace = true, optional = true }
+quill_app = { workspace = true, optional = true }
+quill_headless = { workspace = true, optional = true }
+draw_backend_recording = { workspace = true, optional = true }

@@ -9,6 +9,8 @@
 //! | `ui` | `draw_core`, `draw_render`, `draw_scene`, `draw_theme`, `draw_ui`, `draw_components` |
 //! | `anim` | `draw_anim` (+ the `draw_core` / `draw_scene` it targets) |
 //! | `game` | `draw_game` + `draw_assets` (+ `draw_core` / `draw_render` / `draw_scene`) |
+//! | `app` | `quill_app` — the plugin-based `App` runtime (+ `draw_core` / `draw_render`) |
+//! | `headless` | `quill_headless` — a recording `Presenter` for headless self-checks (implies `app`) |
 //!
 //! Disabled crates are not compiled at all. A UI-only app enables `ui` and a
 //! backend; it never enables `game` or `anim`. `game` does **not** imply `ui`,
@@ -20,18 +22,20 @@
 //! quill = { path = ".../quill", default-features = false, features = ["ui"] }
 //! # 2D game
 //! quill = { path = ".../quill", default-features = false, features = ["game"] }
+//! # plugin runtime + headless self-check
+//! quill = { path = ".../quill", default-features = false, features = ["ui", "app", "headless"] }
 //! ```
 
 /// Crate name, kept for lightweight smoke checks.
 pub const CRATE: &str = "quill";
 
-#[cfg(any(feature = "ui", feature = "anim", feature = "game"))]
+#[cfg(any(feature = "ui", feature = "anim", feature = "game", feature = "app"))]
 pub use draw_core;
 
 #[cfg(any(feature = "ui", feature = "anim", feature = "game"))]
 pub use draw_scene;
 
-#[cfg(any(feature = "ui", feature = "game"))]
+#[cfg(any(feature = "ui", feature = "game", feature = "app"))]
 pub use draw_render;
 
 #[cfg(feature = "ui")]
@@ -51,6 +55,12 @@ pub use draw_game;
 
 #[cfg(feature = "game")]
 pub use draw_assets;
+
+#[cfg(feature = "app")]
+pub use quill_app;
+
+#[cfg(feature = "headless")]
+pub use quill_headless;
 
 #[cfg(test)]
 mod tests {

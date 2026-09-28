@@ -132,29 +132,42 @@ quill         -> feature-gated re-exports only:
                  `anim` -> draw_anim (+ draw_core, draw_scene)
                  `game` -> draw_game, draw_assets (+ draw_core, draw_render,
                            draw_scene)
+                 `app`  -> quill_app (+ draw_core, draw_render)
+                 `headless` -> quill_headless (+ draw_backend_recording; implies
+                           `app`)
                  (application facade; disabled crates are not compiled; `game`
                   does not imply `ui`, `anim` is independent of both. No logic.)
-quill_winit   -> draw_core, draw_render, draw_scene, draw_ui,
+quill_app     -> draw_core, draw_render
+                 (**non-core** plugin runtime: `App` / `AppBuilder` /
+                  `Plugin` / `AppLogic` / `ServiceMap` / `Runner`, a neutral
+                  `Presenter` and ordered input/paint layers. No `winit` /
+                  `wgpu` / DOM — a platform plugin installs a `Runner` and a
+                  `Presenter`.)
+quill_winit   -> quill_app, draw_core, draw_render, draw_ui,
                  draw_backend_wgpu, winit
-                 (**non-core** shared window host: window/surface/backend
-                  lifecycle, `DrawList` presentation with surface-loss
-                  recovery, platform input translation including committed
-                  text and IME, IME candidate-window placement from
-                  `draw_ui::focused_caret`, and a `FrameClock`. The
-                  application is deliberately not abstracted — each host keeps
-                  its own `ApplicationHandler`. Never a dependency of a
-                  `draw_*` core crate.)
+                 (**non-core** platform plugins for `quill_app`:
+                  `WinitPlugin` (event loop + window), `WgpuPlugin`
+                  (surface/backend/`Presenter`), `PointerPlugin` /
+                  `KeyboardPlugin` / `ImePlugin` (native → `InputEvent`),
+                  `TextMeasurePlugin`, `ClipboardPlugin`; raw mappings stay in
+                  `quill_winit::input`. Replaces the old `Host`. Never a
+                  dependency of a `draw_*` core crate.)
+quill_headless -> quill_app, draw_backend_recording
+                 (**non-core** recording `Presenter` for a winit-free
+                  `--selfcheck`; no `winit`.)
 demo_app      -> draw_core, draw_render, draw_scene, draw_ui, draw_components,
                  draw_theme, draw_anim   (no backend; the Animation gallery page
                  drives a draw_anim tween and reports `needs_frame`)
 web_demo      -> draw_core, draw_scene, demo_app, draw_wasm
 multi_tree    -> draw_core, draw_render, draw_scene, draw_ui, draw_components,
                  draw_theme, draw_backend_recording  (headless, no window host)
-wgpu_demo     -> draw_core, draw_render, draw_scene, draw_ui, demo_app,
-                 quill_winit, draw_backend_wgpu, draw_profile, draw_debug_ui,
-                 winit
-                 (the reference `quill_winit` host; the gallery now exercises
-                  `TextInput`/`TextArea`, so it also drives IME and text input)
+wgpu_demo     -> quill_app, quill_winit, quill_headless, draw_core, draw_render,
+                 draw_scene, draw_ui, demo_app, draw_backend_wgpu, draw_profile,
+                 draw_debug_ui, winit
+                 (the reference `quill_app` + `quill_winit` migration; the
+                  gallery exercises `TextInput`/`TextArea` so it drives IME and
+                  text input, and `--selfcheck` runs the same `AppLogic`
+                  headlessly through `quill_headless`)
 game_demo     -> draw_core, draw_render, draw_scene, draw_ui, draw_theme,
                  draw_components, draw_anim, draw_assets, draw_game (feature
                  `ui`), draw_backend_wgpu, draw_backend_recording, winit
@@ -191,15 +204,13 @@ checkout.
 Planned (future stages, see `docs/godot-migration.md`):
 
 ```
-# Stage 31: `quill_app` plugin runtime + `quill_winit` plugin split +
-#           `quill_headless` (replaces `quill_winit::Host`)
 # Stage 32: remaining `quill` facade backend features (wgpu/canvas/wasm/...)
 ```
 
 The core crates stay fine-grained on purpose; applications use the `quill`
-facade with opt-in features (`ui`, `anim`, `game`, `wgpu`, `canvas`, `wasm`,
-`profile`, `debug`, `recording`, `bench`). A UI-only app must not compile
-`draw_game`; `anim` is independent of `game`.
+facade with opt-in features (`ui`, `anim`, `game`, `app`, `headless`, `wgpu`,
+`canvas`, `wasm`, `profile`, `debug`, `recording`, `bench`). A UI-only app must
+not compile `draw_game`; `anim` is independent of `game`.
 
 `draw_scene -> draw_render` is intentional: `draw_render` is the backend-neutral
 IR (no backend/browser deps), and the Paint step (Scene -> DrawList) lives in the
@@ -213,7 +224,9 @@ non-member `examples/deepseek_balance` and `examples/file_browser` tools once
 migrated (their UI is built from `draw_theme` / `draw_components` / `draw_ui`;
 blocking work — the network call, the directory scan — runs on a worker thread
 and comes back through a winit `EventLoopProxy`). `wgpu` only in
-`draw_backend_wgpu` (plus its tests/bench), `quill_winit`, and those window hosts. Font parsing
+`draw_backend_wgpu` (plus its tests/bench), `quill_winit`, and those window hosts.
+`quill_app` (the runtime) and `quill_headless` depend on neither `winit` nor
+`wgpu`. Font parsing
 (`ab_glyph`), text shaping (`rustybuzz`, `unicode-bidi`) and system-font
 discovery live only in `draw_font` (which `draw_backend_wgpu` consumes); the
 core stays text-free.
@@ -231,7 +244,7 @@ None of the demos is a dependency of the core crates.
 | `examples/demo_app` | root member | single crate, backend-neutral (no backend) | `cargo test -p demo_app` | dependency block above |
 | `examples/multi_tree` | root member | single crate, headless (`draw_backend_recording`) | `cargo test -p multi_tree` | dependency block above |
 | `examples/web_demo` | root member | WASM / Canvas host | `cargo test -p web_demo`; build `./examples/web_demo/build.sh` | `examples/web_demo/README.md` |
-| `examples/wgpu_demo` | root member | native `wgpu` + `winit` | `cargo test -p wgpu_demo`; run `cargo run -p wgpu_demo --release` | `examples/wgpu_demo/README.md`, `docs/debug.md` |
+| `examples/wgpu_demo` | root member | native `wgpu` + `winit`; `quill_app` + `quill_winit` plugins | `cargo test -p wgpu_demo`; run `cargo run -p wgpu_demo --release`; `cargo run -p wgpu_demo -- --selfcheck` | `examples/wgpu_demo/README.md`, `docs/debug.md` |
 | `examples/game_demo` | root member | top-down game in a `GameView` + HUD; native `wgpu` + `winit` | `cargo test -p game_demo`; run `cargo run -p game_demo --release`; `cargo run -p game_demo -- --selfcheck` | dependency block above |
 | `examples/deepseek_balance` | **standalone** (own workspace) | own `util` sub-crate (member of that workspace); native `wgpu` + `winit` + `ureq` | `cargo test --manifest-path examples/deepseek_balance/Cargo.toml`; `cargo run --manifest-path examples/deepseek_balance/Cargo.toml -- --selfcheck` | dependency block above, crate module docs |
 | `examples/file_browser` | **standalone** (own workspace) | single crate; native `wgpu` + `winit` | `cargo test --manifest-path examples/file_browser/Cargo.toml`; `cargo run --manifest-path examples/file_browser/Cargo.toml -- --selfcheck` (`--dump` too) | dependency block above |
@@ -272,30 +285,28 @@ crate/module instead of being embedded where it happens to be used.
 
 ## Stages
 
-All stages through **Stage 30 are complete and accepted.** The full ledger (one
+All stages through **Stage 31 are complete and accepted.** The full ledger (one
 line per stage, with what each landed) is `docs/architecture.md` →
 "Implementation stages"; the Godot-style migration's phase plan and per-substage
 notes are `docs/godot-migration.md`.
 
-- **Current status:** Editable text input accepted: `draw_core::{Modifiers,
-  ImeEvent}`, `draw_ui::{TextEdit, focused-input routing, focused_caret}`,
-  interactive `TextInput` + new `TextArea`, and the non-core `quill_winit`
-  shared window host (reference migration in `examples/wgpu_demo`). Previously:
-  Stage 30 (`examples/game_demo`: top-down collect game in a `GameView` + HUD,
-  window host + `--selfcheck`) accepted; before that Stage 29
-  (`GameView`/sub-viewport + fixed timestep), Stage 28 (`draw_game` 2D game
-  layer), Stage 27 (refresh decoupling), Stage 26 (`draw_anim` + `quill` facade
-  skeleton), Stage 25 (Godot-style unified scene), `draw_font`, `Theme` trait.
-- **Next (future stages):** Stage 31 — the `quill_app` plugin runtime
-  (`App::new(config).plugin(..).build()`), splitting `quill_winit` into
-  `WinitPlugin` + pointer/keyboard/IME/text-measure/clipboard/clock plugins and a
-  wgpu `Presenter`, plus `quill_headless` for winit-free self-checks; it replaces
-  `quill_winit::Host`. Stage 32 then covers the remaining `quill` facade backend
-  features (`wgpu`/`canvas`/`wasm`/`profile`/`debug`/`recording`/`bench`). Phase 8
-  observability remains. Remaining host migrations to the new runtime
+- **Current status:** Stage 31 (`quill_app` plugin runtime) accepted: a new
+  non-core `quill_app` crate (`App`/`AppBuilder`/`Plugin`/`AppLogic`/
+  `ServiceMap`/`Runner` + neutral `Presenter`) and `quill_winit` split into
+  `WinitPlugin`/`WgpuPlugin`/`PointerPlugin`/`KeyboardPlugin`/`ImePlugin`/
+  `TextMeasurePlugin`/`ClipboardPlugin` (old `Host` removed); `quill_headless`
+  for winit-free self-checks; `examples/wgpu_demo` migrated with `--selfcheck`;
+  `quill` gained `app`/`headless`. Previously: editable text input + shared host;
+  Stage 30 (`examples/game_demo`), Stage 29 (`GameView`/sub-viewport + fixed
+  timestep), Stage 28 (`draw_game` 2D game layer), Stage 27 (refresh decoupling),
+  Stage 26 (`draw_anim` + `quill` facade skeleton), Stage 25 (Godot-style
+  unified scene), `draw_font`, `Theme` trait.
+- **Next (future stages):** Stage 32 — remaining `quill` facade backend features
+  (`wgpu`/`canvas`/`wasm`/`profile`/`debug`/`recording`/`bench`). Phase 8
+  observability remains. Remaining host migrations to the `quill_app` runtime
   (`file_browser`, `deepseek_balance`, `game_demo`, and the sibling
   `image_editor` / `archiver` / `classic-game-box` checkouts) are follow-ups.
-- **Current stage:** none — next up Stage 31 (`quill_app` plugin runtime).
+- **Current stage:** none — next up Stage 32 (`quill` facade backend features).
 
 On acceptance of a whole user task, the agent writes the durable summary into
 this file (the "Current stage" bullet under "Stages" plus any doc updates).

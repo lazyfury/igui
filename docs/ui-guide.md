@@ -104,7 +104,7 @@ Input and interaction:
   field, `docs/components.md` §Text fields describes the `on_key`/`on_text`/
   `on_ime` callbacks and `draw_ui::focused_caret`; install a
   `draw_ui::set_clipboard` handle for copy / cut / paste (`quill_winit`'s
-  `Host::clipboard` wraps the system clipboard).
+  `ClipboardPlugin` wraps the system clipboard).
 - Cursor: `draw_ui::hovered_cursor(&tree) -> Cursor`; map it in the host
   (`deepseek_balance/src/host.rs`). Per-control provider: `.dynamic_cursor(..)`.
 - Drag/resize: `.on_drag(..)` with `DragPhase::{Start, Move, End}` plus delta.
@@ -144,38 +144,50 @@ if let Some(id) = title.get() {
   `paint(ctx)` → `handle_input(event)`. `demo_app` wires all four.
 - `Router`: named/added views with `go` / `go_name`; one route is laid out.
 
-## 6. Hosting (winit + wgpu)
+## 6. Hosting (the `quill_app` plugin runtime)
 
-The platform plumbing is now shared in the **non-core** `quill_winit` crate:
-`Host` (window / surface / backend / swap-chain, `render(&DrawList)` with
-surface-loss recovery, `handle_resize` / `handle_scale_factor`,
-`translate(&WindowEvent) -> Vec<InputEvent>` including `ModifiersChanged`,
-committed text and IME, `apply_cursor`, `set_ime_cursor_area` / `sync_ime`) plus
-`HostOptions`, `TitlebarMode`, `FrameClock` and the raw mappings in
-`quill_winit::input` (`map_key`, `pointer_button`, `wheel_pixels`, `modifiers`).
-The *application* stays per-host. `examples/wgpu_demo` is the reference
-migration (`src/app.rs`).
+Window hosting is assembled, not inherited. The **non-core** `quill_app` crate
+owns the runtime and never names `winit`/`wgpu`; `quill_winit` provides the
+platform plugins. An app supplies an `AppLogic` (`update → layout → paint`) and
+composes the rest:
 
-What a host still writes (checklist; steps 2–5 and 9–10 are `Host`'s job):
+```rust,ignore
+quill_app::App::new(AppConfig::default())
+    .plugin(WinitPlugin::new(WindowConfig { ime: true, ..Default::default() }))
+    .plugin(WgpuPlugin::default())        // surface / backend / Presenter
+    .plugin(PointerPlugin)
+    .plugin(KeyboardPlugin)
+    .plugin(ImePlugin)
+    .plugin(TextMeasurePlugin)            // backend metrics → TextMeasurer
+    .plugin(ClipboardPlugin)
+    .logic(MyApp::new())
+    .build()
+    .run();
+```
 
-1. Create the `EventLoop`, set `ControlFlow::Wait` (repaint only on change).
-2. In `ApplicationHandler::resumed`, create the `Window`.
-3. `instance.create_surface(window)`; `WgpuBackend::from_instance(..)`.
-4. Pick a non-sRGB format; configure the surface.
-5. `backend.set_scale_factor(window.scale_factor())` and re-apply on
-   `ScaleFactorChanged`; use **logical** coordinates for input.
-6. `backend.set_clear_color(..)`.
-7. Fonts: `backend.set_font_config(FontConfig { mode, device_pixel_rasterization })`
-   (`FontMode::System` / `Pixel`). Then inject a matching measurer:
-   `tree`/view `.set_text_measurer(Rc::new(BackendTextMeasurer { metrics:
-   backend.text_metrics() }))` so layout measures the font that is painted.
-8. On redraw: `update → layout → paint → into_draw_list`.
-9. `surface.get_current_texture` → `begin_frame_with_view(view, w, h, format,
-   viewport)` → `submit(&list)` → `end_frame` → `present`.
-10. Map platform input to `InputEvent` and feed the view; `request_redraw()` when
-    state changed.
-11. Long work (network, disk) runs on a thread and returns through a winit
-    `EventLoopProxy<..>`; the loop is asleep otherwise.
+- `AppLogic` gets three separate phases (`update` / `layout` / `paint`); `paint`
+  writes into a `PaintContext` and the runtime hands the `DrawList` to the
+  `Presenter`.
+- Plugins publish shared services (`SharedWindow`, `SharedWindowState`,
+  `SharedBackend`, the `TextMeasurer`, the `Clipboard`) that later plugins and the
+  app read back by type. Register `WinitPlugin` first, then `WgpuPlugin`, then the
+  input / text plugins. Plugins run `build` as they are added and `finish` after
+  all are built.
+- `WinitPlugin` owns the event loop (`ControlFlow::Wait`, repaint only on change)
+  and window creation; it publishes the window and then calls `App::resumed`, so
+  the graphics / IME lifecycle observers build on it. `WgpuPlugin` owns the
+  surface / swap chain and surface-loss recovery; `ImePlugin` places the IME
+  candidate window from `App::caret()` after each frame.
+- Headless: `quill_headless::HeadlessPlugin` implements the `Presenter` over
+  `RecordingBackend`, so a `--selfcheck` runs the **same** `AppLogic` with no
+  window and no `winit` (see §7).
+- `quill` exposes the runtime behind the `app` feature (`headless` implies
+  `app`).
+
+`quill_winit::input` keeps the raw mappings (`map_key`, `pointer_button`,
+`wheel_pixels`, `modifiers`, `cursor_icon`) for a host that keeps its own loop.
+`examples/wgpu_demo` is the reference (`src/app.rs`), including a winit-free
+`--selfcheck`.
 
 Backend-neutral alternative: `draw_backend_recording::RecordingBackend` records a
 `DrawList` headlessly (used by `--selfcheck` and the benches). To size a window to

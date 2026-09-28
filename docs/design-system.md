@@ -506,18 +506,20 @@ backward-compatible addition and record it here.
   the brand-new `PointerTreeCallback` / `Component::on_pointer_tree` signature
   (no external users).
 
-- **`quill_winit`: a shared, non-core winit + wgpu host layer** (Stage: text
-  input): every window host copied window / surface / backend / swap-chain
-  setup, resize and scale handling, input mapping (`map_key`, `pointer_button`,
-  the wheel sign convention), cursor mapping and the frame render. `quill_winit`
-  is a new **non-core** crate (it is explicitly allowed `winit` / `wgpu`) that
-  owns all of it: `Host` (`resumed` / `handle_resize` / `handle_scale_factor` /
-  `translate` / `render` / `apply_cursor` / `set_ime_cursor_area` / `sync_ime`),
-  `HostOptions`, `TitlebarMode`, `RenderOutcome`, `FrameClock`, and the raw
-  mappings in `quill_winit::input`. The *application* is deliberately not
-  abstracted: each host keeps its own `ApplicationHandler`, view and loop.
-  `examples/wgpu_demo` is the reference migration; the core crates never depend
-  on it.
+- **`quill_app` + `quill_winit` plugins: an assembled, non-core host layer**
+  (Stage 31): the platform was one `quill_winit::Host` that bundled window,
+  surface, wgpu, input, IME, clipboard and frame clock, so the platform was not
+  swappable and every host copied its own `ApplicationHandler`. Now the
+  **non-core** `quill_app` crate (no `winit` / `wgpu`) owns the runtime — `App` /
+  `AppBuilder` / `Plugin` / `AppLogic` / `ServiceMap` / `Runner` and a neutral
+  `Presenter` — and `quill_winit` provides the plugins: `WinitPlugin`,
+  `WgpuPlugin`, `PointerPlugin`, `KeyboardPlugin`, `ImePlugin`,
+  `TextMeasurePlugin`, `ClipboardPlugin` (with `WindowConfig`, `GpuConfig`,
+  `TitlebarMode` and the shared `SharedWindow` / `SharedWindowState` /
+  `SharedBackend` services; raw mappings stay in `quill_winit::input`).
+  `quill_headless` records frames for a winit-free `--selfcheck`. `Host` /
+  `HostOptions` / `RenderOutcome` are removed. `examples/wgpu_demo` is the
+  reference migration; the core crates never depend on any of it.
 
 ## Deferred
 

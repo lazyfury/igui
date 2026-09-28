@@ -344,9 +344,9 @@ shortcut cannot also fire while typing. Hosts must not also send Space/Tab as
 - **Copy / cut / paste** on `Ctrl`/`Cmd+C`/`X`/`V` go through a host clipboard:
   install one with `draw_ui::set_clipboard(tree, Rc<RefCell<dyn Clipboard>>)`
   (`draw_ui::MemoryClipboard` is a process-local fallback for tests).
-  `quill_winit::Host::clipboard()` wraps the system clipboard (arboard) with an
-  in-process fallback; `DemoApp::set_clipboard` installs it for the app and the
-  overlay layer. A host with no clipboard simply leaves it unset and copy/paste
+  `quill_winit::ClipboardPlugin` installs a `Clipboard` service wrapping the
+  system clipboard (arboard) with an in-process fallback; `DemoApp::set_clipboard`
+  installs it for the app and the overlay layer. A host with no clipboard simply leaves it unset and copy/paste
   are no-ops.
 
 ### Focus and routing
@@ -379,11 +379,12 @@ selects all).
 
 ### Host wiring
 
-A native host needs three things (all provided by `quill_winit`, see
-`docs/ui-guide.md`): forward `WindowEvent::Ime` as `InputEvent::Ime`, forward
-`ModifiersChanged` and committed text, and each frame call
-`Host::sync_ime(tree)` so the IME window follows the caret. In the WASM host the
-canvas runner forwards `compositionstart/update/end` as the same events.
+A native host needs three things (all provided by `quill_winit`'s plugins, see
+`docs/ui-guide.md` §6): forward `WindowEvent::Ime` as `InputEvent::Ime`
+(`ImePlugin`), forward `ModifiersChanged` and committed text (`KeyboardPlugin`),
+and each frame let `ImePlugin` place the IME window from `App::caret()` (which a
+UI app returns as `draw_ui::focused_caret(tree)`). In the WASM host the canvas
+runner forwards `compositionstart/update/end` as the same events.
 
 ## Scroll & virtualized lists
 

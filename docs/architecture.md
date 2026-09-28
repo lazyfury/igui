@@ -182,25 +182,28 @@ logical size plus the world -> screen `canvas_transform`.)
   gained the dependency-free `TextEdit` state machine, focused key/text/IME
   routing via `Control` callbacks, `focused_caret` / `modifiers` /
   `request_paint`; `draw_components::TextInput` became an interactive editor and
-  `TextArea` was added. The non-core `quill_winit` crate now owns the shared
-  `winit` + `wgpu` window/surface/backend lifecycle, input translation (including
-  IME), `DrawList` presentation and IME candidate-window placement;
-  `examples/wgpu_demo` is the reference migration and the gallery exercises both
-  fields. Selection followed: drag-select via a tree-aware `PointerPhase`
-  pointer callback, host-detected `InputEvent::DoubleClick` for word selection,
-  and a host `Clipboard` for copy / cut / paste (`quill_winit` wraps arboard with
-  an in-process fallback). Backends needed no new `DrawCommand`. See
-  `docs/components.md` §Text fields and `docs/design-system.md` §Recorded core
-  additions.
+  `TextArea` was added. The non-core `quill_winit` crate (now as `quill_app`
+  plugins, Stage 31) owns the shared `winit` + `wgpu` window/surface/backend
+  lifecycle, input translation (including IME), `DrawList` presentation and IME
+  candidate-window placement; `examples/wgpu_demo` is the reference migration and
+  the gallery exercises both fields. Selection followed: drag-select via a
+  tree-aware `PointerPhase` pointer callback, host-detected
+  `InputEvent::DoubleClick` for word selection, and a host `Clipboard` for copy /
+  cut / paste (`quill_winit` wraps arboard with an in-process fallback). Backends
+  needed no new `DrawCommand`. See `docs/components.md` §Text fields and
+  `docs/design-system.md` §Recorded core additions.
 
-Stage 31 (planned, approved) — `quill_app`, a non-core plugin runtime: `App` /
-`AppBuilder` / `Plugin` / `AppLogic` / `ServiceMap` / `Runner` and a neutral
-`Presenter` service, with `quill_winit` split into `WinitPlugin` +
-`PointerPlugin` / `KeyboardPlugin` / `ImePlugin` / `TextMeasurePlugin` /
-`WgpuPlugin` / `ClipboardPlugin` / `FrameClockPlugin` and a new
-`quill_headless` for winit-free self-checks. It replaces `quill_winit::Host`
-(removed, not kept as a façade) and renumbers the `quill` facade to Stage 32.
-See `docs/godot-migration.md` → "Stage 31 plan".
+- Stage 31 — `quill_app` plugin runtime [done]: a new **non-core** crate
+  (`App` / `AppBuilder` / `Plugin` / `AppLogic` / `ServiceMap` / `Runner` and a
+  neutral `Presenter`, depending only on `draw_core` + `draw_render`) plus
+  `quill_winit` split into `WinitPlugin`, `WgpuPlugin`, `PointerPlugin`,
+  `KeyboardPlugin`, `ImePlugin`, `TextMeasurePlugin`, `ClipboardPlugin` (and a
+  `FrameObserver` hook for frame-time work like IME placement). `quill_headless`
+  records frames for winit-free self-checks. It replaces `quill_winit::Host`
+  (removed, not kept as a façade) and adds `app` / `headless` to the `quill`
+  facade; the facade's backend features remain Stage 32. `examples/wgpu_demo` is
+  migrated and gains `--selfcheck`. See `docs/godot-migration.md` → "Stage 31
+  plan".
 
 ## Debugging & performance inspection
 

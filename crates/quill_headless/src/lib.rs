@@ -41,7 +41,7 @@ use quill_app::{AppBuilder, Plugin, PresentOutcome, Presenter};
 #[derive(Clone)]
 pub struct RecordingHandle(pub Rc<RefCell<RecordingBackend>>);
 
-/// Registers a [`HeadlessPresenter`]: every frame is recorded into
+/// Registers a headless presenter: every frame is recorded into
 /// [`RecordingBackend`] instead of being presented to a surface.
 pub struct HeadlessPlugin {
     viewport: ViewportSize,

@@ -288,7 +288,7 @@ Additive, outside the frozen core where possible. (Only the `Visual::Image` and
 - Update `architecture.md`, `backend.md`, `components.md`, `plan.md`,
   `AGENTS.md`.
 
-### Phase 9 — packaging facade (`quill`) — PLANNED (skeleton Stage 26, finalized Stage 32)
+### Phase 9 — packaging facade (`quill`) — PLANNED (skeleton Stage 26, `app`/`headless` Stage 31, backend features Stage 32)
 
 Status: **planned, execute later** (can start once Phase 1 lands; finalized once
 `draw_game` exists in Phase 6).
@@ -496,6 +496,20 @@ cargo run -p wgpu_demo -- --selfcheck   # winit-free path
 ```
 
 Each sub-stage ends with its report and waits for approval (rule 6).
+
+**Stage 31 done (accepted).** 31.1 `quill_app` (`App` / `AppBuilder` /
+`Plugin` / `AppLogic` / `ServiceMap` / `Runner`, neutral `Presenter`, input /
+paint layers); 31.2 `quill_winit` split into the plugins above (deleting
+`Host` / `HostOptions` / `RenderOutcome`); 31.3 `quill_headless` over
+`RecordingBackend`; 31.4 `examples/wgpu_demo` migrated to the builder with a
+winit-free `--selfcheck`; 31.5 `quill` `app` / `headless` features + docs.
+Deviations recorded: `FrameClock` lives in `quill_app` (no `FrameClockPlugin`);
+the borrowed winit `ActiveEventLoop` cannot be `Any + 'static`, so there is no
+`PlatformContext` — the runner publishes `SharedWindow` into services before
+`App::resumed()`; a `FrameObserver` (with the frame's `DrawList`) was added for
+IME placement and profiler audits; the wgpu_demo overlays stay inside its
+`AppLogic` because they share profiler state (the `InputLayer` API is covered by
+runtime tests).
 
 ## Dependency order
 

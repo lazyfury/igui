@@ -1783,6 +1783,7 @@ version = "0.1.0"
 dependencies = [
  "draw_anim",
  "draw_assets",
+ "draw_backend_recording",
  "draw_components",
  "draw_core",
  "draw_game",
@@ -1790,6 +1791,8 @@ dependencies = [
  "draw_scene",
  "draw_theme",
  "draw_ui",
+ "quill_app",
+ "quill_headless",
 ]
 
 [[package]]

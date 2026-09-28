@@ -17,6 +17,12 @@ No core, scene, UI or IR code changes between the Canvas backend and this one.
 cargo run -p wgpu_demo --release
 ```
 
+Headless check (renders the same gallery through `quill_headless`, no window):
+
+```bash
+cargo run -p wgpu_demo -- --selfcheck
+```
+
 ## Controls
 
 - A component gallery built from `draw_components` on the shared `demo_app`:
