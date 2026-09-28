@@ -141,7 +141,7 @@ logical size plus the world -> screen `canvas_transform`.)
   `TweenSpec` / `Repeat`, node-property and external-value targets); its
   `is_animating` is the host's "needs another frame" signal. No clock, backend
   or UI dependency. The same task created the `quill` facade skeleton as
-  re-exports only, with opt-in `ui` / `anim` features (`game` lands Stage 31).
+  re-exports only, with opt-in `ui` / `anim` features (`game` lands Stage 32).
 - Stage 27 — refresh decoupling [done]: additive core plumbing so a host can
   render only on change and keep an unchanged UI out of the frame cost. The
   `draw_ui` root state gained a `paint_generation` (bumped by layout
@@ -192,6 +192,15 @@ logical size plus the world -> screen `canvas_transform`.)
   an in-process fallback). Backends needed no new `DrawCommand`. See
   `docs/components.md` §Text fields and `docs/design-system.md` §Recorded core
   additions.
+
+Stage 31 (planned, approved) — `quill_app`, a non-core plugin runtime: `App` /
+`AppBuilder` / `Plugin` / `AppLogic` / `ServiceMap` / `Runner` and a neutral
+`Presenter` service, with `quill_winit` split into `WinitPlugin` +
+`PointerPlugin` / `KeyboardPlugin` / `ImePlugin` / `TextMeasurePlugin` /
+`WgpuPlugin` / `ClipboardPlugin` / `FrameClockPlugin` and a new
+`quill_headless` for winit-free self-checks. It replaces `quill_winit::Host`
+(removed, not kept as a façade) and renumbers the `quill` facade to Stage 32.
+See `docs/godot-migration.md` → "Stage 31 plan".
 
 ## Debugging & performance inspection
 

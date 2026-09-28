@@ -1793,6 +1793,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "quill_app"
+version = "0.1.0"
+dependencies = [
+ "draw_core",
+ "draw_render",
+]
+
+[[package]]
 name = "quill_winit"
 version = "0.1.0"
 dependencies = [

@@ -191,7 +191,9 @@ checkout.
 Planned (future stages, see `docs/godot-migration.md`):
 
 ```
-# Stage 31: remaining `quill` facade backend features (wgpu/canvas/wasm/...)
+# Stage 31: `quill_app` plugin runtime + `quill_winit` plugin split +
+#           `quill_headless` (replaces `quill_winit::Host`)
+# Stage 32: remaining `quill` facade backend features (wgpu/canvas/wasm/...)
 ```
 
 The core crates stay fine-grained on purpose; applications use the `quill`
@@ -284,12 +286,16 @@ notes are `docs/godot-migration.md`.
   (`GameView`/sub-viewport + fixed timestep), Stage 28 (`draw_game` 2D game
   layer), Stage 27 (refresh decoupling), Stage 26 (`draw_anim` + `quill` facade
   skeleton), Stage 25 (Godot-style unified scene), `draw_font`, `Theme` trait.
-- **Next (future stages):** Stage 31 — remaining `quill` facade backend features
-  (`wgpu`/`canvas`/`wasm`/`profile`/`debug`/`recording`/`bench`). Phase 8
-  observability remains. Remaining host migrations to `quill_winit`
+- **Next (future stages):** Stage 31 — the `quill_app` plugin runtime
+  (`App::new(config).plugin(..).build()`), splitting `quill_winit` into
+  `WinitPlugin` + pointer/keyboard/IME/text-measure/clipboard/clock plugins and a
+  wgpu `Presenter`, plus `quill_headless` for winit-free self-checks; it replaces
+  `quill_winit::Host`. Stage 32 then covers the remaining `quill` facade backend
+  features (`wgpu`/`canvas`/`wasm`/`profile`/`debug`/`recording`/`bench`). Phase 8
+  observability remains. Remaining host migrations to the new runtime
   (`file_browser`, `deepseek_balance`, `game_demo`, and the sibling
   `image_editor` / `archiver` / `classic-game-box` checkouts) are follow-ups.
-- **Current stage:** none — next up Stage 31 (`quill` facade backend features).
+- **Current stage:** none — next up Stage 31 (`quill_app` plugin runtime).
 
 On acceptance of a whole user task, the agent writes the durable summary into
 this file (the "Current stage" bullet under "Stages" plus any doc updates).

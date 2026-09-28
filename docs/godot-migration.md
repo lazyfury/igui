@@ -4,8 +4,8 @@ Status: **Stage 25 accepted.** Phases 1-5 and sub-stages 25.1-25.16 landed;
 Phases 6-9 (`draw_game`, native continuous loop, observability, `quill` facade)
 are future stages, not part of Stage 25's acceptance. Post-25.16 work:
 `draw_font` (system font service + numeric `FontWeight`) and `Theme` as a trait
-+ `DefaultTheme`. **Stages 26-31 (animation + game + GameView + facade) are
-approved**; see "Approved plan — Stages 26-31" below.
++ `DefaultTheme`. **Stages 26-32 (animation + game + GameView + facade + the
+`quill_app` runtime) are approved**; see "Approved plan — Stages 26-32" below.
 
 Goal: turn quill from "a UI toolkit that also has a scene tree" into a
 **2D-first scene engine** modeled on Godot, where a single `SceneTree` owns both
@@ -288,7 +288,7 @@ Additive, outside the frozen core where possible. (Only the `Visual::Image` and
 - Update `architecture.md`, `backend.md`, `components.md`, `plan.md`,
   `AGENTS.md`.
 
-### Phase 9 — packaging facade (`quill`) — PLANNED (skeleton Stage 26, finalized Stage 31)
+### Phase 9 — packaging facade (`quill`) — PLANNED (skeleton Stage 26, finalized Stage 32)
 
 Status: **planned, execute later** (can start once Phase 1 lands; finalized once
 `draw_game` exists in Phase 6).
@@ -303,7 +303,7 @@ compiles game logic and a game never compiles UI unless it asks.
   `game` and therefore never build `draw_game`.
 - Fine-grained crates stay separate; the facade does not merge them.
 
-## Approved plan — Stages 26-31 (animation + game + GameView + facade)
+## Approved plan — Stages 26-32 (animation + game + GameView + facade + runtime)
 
 Approved by the user (2026-09-25). Scope: give quill animation and 2D game
 capabilities, and let a **GameView** run at its own frame cadence so UI work does
@@ -342,12 +342,14 @@ game thread) is explicitly out of scope**:
 | 28 | new crate `draw_game` | `Sprite2D` (region/atlas/flip/9-slice) + sprite-frame animation; `Timer` + light signals; AABB/circle queries + `Area` triggers; neutral `register_texture` contract + PNG decode. No rigid-body solver and no audio. `game` does not imply `ui`. |
 | 29 | GameView + loop | Offscreen render target / sub-viewport; fixed-step `_physics_process` vs render `_process`; `WaitUntil` host. `wgpu_demo` stays `Wait`, requesting a frame only while animating. |
 | 30 | `examples/game_demo` | New workspace member: sprites, animation, collision, camera, input; `--selfcheck` via `draw_backend_recording` (no screenshots). |
-| 31 | `quill` facade | Feature-gated re-exports: `ui` (base), `anim`, `game`, `wgpu`, `canvas`, `wasm`, `profile`, `debug`, `recording`, `bench`. Skeleton starts in Stage 26; `game` feature finalizes after Stage 28. |
+| 31 | new crate `quill_app` | Platform-neutral plugin runtime: `App`/`AppBuilder`/`Plugin`/`AppLogic`/`ServiceMap`/`Runner`, a `Presenter` service, and the split of `quill_winit` into `WinitPlugin` + input/graphics plugins. New `quill_headless` for winit-free self-checks. Replaces `quill_winit::Host`. |
+| 32 | `quill` facade | Feature-gated re-exports: `ui` (base), `anim`, `game`, `wgpu`, `canvas`, `wasm`, `profile`, `debug`, `recording`, `bench`. Skeleton starts in Stage 26; `game` feature finalizes after Stage 28. |
 
 Each stage still ends with its report and waits for approval (rule 6). Roadmap
 changes recorded here: new `draw_anim`, new `examples/game_demo`, Phase 9 facade
-started in Stage 26, and the `SubViewport` item moved out of Phase 7's tail into
-Stage 29.
+started in Stage 26, the `SubViewport` item moved out of Phase 7's tail into
+Stage 29, and the `quill_app` runtime inserted as Stage 31 (facade renumbered to
+Stage 32).
 
 **Stage 28 done (accepted).** 28.1 `draw_scene` enablers (type-keyed node
 extension store, `Visual::Sprite`), 28.2 `RenderBackend::register_texture`
@@ -400,6 +402,100 @@ scope.
 headlessly through `draw_backend_recording`. `GameView` gained `play_animation` /
 `stop_animation`; render-target ids must stay disjoint from uploaded texture ids
 (a wgpu target creation now rejects a collision).
+
+## Stage 31 plan — `quill_app` plugin runtime (approved)
+
+Purpose: the non-core `quill_winit` currently bundles window + surface + wgpu +
+input + IME + clipboard + text metrics in one `Host`, so the platform is not
+swappable and every demo copies its own `ApplicationHandler`. Stage 31 replaces
+it with a small plugin runtime, so an application is assembled instead of
+inherited:
+
+```text
+App::new(config)
+    .plugin(WinitPlugin)        // event loop + window lifecycle
+    .plugin(WgpuPlugin)         // surface/backend/swapchain + Presenter
+    .plugin(PointerPlugin)      // mouse/wheel/double-click -> InputEvent
+    .plugin(KeyboardPlugin)     // key/modifiers/text
+    .plugin(ImePlugin)          // preedit/commit + caret placement
+    .plugin(TextMeasurePlugin)  // backend metrics -> TextMeasurer
+    .plugin(ClipboardPlugin)    // system clipboard
+    .plugin(FrameClockPlugin)
+    .logic(MyApp::new())
+    .build()
+    .run();
+```
+
+Decisions (approved):
+
+1. A new **non-core** `quill_app` crate owns the runtime and must not depend on
+   `winit`/`wgpu`. It depends on `draw_core` + `draw_render` only, so the same
+   app runs on any platform/graphics plugin.
+2. `quill_winit::Host` / `HostOptions` / `RenderOutcome` are **removed**, not
+   kept as a façade: only `examples/wgpu_demo` used them. `game_demo`,
+   `file_browser` and the sibling checkouts keep their own hosts for now.
+3. Plugins are named semantically (`PointerPlugin`, `KeyboardPlugin`, ...), not
+   as `winit::mouse()` sub-namespaces.
+4. One `AppLogic` plus ordered input/paint layers (an overlay consumes input
+   before the app), not a system scheduler / ECS.
+5. The render side is a backend-neutral `Presenter` service; the wgpu surface is
+   a specialization inside `WgpuPlugin`. `quill_app` never names a backend type.
+   An app that needs GPU work (texture upload, offscreen target) pulls a typed
+   handle service registered by the graphics plugin (e.g. `WgpuBackend` behind
+   `Rc<RefCell<..>>`, single-threaded).
+6. The runtime is testable headlessly and a host's `--selfcheck` links no
+   `winit` (`quill_headless`).
+7. `AppLogic::frame` keeps `update -> layout -> paint` separate, so the stage
+   timings the profiler records stay available.
+
+Sub-stages:
+
+- **31.1 new crate `quill_app` (no winit / no wgpu).** `App` / `AppBuilder` /
+  `AppConfig` / `Plugin` / `AppLogic` / `ServiceMap` / `Runner`; an opaque
+  `PlatformEvent` / `PlatformContext` so a platform plugin can observe native
+  events without the runtime knowing their type; a neutral `Presenter` trait
+  (`present(&DrawList)`, viewport, resize, surface-loss outcome); ordered input
+  layers; frame/init/event contexts. Tested with a fake runner and a recording
+  presenter (no window).
+- **31.2 split `quill_winit` into plugins.** `WinitPlugin` (event-loop runner +
+  window service + a worker-thread waker for `EventLoopProxy`),
+  `WgpuPlugin` (`Presenter`: surface / swapchain / backend, surface-loss
+  recovery), `PointerPlugin`, `KeyboardPlugin`, `ImePlugin`,
+  `TextMeasurePlugin` (replaces the copied `BackendTextMeasurer`),
+  `ClipboardPlugin`, `FrameClockPlugin`. `input.rs` stays the pure mapping. The
+  old `Host` / `HostOptions` / `RenderOutcome` are deleted.
+- **31.3 new crate `quill_headless`.** `HeadlessPlugin` / `HeadlessPresenter`
+  over `draw_backend_recording`: runs a fixed frame count with no window and
+  exposes the captured `DrawList`, so a `--selfcheck` links no `winit`.
+- **31.4 migrate `examples/wgpu_demo`.** Reference implementation of the new
+  builder (window path), plus a new winit-free `--selfcheck` that paints one
+  gallery frame through `quill_headless`. No other demo is migrated here.
+- **31.5 facade + docs.** `quill` gains an `app` feature re-exporting
+  `quill_app` (and `quill_headless` behind the same/`headless` feature). Update
+  `docs/ui-guide.md` §Hosting, `docs/design-system.md`, `docs/architecture.md`,
+  `AGENTS.md`.
+
+### Dependency direction added
+
+```
+quill_app      -> draw_core, draw_render                 (runtime; no platform)
+quill_winit    -> quill_app, draw_core, draw_render, draw_ui,
+                  draw_backend_wgpu, winit
+quill_headless -> quill_app, draw_backend_recording
+wgpu_demo      -> quill_app, quill_winit, quill_headless (selfcheck), ...
+```
+
+### Per-sub-stage gate
+
+```bash
+cargo fmt --all -- --check
+cargo check --workspace
+cargo test --workspace
+cargo bench --workspace --no-run
+cargo run -p wgpu_demo -- --selfcheck   # winit-free path
+```
+
+Each sub-stage ends with its report and waits for approval (rule 6).
 
 ## Dependency order
 
