@@ -407,4 +407,5 @@ The suite is a contract, not a diary. Before adding or keeping a test:
 | Benchmarks & regression baselines | `docs/benchmarking.md` |
 | Test layers, no-screenshot rule | `docs/testing.md` |
 | Getting started / build & run | `docs/getting-started.md` |
+| Skills for agents: create/maintain usage skills (Agent Skills) | `README.md` → "Skills (for agents)" (`.agents/skills/<name>/SKILL.md`) |
 | Core types & crate APIs | `crates/**/src/*.rs` (module docs at the top) |
