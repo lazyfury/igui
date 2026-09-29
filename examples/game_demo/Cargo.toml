@@ -15,7 +15,7 @@ igui_theme.workspace = true
 igui_components.workspace = true
 igui_anim.workspace = true
 igui_assets.workspace = true
-igui_game = { workspace = true, features = ["ui"] }
+igui_game.workspace = true
 igui_backend_wgpu.workspace = true
 igui_backend_recording.workspace = true
 winit = "0.30"

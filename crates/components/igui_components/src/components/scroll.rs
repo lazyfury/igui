@@ -395,9 +395,11 @@ impl Component for ScrollView {
         }
 
         let scrolling = self.state.clone();
-        set_on_scroll(tree, root, move |delta: Vec2| scrolling.scroll_by(delta.y));
+        set_on_scroll(tree, root, move |_tree, _id, delta: Vec2| {
+            scrolling.scroll_by(delta.y)
+        });
         let dragging = self.state.clone();
-        set_on_drag(tree, thumb, move |_tree, phase, delta| {
+        set_on_drag(tree, thumb, move |_tree, _id, phase, delta| {
             if phase == DragPhase::Move {
                 dragging.drag_by(delta.y);
             }

@@ -8,6 +8,9 @@
 //! supplied by the host through the [`GuiInput`] trait, so `igui_scene` stays
 //! UI-agnostic and a UI-less game uses [`SceneTree::route_input`] directly.
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use igui_core::{EventResult, InputEvent, NodeId, Vec2};
 
 use crate::node::Visual;
@@ -29,10 +32,17 @@ impl SceneTree {
     // -- lifecycle ---------------------------------------------------------
 
     /// Installs (or replaces) a per-frame `process(dt)` callback on `id`.
-    pub fn set_process(&mut self, id: NodeId, callback: impl FnMut(f32) + 'static) -> bool {
+    ///
+    /// The callback receives the tree, its own node id and `dt`, and may freely
+    /// mutate the tree.
+    pub fn set_process(
+        &mut self,
+        id: NodeId,
+        callback: impl FnMut(&mut SceneTree, NodeId, f32) + 'static,
+    ) -> bool {
         match self.get_mut(id) {
             Some(node) => {
-                node.process = Some(Box::new(callback));
+                node.process = Some(Rc::new(RefCell::new(callback)));
                 true
             }
             None => false,
@@ -53,17 +63,19 @@ impl SceneTree {
     /// Dispatches `process(dt)` to every node that has a callback, in tree
     /// order. Call once per frame.
     pub fn process(&mut self, dt: f32) {
+        if !self.try_enter_dispatch() {
+            debug_assert!(false, "re-entrant SceneTree::process");
+            return;
+        }
         for id in self.iter().collect::<Vec<_>>() {
-            let mut callback = self.get_mut(id).and_then(|node| node.process.take());
-            if let Some(callback) = callback.as_mut() {
-                callback(dt);
-            }
+            let callback = self.get(id).and_then(|node| node.process.clone());
             if let Some(callback) = callback {
-                if let Some(node) = self.get_mut(id) {
-                    node.process = Some(callback);
+                if self.contains(id) {
+                    (callback.borrow_mut())(self, id, dt);
                 }
             }
         }
+        self.leave_dispatch();
     }
 
     /// Installs (or replaces) a fixed-step `physics_process(dt)` callback.
@@ -71,10 +83,14 @@ impl SceneTree {
     /// A node may have both a `process` and a `physics_process` callback; a host
     /// accumulates real time and calls [`SceneTree::physics_process`] once per
     /// fixed step, then [`SceneTree::process`] once per rendered frame.
-    pub fn set_physics_process(&mut self, id: NodeId, callback: impl FnMut(f32) + 'static) -> bool {
+    pub fn set_physics_process(
+        &mut self,
+        id: NodeId,
+        callback: impl FnMut(&mut SceneTree, NodeId, f32) + 'static,
+    ) -> bool {
         match self.get_mut(id) {
             Some(node) => {
-                node.physics_process = Some(Box::new(callback));
+                node.physics_process = Some(Rc::new(RefCell::new(callback)));
                 true
             }
             None => false,
@@ -95,19 +111,19 @@ impl SceneTree {
     /// Dispatches `physics_process(dt)` to every node that has a callback, in
     /// tree order. Call once per fixed step (the host owns the accumulator).
     pub fn physics_process(&mut self, dt: f32) {
+        if !self.try_enter_dispatch() {
+            debug_assert!(false, "re-entrant SceneTree::physics_process");
+            return;
+        }
         for id in self.iter().collect::<Vec<_>>() {
-            let mut callback = self
-                .get_mut(id)
-                .and_then(|node| node.physics_process.take());
-            if let Some(callback) = callback.as_mut() {
-                callback(dt);
-            }
+            let callback = self.get(id).and_then(|node| node.physics_process.clone());
             if let Some(callback) = callback {
-                if let Some(node) = self.get_mut(id) {
-                    node.physics_process = Some(callback);
+                if self.contains(id) {
+                    (callback.borrow_mut())(self, id, dt);
                 }
             }
         }
+        self.leave_dispatch();
     }
 
     // -- input callbacks ---------------------------------------------------
@@ -116,11 +132,11 @@ impl SceneTree {
     pub fn set_input(
         &mut self,
         id: NodeId,
-        callback: impl FnMut(&InputEvent) -> EventResult + 'static,
+        callback: impl FnMut(&mut SceneTree, NodeId, &InputEvent) -> EventResult + 'static,
     ) -> bool {
         match self.get_mut(id) {
             Some(node) => {
-                node.input = Some(Box::new(callback));
+                node.input = Some(Rc::new(RefCell::new(callback)));
                 true
             }
             None => false,
@@ -131,11 +147,11 @@ impl SceneTree {
     pub fn set_input_event(
         &mut self,
         id: NodeId,
-        callback: impl FnMut(&InputEvent) -> EventResult + 'static,
+        callback: impl FnMut(&mut SceneTree, NodeId, &InputEvent) -> EventResult + 'static,
     ) -> bool {
         match self.get_mut(id) {
             Some(node) => {
-                node.input_event = Some(Box::new(callback));
+                node.input_event = Some(Rc::new(RefCell::new(callback)));
                 true
             }
             None => false,
@@ -146,11 +162,11 @@ impl SceneTree {
     pub fn set_unhandled_input(
         &mut self,
         id: NodeId,
-        callback: impl FnMut(&InputEvent) -> EventResult + 'static,
+        callback: impl FnMut(&mut SceneTree, NodeId, &InputEvent) -> EventResult + 'static,
     ) -> bool {
         match self.get_mut(id) {
             Some(node) => {
-                node.unhandled_input = Some(Box::new(callback));
+                node.unhandled_input = Some(Rc::new(RefCell::new(callback)));
                 true
             }
             None => false,
@@ -162,10 +178,15 @@ impl SceneTree {
     /// Returns [`EventResult::Handled`] as soon as a callback consumes it.
     /// GUI/`Control` routing is the host's next step (`Ui::route_input`).
     pub fn handle_input(&mut self, event: &InputEvent) -> EventResult {
+        if !self.try_enter_dispatch() {
+            debug_assert!(false, "re-entrant SceneTree::handle_input");
+            return EventResult::Ignored;
+        }
         // 1) Capture (`_input`), tree order.
         for id in self.iter().collect::<Vec<_>>() {
             if let Some(result) = self.call_capture(id, event) {
                 if result.is_handled() {
+                    self.leave_dispatch();
                     return EventResult::Handled;
                 }
             }
@@ -175,11 +196,13 @@ impl SceneTree {
             if let Some(target) = self.pick_world(point) {
                 if let Some(result) = self.call_input_event(target, event) {
                     if result.is_handled() {
+                        self.leave_dispatch();
                         return EventResult::Handled;
                     }
                 }
             }
         }
+        self.leave_dispatch();
         EventResult::Ignored
     }
 
@@ -235,45 +258,34 @@ impl SceneTree {
     /// Runs the `_unhandled_input` stage: callbacks on nodes that want input
     /// the GUI did not consume. Call after GUI routing.
     pub fn dispatch_unhandled_input(&mut self, event: &InputEvent) -> EventResult {
+        if !self.try_enter_dispatch() {
+            debug_assert!(false, "re-entrant SceneTree::dispatch_unhandled_input");
+            return EventResult::Ignored;
+        }
+        let mut result = EventResult::Ignored;
         for id in self.iter().collect::<Vec<_>>() {
-            let mut callback = self
-                .get_mut(id)
-                .and_then(|node| node.unhandled_input.take());
-            let result = callback.as_mut().map(|callback| callback(event));
+            let callback = self.get(id).and_then(|node| node.unhandled_input.clone());
             if let Some(callback) = callback {
-                if let Some(node) = self.get_mut(id) {
-                    node.unhandled_input = Some(callback);
-                }
-            }
-            if let Some(result) = result {
-                if result.is_handled() {
-                    return EventResult::Handled;
+                if self.contains(id) && (callback.borrow_mut())(self, id, event).is_handled() {
+                    result = EventResult::Handled;
+                    break;
                 }
             }
         }
-        EventResult::Ignored
+        self.leave_dispatch();
+        result
     }
 
     fn call_capture(&mut self, id: NodeId, event: &InputEvent) -> Option<EventResult> {
-        let mut callback = self.get_mut(id).and_then(|node| node.input.take());
-        let result = callback.as_mut().map(|callback| callback(event));
-        if let Some(callback) = callback {
-            if let Some(node) = self.get_mut(id) {
-                node.input = Some(callback);
-            }
-        }
-        result
+        let callback = self.get(id).and_then(|node| node.input.clone())?;
+        let result = (callback.borrow_mut())(self, id, event);
+        Some(result)
     }
 
     fn call_input_event(&mut self, id: NodeId, event: &InputEvent) -> Option<EventResult> {
-        let mut callback = self.get_mut(id).and_then(|node| node.input_event.take());
-        let result = callback.as_mut().map(|callback| callback(event));
-        if let Some(callback) = callback {
-            if let Some(node) = self.get_mut(id) {
-                node.input_event = Some(callback);
-            }
-        }
-        result
+        let callback = self.get(id).and_then(|node| node.input_event.clone())?;
+        let result = (callback.borrow_mut())(self, id, event);
+        Some(result)
     }
 }
 
@@ -324,7 +336,7 @@ mod tests {
         let log = Rc::new(RefCell::new(Vec::new()));
         for (id, name) in [(a, "A"), (b, "B"), (b2, "B2")] {
             let log = log.clone();
-            tree.set_process(id, move |dt| log.borrow_mut().push((name, dt)));
+            tree.set_process(id, move |_tree, _id, dt| log.borrow_mut().push((name, dt)));
         }
         tree.process(0.25);
         assert_eq!(&*log.borrow(), &[("A", 0.25), ("B", 0.25), ("B2", 0.25)]);
@@ -342,8 +354,12 @@ mod tests {
         for (id, name) in [(a, "A"), (b, "B")] {
             let physics = physics.clone();
             let render = render.clone();
-            tree.set_physics_process(id, move |dt| physics.borrow_mut().push((name, dt)));
-            tree.set_process(id, move |dt| render.borrow_mut().push((name, dt)));
+            tree.set_physics_process(id, move |_tree, _id, dt| {
+                physics.borrow_mut().push((name, dt))
+            });
+            tree.set_process(id, move |_tree, _id, dt| {
+                render.borrow_mut().push((name, dt))
+            });
         }
 
         let step = 1.0 / 60.0;
@@ -373,11 +389,11 @@ mod tests {
         let picked = Rc::new(Cell::new(false));
         let c = captured.clone();
         let p = picked.clone();
-        tree.set_input(root, move |_| {
+        tree.set_input(root, move |_tree, _id, _event| {
             c.set(true);
             EventResult::Handled
         });
-        tree.set_input_event(node, move |_| {
+        tree.set_input_event(node, move |_tree, _id, _event| {
             p.set(true);
             EventResult::Handled
         });
@@ -406,7 +422,7 @@ mod tests {
 
         let hits = Rc::new(Cell::new(0));
         let h = hits.clone();
-        tree.set_input_event(node, move |_| {
+        tree.set_input_event(node, move |_tree, _id, _event| {
             h.set(h.get() + 1);
             EventResult::Handled
         });
@@ -440,7 +456,7 @@ mod tests {
 
         let hits = Rc::new(Cell::new(0));
         let h = hits.clone();
-        tree.set_input_event(node, move |_| {
+        tree.set_input_event(node, move |_tree, _id, _event| {
             h.set(h.get() + 1);
             EventResult::Handled
         });
@@ -481,17 +497,17 @@ mod tests {
 
         let log = Rc::new(RefCell::new(Vec::new()));
         let l1 = log.clone();
-        tree.set_input(root, move |_| {
+        tree.set_input(root, move |_tree, _id, _event| {
             l1.borrow_mut().push("input");
             EventResult::Ignored
         });
         let l2 = log.clone();
-        tree.set_input_event(node, move |_| {
+        tree.set_input_event(node, move |_tree, _id, _event| {
             l2.borrow_mut().push("world");
             EventResult::Ignored
         });
         let l3 = log.clone();
-        tree.set_unhandled_input(node, move |_| {
+        tree.set_unhandled_input(node, move |_tree, _id, _event| {
             l3.borrow_mut().push("unhandled");
             EventResult::Ignored
         });
@@ -510,10 +526,26 @@ mod tests {
         let node = tree.add_node(tree.root(), "N");
         let ticks = Rc::new(Cell::new(0));
         let t = ticks.clone();
-        tree.set_process(node, move |_| t.set(t.get() + 1));
+        tree.set_process(node, move |_tree, _id, _dt| t.set(t.get() + 1));
         tree.process(1.0);
         tree.process(1.0);
         assert_eq!(ticks.get(), 2);
         assert_eq!(tree.node(node).kind(), NodeKind::Node);
+    }
+
+    #[test]
+    fn a_process_callback_can_mutate_the_tree() {
+        let mut tree = SceneTree::new();
+        let node = tree.add_node2d(tree.root(), "N");
+        tree.set_process(node, move |tree, id, _dt| {
+            // Tree access is the point: the callback builds a child and hides
+            // its own node without any external `Rc<RefCell>`. See
+            // `docs/viewport-model.md` M1.
+            tree.add_node(id, "child");
+            tree.set_visible(id, false);
+        });
+        tree.process(1.0);
+        assert_eq!(tree.children(node).map(<[NodeId]>::len), Some(1));
+        assert_eq!(tree.is_visible(node), Some(false));
     }
 }

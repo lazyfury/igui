@@ -175,7 +175,7 @@ impl Button {
         self
     }
 
-    pub fn on_click(mut self, callback: impl FnMut() + 'static) -> Self {
+    pub fn on_click(mut self, callback: impl FnMut(&mut SceneTree, NodeId) + 'static) -> Self {
         self = Component::on_click(self, callback);
         self
     }

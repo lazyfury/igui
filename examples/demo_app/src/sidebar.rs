@@ -44,7 +44,7 @@ pub fn build(theme: &'static dyn Theme, state: &GalleryState, primary_slot: &Nod
     let toggle = {
         let state = state.clone();
         Button::primary(label, theme)
-            .on_click(move || {
+            .on_click(move |_tree, _id| {
                 state.clicks.set(state.clicks.get() + 1);
                 state.theme_request.set(Some(next));
             })
@@ -95,7 +95,7 @@ fn group_row(
             };
             SurfaceStyle::new(fill).radius(radius::SM)
         })
-        .on_click(move || click.set(index))
+        .on_click(move |_tree, _id| click.set(index))
 }
 
 /// The small app mark: an accent square with a light inner notch.

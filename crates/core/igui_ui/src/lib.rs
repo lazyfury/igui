@@ -51,10 +51,10 @@ pub use content::{
 };
 pub use control::{
     clipboard, set_caret_provider, set_clipboard, set_ime_callback, set_key_callback,
-    set_pointer_tree_callback, set_text_callback, text_measurer, text_measurer_handle,
-    CaretProvider, ClickCallback, Clipboard, Control, ControlData, CursorProvider, DragCallback,
-    DragPhase, GuiState, ImeCallback, KeyCallback, MemoryClipboard, MouseFilter, PointerCallback,
-    PointerPhase, PointerTreeCallback, ScrollCallback, SecondaryCallback, TextCallback,
+    set_pointer_callback, set_text_callback, text_measurer, text_measurer_handle, CaretProvider,
+    ClickCallback, Clipboard, Control, ControlData, CursorProvider, DragCallback, DragPhase,
+    GuiState, ImeCallback, KeyCallback, MemoryClipboard, MouseFilter, PointerCallback,
+    PointerPhase, ScrollCallback, SecondaryCallback, TextCallback,
 };
 pub use debug::DebugDrawOptions;
 pub use focus::{

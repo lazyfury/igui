@@ -4,7 +4,7 @@ use super::*;
 use crate::content::PaintEnv;
 use crate::control::{control_of, control_visible};
 use crate::debug::DebugDrawOptions;
-use igui_core::{Rect, Vec2};
+use igui_core::{Rect, Transform2D, Vec2};
 use igui_render::{PaintContext, TextAlign};
 use igui_scene::SceneTree;
 
@@ -23,11 +23,11 @@ impl Ui {
             Some(handle) => handle.as_ref(),
             None => &crate::control::DEFAULT_MEASURER,
         };
-        // Every control draws under the clip its layout resolved. Emitting that
-        // clip at the boundaries of a region (rather than once per control)
-        // keeps a scrolling list at one `Save`/`ClipRect` pair for all of its
-        // rows, and costs nothing at all while no control clips.
-        let mut active: Option<Rect> = None;
+        // Every control draws under the clip and canvas transform its layout
+        // resolved. Controls sharing both share one `Save`/`set_transform`/
+        // `ClipRect` region, so an untransformed, unclipped UI costs no extra
+        // commands (the common case stays byte-identical to before).
+        let mut active: Option<(Transform2D, Option<Rect>)> = None;
         for item in tree.paint_items() {
             let id = item.id;
             let Some(control) = control_of(tree, id) else {
@@ -56,14 +56,25 @@ impl Ui {
             if clip.is_some_and(Rect::is_empty) {
                 continue;
             }
-            if clip != active {
+            // A `Control` is a canvas item like a `Node2D`: it draws under
+            // `canvas_transform * world_transform` (`item.transform`), so a
+            // control parented to a `Node2D` follows the world (H2).
+            let transform = item.transform;
+            let region = (transform, clip);
+            if active != Some(region) {
                 if active.is_some() {
                     ctx.restore();
+                    active = None;
                 }
-                active = clip;
-                if let Some(rect) = clip {
+                if clip.is_some() || transform != Transform2D::IDENTITY {
                     ctx.save();
-                    ctx.clip_rect(rect);
+                    if transform != Transform2D::IDENTITY {
+                        ctx.set_transform(transform);
+                    }
+                    if let Some(rect) = clip {
+                        ctx.clip_rect(rect);
+                    }
+                    active = Some(region);
                 }
             }
             let rect = control.data.rect;
@@ -405,5 +416,59 @@ mod tests {
         assert_eq!(fills[0].size, Size::new(20.0, 20.0));
         // The UI root is pinned to the viewport and painted after the world item.
         assert_eq!(fills[1].size, Size::new(200.0, 200.0));
+    }
+
+    /// A `Control` parented to a `Node2D` is a canvas item like any other: it
+    /// resolves anchors against the node's origin and paints under the node's
+    /// world transform, so a name tag / health bar follows its actor (H2).
+    #[test]
+    fn a_control_under_a_node2d_follows_the_world() {
+        use igui_core::{Transform2D, Vec2};
+
+        let mut tree = SceneTree::new();
+        tree.set_viewport_size(Size::new(200.0, 200.0));
+        let actor = tree.add_node2d(tree.root(), "actor");
+        tree.set_position(actor, Vec2::new(40.0, 30.0));
+        let tag = add(&mut tree, actor, rect(0.0, 0.0, 60.0, 20.0), label("name"));
+
+        crate::layout(&mut tree, ViewportSize::new(Size::new(200.0, 200.0)));
+        tree.update();
+
+        // Anchors resolved against the node origin, not the viewport.
+        assert_eq!(
+            crate::control(&tree, tag).unwrap().rect,
+            Rect::from_min_size(Vec2::ZERO, Size::new(60.0, 20.0))
+        );
+
+        let list = paint(&tree);
+        assert!(
+            list.commands().iter().any(|command| {
+                matches!(command, DrawCommand::SetTransform(t)
+                    if *t == Transform2D::from_translation(Vec2::new(40.0, 30.0)))
+            }),
+            "the node's world transform is applied to the control"
+        );
+    }
+
+    /// A `Control` under a transformed `CanvasLayer` composites under the layer
+    /// transform (previously the UI ignored it entirely).
+    #[test]
+    fn a_control_under_a_transformed_layer_is_offset() {
+        use igui_core::{Transform2D, Vec2};
+
+        let mut tree = SceneTree::new();
+        tree.set_viewport_size(Size::new(200.0, 200.0));
+        let layer = tree.add_canvas_layer(tree.root(), "hud");
+        tree.set_canvas_layer_transform(layer, Transform2D::from_translation(Vec2::new(15.0, 5.0)));
+        add(&mut tree, layer, rect(0.0, 0.0, 50.0, 20.0), panel());
+
+        crate::layout(&mut tree, ViewportSize::new(Size::new(200.0, 200.0)));
+        tree.update();
+
+        let list = paint(&tree);
+        assert!(list.commands().iter().any(|command| {
+            matches!(command, DrawCommand::SetTransform(t)
+                if *t == Transform2D::from_translation(Vec2::new(15.0, 5.0)))
+        }));
     }
 }

@@ -190,7 +190,7 @@ mod tests {
         let counter = clicks.clone();
         let button = tree.add_child(
             root,
-            Button::new("Click me").on_click(move || counter.set(counter.get() + 1)),
+            Button::new("Click me").on_click(move |_tree, _id| counter.set(counter.get() + 1)),
         );
         igui_ui::layout(&mut tree, viewport(400.0, 200.0));
         tree.update();
@@ -213,7 +213,7 @@ mod tests {
         );
         let total = Rc::new(Cell::new(0.0f32));
         let acc = total.clone();
-        set_on_drag(&mut tree, handle, move |_tree, _phase, delta| {
+        set_on_drag(&mut tree, handle, move |_tree, _id, _phase, delta| {
             acc.set(acc.get() + delta.x);
         });
         igui_ui::layout(&mut tree, viewport(200.0, 200.0));
@@ -295,7 +295,7 @@ mod tests {
         let counter = clicks.clone();
         let button = tree.add_child(
             root,
-            Button::new("Hit").on_click(move || counter.set(counter.get() + 1)),
+            Button::new("Hit").on_click(move |_tree, _id| counter.set(counter.get() + 1)),
         );
         igui_ui::layout(&mut tree, viewport(200.0, 200.0));
         tree.update();
@@ -310,7 +310,7 @@ mod tests {
         );
         let hits = Rc::new(Cell::new(0));
         let h = hits.clone();
-        tree.set_input_event(world, move |_| {
+        tree.set_input_event(world, move |_tree, _id, _event| {
             h.set(h.get() + 1);
             EventResult::Handled
         });
@@ -418,7 +418,8 @@ mod tests {
         let counter = clicks.clone();
         let button = tree.add_child(
             root,
-            crate::Button::primary("Push", theme).on_click(move || counter.set(counter.get() + 1)),
+            crate::Button::primary("Push", theme)
+                .on_click(move |_tree, _id| counter.set(counter.get() + 1)),
         );
         igui_ui::layout(&mut tree, viewport(400.0, 200.0));
 

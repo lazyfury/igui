@@ -499,8 +499,7 @@ impl WgpuBackend {
         let needed = bytes.len() as u64;
         // A frame whose single list was reused already has these exact vertices
         // in the buffer from the previous frame; skip the upload entirely.
-        if let (true, 1, Some(buffer)) =
-            (self.reused, self.submitted, self.vertex_buffer.as_ref())
+        if let (true, 1, Some(buffer)) = (self.reused, self.submitted, self.vertex_buffer.as_ref())
         {
             if buffer.size() >= needed {
                 return Some(buffer.clone());

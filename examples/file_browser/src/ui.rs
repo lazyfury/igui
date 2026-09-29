@@ -825,7 +825,7 @@ fn mode_tab(
     Flex::row()
         .gap(0.0)
         .padding(Edges::new(space::SM, space::XS, space::SM, space::XS))
-        .on_click(move || clicked.set(Some(mode)))
+        .on_click(move |_tree, _id| clicked.set(Some(mode)))
         .dynamic_background(move |_| {
             if flag.get() == mode {
                 SurfaceStyle::new(theme.surface(SurfaceLevel::Raised))

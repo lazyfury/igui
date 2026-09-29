@@ -9,10 +9,11 @@
 //! new label with
 //! [`set_text`](igui_ui::set_text) when the choice changes.
 
-use crate::base::{Component, Label, Spec};
+use crate::base::{ClickFn, Component, Label, Spec};
 use crate::glyph::{paint_glyph, Glyph};
 use crate::NodeRef;
-use igui_core::{Cursor, Edges, Rect, Size, Vec2};
+use igui_core::{Cursor, Edges, NodeId, Rect, Size, Vec2};
+use igui_scene::SceneTree;
 use igui_theme::{radius, ControlSize, Space, TextSize, Theme};
 use igui_ui::{Align, Container, Justify, SurfaceStyle, TextOptions};
 
@@ -28,7 +29,7 @@ pub struct Select {
     size: ControlSize,
     min_width: f32,
     disabled: bool,
-    on_open: Option<Box<dyn FnMut()>>,
+    on_open: Option<ClickFn>,
 }
 
 impl Select {
@@ -77,7 +78,7 @@ impl Select {
     }
 
     /// Runs `callback` when the trigger is clicked; the caller opens the menu.
-    pub fn on_open(mut self, callback: impl FnMut() + 'static) -> Self {
+    pub fn on_open(mut self, callback: impl FnMut(&mut SceneTree, NodeId) + 'static) -> Self {
         self.on_open = Some(Box::new(callback));
         self
     }
@@ -224,7 +225,7 @@ mod tests {
         let mut tree = SceneTree::new();
         let (_, id) = mount(
             &mut tree,
-            Select::new(theme).on_open(move || flag.set(true)),
+            Select::new(theme).on_open(move |_tree, _id| flag.set(true)),
         );
         igui_ui::layout(&mut tree, ViewportSize::new(Size::new(400.0, 300.0)));
         let center = control(&tree, id).unwrap().rect.center();
@@ -242,7 +243,7 @@ mod tests {
             &mut tree,
             Select::new(theme)
                 .disabled(true)
-                .on_open(move || flag.set(true)),
+                .on_open(move |_tree, _id| flag.set(true)),
         );
         igui_ui::layout(&mut tree, ViewportSize::new(Size::new(400.0, 300.0)));
         let center = control(&tree, id).unwrap().rect.center();

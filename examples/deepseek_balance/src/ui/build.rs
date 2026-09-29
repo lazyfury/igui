@@ -28,7 +28,7 @@ pub(super) fn tab_button(theme: &'static dyn Theme, tab: Tab, feed: &Feed) -> Fl
     Flex::row()
         .gap(0.0)
         .padding(Edges::new(space::SM, space::XS, space::SM, space::XS))
-        .on_click(move || clicked.set(Some(tab)))
+        .on_click(move |_tree, _id| clicked.set(Some(tab)))
         .dynamic_background(move |_| {
             if active.get() == tab {
                 SurfaceStyle::new(theme.surface(SurfaceLevel::Raised))
@@ -146,7 +146,7 @@ pub(super) fn refresh_button(
 ) -> Ref<Button> {
     let requested = feed.requested.clone();
     Button::primary(REFRESH_LABEL, theme)
-        .on_click(move || requested.set(true))
+        .on_click(move |_tree, _id| requested.set(true))
         .ref_(slot)
 }
 
@@ -251,7 +251,7 @@ pub(super) fn footer(theme: &'static dyn Theme, refs: &Refs, feed: &Feed) -> Col
                     // Debug aid: stages the test error (or clears it) so the error
                     // line's layout can be eyeballed without a real failure.
                     Button::secondary(TEST_ERROR_BUTTON_LABEL, theme)
-                        .on_click(move || {
+                        .on_click(move |_tree, _id| {
                             let next = match test_error.get() {
                                 Some(_) => None,
                                 None => Some(TEST_ERROR),

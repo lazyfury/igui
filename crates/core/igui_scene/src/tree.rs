@@ -1,3 +1,5 @@
+use std::cell::Cell;
+
 use igui_core::{NodeId, NodeIdAllocator, Size, Transform2D, Vec2};
 
 use crate::node::{AnchorMode, Camera2DData, CanvasLayerData, DirtyFlags, Node, NodeKind};
@@ -18,6 +20,10 @@ pub struct SceneTree {
     allocator: NodeIdAllocator,
     root: NodeId,
     order_counter: u64,
+    /// Set while a lifecycle/input dispatch is running, so a callback that
+    /// re-enters `process` / `physics_process` / `handle_input` is a
+    /// debug-asserted error instead of infinite recursion.
+    dispatching: Cell<bool>,
 }
 
 impl Default for SceneTree {
@@ -37,7 +43,19 @@ impl SceneTree {
             allocator,
             root,
             order_counter: 1,
+            dispatching: Cell::new(false),
         }
+    }
+
+    /// Claims the single dispatch slot, returning `false` when a dispatch is
+    /// already running (a re-entrant `process` / `handle_input`).
+    pub(crate) fn try_enter_dispatch(&self) -> bool {
+        !self.dispatching.replace(true)
+    }
+
+    /// Releases the dispatch slot claimed by [`SceneTree::try_enter_dispatch`].
+    pub(crate) fn leave_dispatch(&self) {
+        self.dispatching.set(false);
     }
 
     pub const fn root(&self) -> NodeId {

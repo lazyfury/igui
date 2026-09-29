@@ -18,8 +18,9 @@
 //! The surface owns its width (`Menu::min_width`, default 200px) and stretches
 //! each row, so items line up regardless of label length.
 
-use crate::base::{Component, Label, Spec};
-use igui_core::{Cursor, Edges, Size};
+use crate::base::{ClickFn, Component, Label, Spec};
+use igui_core::{Cursor, Edges, NodeId, Size};
+use igui_scene::SceneTree;
 use igui_theme::{radius, Space, SurfaceLevel, TextSize, Theme, Tone};
 use igui_ui::{Align, Container, Justify, SurfaceStyle, TextOptions};
 
@@ -34,7 +35,7 @@ pub struct MenuItem {
     shortcut: Option<String>,
     tone: Tone,
     disabled: bool,
-    on_click: Option<Box<dyn FnMut()>>,
+    on_click: Option<ClickFn>,
 }
 
 impl MenuItem {
@@ -85,7 +86,7 @@ impl MenuItem {
     }
 
     /// Runs `callback` when the row is clicked.
-    pub fn on_click(mut self, callback: impl FnMut() + 'static) -> Self {
+    pub fn on_click(mut self, callback: impl FnMut(&mut SceneTree, NodeId) + 'static) -> Self {
         self.on_click = Some(Box::new(callback));
         self
     }
@@ -324,7 +325,7 @@ mod tests {
         let mut tree = SceneTree::new();
         let root = tree.root();
         let id = MenuItem::new("Undo", theme)
-            .on_click(move || flag.set(true))
+            .on_click(move |_tree, _id| flag.set(true))
             .build(&mut tree, root);
         igui_ui::layout(&mut tree, viewport());
         let center = control(&tree, id).unwrap().rect.center();
@@ -341,7 +342,7 @@ mod tests {
         let root = tree.root();
         let id = MenuItem::new("Undo", theme)
             .disabled(true)
-            .on_click(move || flag.set(true))
+            .on_click(move |_tree, _id| flag.set(true))
             .build(&mut tree, root);
         igui_ui::layout(&mut tree, viewport());
         assert_eq!(control(&tree, id).unwrap().cursor, Cursor::Default);

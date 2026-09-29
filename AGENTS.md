@@ -119,15 +119,14 @@ igui_anim     -> igui_core, igui_scene
                   properties or external values. `is_animating` is the host's
                   "needs another frame" signal. No clock, no backend, no UI.)
 igui_game     -> igui_core, igui_render, igui_scene, igui_assets, igui_anim
-                 (+ optional igui_ui behind the `ui` feature)
                  (2D game layer: sprites as `Node2D` + `Visual::Sprite`, texture
                   upload through `RenderBackend::register_texture`, sprite-sheet
                   frame animation, lightweight timers and typed signals, AABB/
-                  circle collision queries and `Area` enter/exit triggers. The
-                  optional `ui` feature adds `GameView`, an embedded sub-viewport
-                  Control that renders the world to an offscreen target and
-                  composites it. No backend; no rigid bodies, no audio. `igui`'s
-                  `game` feature forwards it; `ui`+`game` surfaces `GameView`.)
+                  circle collision queries and `Area` enter/exit triggers. Every
+                  node callback is tree-aware. No backend; no rigid bodies, no
+                  audio. `igui`'s `game` feature forwards it. `GameView` and its
+                  `ui` feature were removed in M5 — the world lives in the one
+                  `SceneTree`.)
 igui          -> feature-gated re-exports only:
                  `ui`   -> igui_core, igui_render, igui_scene, igui_theme,
                            igui_ui, igui_components
@@ -171,9 +170,11 @@ wgpu_demo     -> igui_app, igui_winit, igui_headless, igui_core, igui_render,
                   text input, and `--selfcheck` runs the same `AppLogic`
                   headlessly through `igui_headless`)
 game_demo     -> igui_core, igui_render, igui_scene, igui_ui, igui_theme,
-                 igui_components, igui_anim, igui_assets, igui_game (feature
-                 `ui`), igui_backend_wgpu, igui_backend_recording, winit
-                 (window host: a top-down collect game in a `GameView` + HUD;
+                 igui_components, igui_anim, igui_assets, igui_game,
+                 igui_backend_wgpu, igui_backend_recording, winit
+                 (window host: a game-first top-down collect game on one
+                  `SceneTree` — root viewport is the game, HUD under a
+                  `CanvasLayer`, name tag a `Control` under the player `Node2D`;
                   `--selfcheck` drives the real pipeline headlessly through
                   `igui_backend_recording` — no window, no screenshot)
 deepseek_balance -> igui_core, igui_render, igui_scene, igui_theme, igui_ui,
@@ -253,7 +254,7 @@ None of the demos is a dependency of the core crates.
 | `examples/multi_tree` | root member | single crate, headless (`igui_backend_recording`) | `cargo test -p multi_tree` | dependency block above |
 | `examples/web_demo` | root member | WASM / Canvas host | `cargo test -p web_demo`; build `./examples/web_demo/build.sh` | `examples/web_demo/README.md` |
 | `examples/wgpu_demo` | root member | native `wgpu` + `winit`; `igui_app` + `igui_winit` plugins | `cargo test -p wgpu_demo`; run `cargo run -p wgpu_demo --release`; `cargo run -p wgpu_demo -- --selfcheck` | `examples/wgpu_demo/README.md`, `docs/debug.md` |
-| `examples/game_demo` | root member | top-down game in a `GameView` + HUD; native `wgpu` + `winit` | `cargo test -p game_demo`; run `cargo run -p game_demo --release`; `cargo run -p game_demo -- --selfcheck` | dependency block above |
+| `examples/game_demo` | root member | game-first top-down collect game on one `SceneTree` (HUD under a `CanvasLayer`); native `wgpu` + `winit` | `cargo test -p game_demo`; run `cargo run -p game_demo --release`; `cargo run -p game_demo -- --selfcheck` | dependency block above |
 | `examples/deepseek_balance` | **standalone** (own workspace) | own `util` sub-crate (member of that workspace); native `wgpu` + `winit` + `ureq` | `cargo test --manifest-path examples/deepseek_balance/Cargo.toml`; `cargo run --manifest-path examples/deepseek_balance/Cargo.toml -- --selfcheck` | dependency block above, crate module docs |
 | `examples/file_browser` | **standalone** (own workspace) | single crate; native `wgpu` + `winit` | `cargo test --manifest-path examples/file_browser/Cargo.toml`; `cargo run --manifest-path examples/file_browser/Cargo.toml -- --selfcheck` (`--dump` too) | dependency block above |
 | `examples/cpp_ffi` | **standalone** (C++/CMake; no Cargo workspace) | C++17 UI + OpenGL 3.3 backend; links `igui_ffi` + `demoapp_ffi` + `wgpu_ffi` | `./examples/cpp_ffi/build.sh`; `./examples/cpp_ffi/build/cpp_ffi --selfcheck` (`--dump`, `--gallery`, `--demoapp`, `--wgpu` too) | `examples/cpp_ffi/README.md`, `docs/cpp-ffi.md` |
@@ -309,11 +310,22 @@ notes are `docs/godot-migration.md`.
   timestep), Stage 28 (`igui_game` 2D game layer), Stage 27 (refresh decoupling),
   Stage 26 (`igui_anim` + `igui` facade skeleton), Stage 25 (Godot-style
   unified scene), `igui_font`, `Theme` trait.
-- **Next (future stages):** **Phase 8 (observability)** and the remaining host
-  migrations to the `igui_app` runtime (`file_browser`, `deepseek_balance`,
-  `game_demo`, and the sibling `image_editor` / `archiver` /
-  `classic-game-box` checkouts). The deferred file-size splits and layer-aware
-  UI layout (H2) are follow-ups.
+- **Next (future stages):** **Phase 8 (observability)**, the `/game_demo`
+  rewrite below (M5), and the remaining host migrations to the `igui_app`
+  runtime (`file_browser`, `deepseek_balance`, `game_demo`, and the sibling
+  `image_editor` / `archiver` / `classic-game-box` checkouts). The deferred
+  file-size splits are follow-ups.
+- **Un-numbered enhancement (accepted, in progress): single-tree viewport model
+  + world-space `Control` (H2).** **M1** (tree-aware node callbacks with
+  clone-out dispatch, one shape `(&mut SceneTree, NodeId, …)` across
+  `igui_scene` / `igui_ui` / `igui_game`), **M2** (H2: a `Control` under a
+  `Node2D` resolves anchors against the node and paints under
+  `canvas_transform * world_transform`, so a health bar / name tag follows its
+  actor — UI-only apps unchanged), **M5** (`examples/game_demo` rewritten
+  game-first on one tree; `igui_game::GameView` and its `ui` feature removed),
+  and a partial **M4** (`MouseFilter::Pass`, a no-op, removed) are done. **M3**
+  (multi-instance `Viewport` + `SubViewport` for a second view / render target)
+  remains. Full design and progress: `docs/viewport-model.md`.
 - **Un-numbered enhancement (accepted): keyboard focus navigation + named group
   hover.** `igui_ui` gained a `focus` module (`FocusNav`/`FocusDir` +
   `set_focus`/`focus_move`/`focus_up..right`/`focus_next`/`focus_prev`/
@@ -437,6 +449,7 @@ The suite is a contract, not a diary. Before adding or keeping a test:
 | Design tokens, theme, component library | `docs/design-system.md` |
 | Roadmap / remaining primitives & components | `docs/plan.md` |
 | Godot-style unified scene migration (Stage 25+) | `docs/godot-migration.md` |
+| Single-tree viewport model + world-space `Control` (M0-M6) | `docs/viewport-model.md` |
 | Release notes: breaking changes, new capabilities, rename migration | `release.md` |
 | Profiler + debug overlays | `docs/debug.md` |
 | Benchmarks & regression baselines | `docs/benchmarking.md` |

@@ -588,6 +588,31 @@ backward-compatible addition and record it here.
   `focusable` by default. Additive on the whole: `Widget`, `ControlData` and
   `GuiState` keep their shapes; `Control` and `InteractState` gained fields only.
 
+### Single-tree viewport model + world-space `Control` (H2) — M1/M2
+
+**M1 (node behaviour callbacks).** Every node-triggered callback now has one
+shape: `(&mut SceneTree, NodeId, …) -> EventResult` (`()` for lifecycle), with
+clone-out dispatch. In `igui_scene`, `process` / `physics_process` / `_input` /
+world pick / `_unhandled_input` take `&mut SceneTree`; in `igui_ui`, `Control`'s
+click / drag / pointer / secondary / scroll / key / text / IME callbacks gained
+`NodeId` and the `PointerCallback` + `PointerTreeCallback` split was merged into
+one `PointerCallback` (`PointerPhase`); in `igui_game`, `Area` / `Timers` /
+`Signal` handlers receive `&mut SceneTree` (a game callback can now score, spawn
+or remove nodes with no `Rc<Cell>`/deferred-mutation workaround). `Signal` also
+gained a per-handler `Connection` / `disconnect`. `Control`/`GuiState` and
+`ControlData` keep their shapes.
+
+**M2 (H2 — `Control` as a first-class `CanvasItem`).** Non-breaking for UI-only
+apps: a `Control` parented to a `CanvasLayer`/root is pinned to the viewport and
+paints exactly as before (no extra commands while the transform is identity).
+What changed: a `Control` parented to a `Node2D` now resolves anchors against the
+node's **origin** (Godot `Control::get_parent_anchorable_rect`, a `CanvasItem`'s
+size-0 rect) and `Ui::paint` applies `canvas_transform * world_transform` —
+`Control` and `Node2D` share one draw path (`PaintItem::transform`). So a health
+bar / name tag under an actor follows the actor and the camera; a `Control` under
+a transformed `CanvasLayer` now composites under that transform. Recorded here
+per AGENTS rule 8; the full design is `docs/viewport-model.md`.
+
 ## Deferred
 
 Rounded rectangles are now first-class `DrawCommand`s (`FillRoundedRect` /

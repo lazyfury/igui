@@ -1,8 +1,9 @@
 use std::any::{Any, TypeId};
 
-use igui_core::{Color, EventResult, InputEvent, NodeId, Rect, Size, Transform2D, Vec2};
+use igui_core::{Color, NodeId, Rect, Size, Transform2D, Vec2};
 use igui_render::TextureId;
 
+use crate::behavior::{InputCallback, LifecycleCallback};
 use crate::viewport::Viewport;
 
 /// A node's type-keyed extension store.
@@ -310,17 +311,17 @@ pub struct Node {
     /// (`Control`, game components, …). `igui_scene` never names the types.
     pub(crate) data: Extensions,
     /// Per-frame lifecycle callback, dispatched by [`crate::SceneTree::process`].
-    pub(crate) process: Option<Box<dyn FnMut(f32)>>,
+    pub(crate) process: Option<LifecycleCallback>,
     /// Fixed-step lifecycle callback, dispatched by
     /// [`crate::SceneTree::physics_process`]. Runs at a host-chosen fixed `dt`,
     /// independent of the variable render step.
-    pub(crate) physics_process: Option<Box<dyn FnMut(f32)>>,
+    pub(crate) physics_process: Option<LifecycleCallback>,
     /// Capture-phase input callback (Godot `Node::_input`).
-    pub(crate) input: Option<Box<dyn FnMut(&InputEvent) -> EventResult>>,
+    pub(crate) input: Option<InputCallback>,
     /// World-pick input callback (Godot `Node2D`/`CanvasItem::_input_event`).
-    pub(crate) input_event: Option<Box<dyn FnMut(&InputEvent) -> EventResult>>,
+    pub(crate) input_event: Option<InputCallback>,
     /// Unhandled-input callback (Godot `Node::_unhandled_input`).
-    pub(crate) unhandled_input: Option<Box<dyn FnMut(&InputEvent) -> EventResult>>,
+    pub(crate) unhandled_input: Option<InputCallback>,
 }
 
 impl std::fmt::Debug for Node {

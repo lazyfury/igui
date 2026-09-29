@@ -5,6 +5,8 @@
 //! pending. Timers are engine-neutral (no node, no clock): the host supplies
 //! `dt`, so the same code is testable headlessly.
 
+use igui_scene::SceneTree;
+
 /// Stable handle for a running timer.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TimerId(u64);
@@ -14,7 +16,7 @@ struct RunningTimer {
     duration: f32,
     remaining: f32,
     repeat: bool,
-    on_timeout: Box<dyn FnMut()>,
+    on_timeout: Box<dyn FnMut(&mut SceneTree, TimerId)>,
     finished: bool,
 }
 
@@ -36,12 +38,14 @@ impl Timers {
     /// Starts a timer that fires after `duration` seconds. A repeating timer
     /// resets itself each time; a one-shot timer is dropped after firing.
     ///
-    /// A non-positive duration fires on the next [`Timers::update`].
+    /// A non-positive duration fires on the next [`Timers::update`]. The
+    /// callback receives the tree and its own [`TimerId`], so it may mutate the
+    /// world.
     pub fn start(
         &mut self,
         duration: f32,
         repeat: bool,
-        on_timeout: impl FnMut() + 'static,
+        on_timeout: impl FnMut(&mut SceneTree, TimerId) + 'static,
     ) -> TimerId {
         let id = TimerId(self.next_id);
         self.next_id += 1;
@@ -87,8 +91,9 @@ impl Timers {
     ///
     /// A repeating timer catches up (so a large `dt` fires every elapsed
     /// period). Callbacks run after all timers have been advanced, so a
-    /// callback sees a consistent set of remaining times.
-    pub fn update(&mut self, dt: f32) {
+    /// callback sees a consistent set of remaining times; each receives the
+    /// tree and its own id.
+    pub fn update(&mut self, dt: f32, tree: &mut SceneTree) {
         let dt = dt.max(0.0);
         let mut due: Vec<TimerId> = Vec::new();
         for timer in &mut self.running {
@@ -103,12 +108,13 @@ impl Timers {
                 continue;
             };
             if timer.repeat && timer.duration > 0.0 {
+                let duration = timer.duration;
                 while timer.remaining <= 0.0 {
-                    (timer.on_timeout)();
-                    timer.remaining += timer.duration;
+                    (timer.on_timeout)(tree, id);
+                    timer.remaining += duration;
                 }
             } else {
-                (timer.on_timeout)();
+                (timer.on_timeout)(tree, id);
                 if timer.repeat {
                     // A zero-duration repeating timer fires once per update.
                     timer.remaining = 0.0;
@@ -130,42 +136,45 @@ mod tests {
 
     #[test]
     fn a_one_shot_timer_fires_once() {
+        let mut tree = SceneTree::new();
         let hits = Rc::new(Cell::new(0));
         let counter = hits.clone();
         let mut timers = Timers::new();
-        timers.start(0.5, false, move || counter.set(counter.get() + 1));
+        timers.start(0.5, false, move |_tree, _id| counter.set(counter.get() + 1));
         assert!(timers.is_animating());
 
-        timers.update(0.3);
+        timers.update(0.3, &mut tree);
         assert_eq!(hits.get(), 0);
-        timers.update(0.3);
+        timers.update(0.3, &mut tree);
         assert_eq!(hits.get(), 1);
         assert!(!timers.is_animating(), "a one-shot timer is dropped");
     }
 
     #[test]
     fn a_repeating_timer_fires_each_period() {
+        let mut tree = SceneTree::new();
         let hits = Rc::new(Cell::new(0));
         let counter = hits.clone();
         let mut timers = Timers::new();
-        timers.start(0.25, true, move || counter.set(counter.get() + 1));
+        timers.start(0.25, true, move |_tree, _id| counter.set(counter.get() + 1));
 
-        timers.update(0.6);
+        timers.update(0.6, &mut tree);
         assert_eq!(hits.get(), 2, "two periods elapsed");
-        timers.update(0.5);
+        timers.update(0.5, &mut tree);
         assert_eq!(hits.get(), 4, "two more periods");
         assert!(timers.is_animating());
     }
 
     #[test]
     fn cancel_stops_a_timer() {
+        let mut tree = SceneTree::new();
         let hits = Rc::new(Cell::new(0));
         let counter = hits.clone();
         let mut timers = Timers::new();
-        let id = timers.start(1.0, false, move || counter.set(counter.get() + 1));
+        let id = timers.start(1.0, false, move |_tree, _id| counter.set(counter.get() + 1));
         assert!(timers.cancel(id));
 
-        timers.update(2.0);
+        timers.update(2.0, &mut tree);
         assert_eq!(hits.get(), 0);
         assert!(!timers.is_animating());
         assert!(!timers.cancel(id));
@@ -173,11 +182,24 @@ mod tests {
 
     #[test]
     fn a_zero_duration_timer_fires_on_the_next_update() {
+        let mut tree = SceneTree::new();
         let hits = Rc::new(Cell::new(0));
         let counter = hits.clone();
         let mut timers = Timers::new();
-        timers.start(0.0, false, move || counter.set(counter.get() + 1));
-        timers.update(0.0);
+        timers.start(0.0, false, move |_tree, _id| counter.set(counter.get() + 1));
+        timers.update(0.0, &mut tree);
         assert_eq!(hits.get(), 1);
+    }
+
+    #[test]
+    fn a_timer_callback_can_mutate_the_tree() {
+        let mut tree = SceneTree::new();
+        let node = tree.add_node2d(tree.root(), "spawner");
+        let mut timers = Timers::new();
+        timers.start(0.1, false, move |tree, _id| {
+            tree.add_node2d(node, "spawned");
+        });
+        timers.update(0.2, &mut tree);
+        assert_eq!(tree.children(node).map(|c| c.len()), Some(1));
     }
 }

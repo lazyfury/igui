@@ -38,17 +38,33 @@ pub type ChildFn = Box<dyn FnOnce(&mut SceneTree, NodeId)>;
 /// state.
 pub type ForegroundFn = Box<dyn Fn(&mut PaintContext, Rect, InteractState)>;
 
-/// A drag callback: the tree, the drag phase and the pointer delta.
-pub type DragFn = Box<dyn FnMut(&mut SceneTree, DragPhase, Vec2)>;
+/// A drag callback: the tree, the dragged node, the drag phase and the pointer
+/// delta.
+pub type DragFn = Box<dyn FnMut(&mut SceneTree, NodeId, DragPhase, Vec2)>;
 
-/// A key callback: the tree, the key, pressed/released, and the modifiers.
-pub type KeyFn = Box<dyn FnMut(&mut SceneTree, Key, bool, Modifiers) -> EventResult>;
+/// A click/activation callback: the tree and the activated node.
+pub type ClickFn = Box<dyn FnMut(&mut SceneTree, NodeId)>;
+
+/// A secondary (right) click callback: the tree, the node and the pointer
+/// position.
+pub type SecondaryFn = Box<dyn FnMut(&mut SceneTree, NodeId, Vec2)>;
+
+/// A pointer callback: the tree, the node, the phase, the node's rect and the
+/// pointer position.
+pub type PointerFn = Box<dyn FnMut(&mut SceneTree, NodeId, igui_ui::PointerPhase, Rect, Vec2)>;
+
+/// A wheel callback: the tree, the node and the scroll delta.
+pub type ScrollFn = Box<dyn FnMut(&mut SceneTree, NodeId, Vec2)>;
+
+/// A key callback: the tree, the node, the key, pressed/released, and the
+/// modifiers.
+pub type KeyFn = Box<dyn FnMut(&mut SceneTree, NodeId, Key, bool, Modifiers) -> EventResult>;
 
 /// A committed-text callback (typing / IME commit).
-pub type TextFn = Box<dyn FnMut(&mut SceneTree, &str)>;
+pub type TextFn = Box<dyn FnMut(&mut SceneTree, NodeId, &str)>;
 
 /// An IME composition callback.
-pub type ImeFn = Box<dyn FnMut(&mut SceneTree, &ImeEvent)>;
+pub type ImeFn = Box<dyn FnMut(&mut SceneTree, NodeId, &ImeEvent)>;
 
 /// A caret-rectangle provider (for platform IME window placement).
 pub type CaretFn = Box<dyn Fn() -> Option<Rect>>;
@@ -61,17 +77,15 @@ pub struct Spec {
     pub data: ControlData,
     pub background: Option<Box<dyn Fn(InteractState) -> SurfaceStyle>>,
     pub foreground: Option<ForegroundFn>,
-    pub on_click: Option<Box<dyn FnMut()>>,
+    pub on_click: Option<ClickFn>,
     /// Secondary (right) click callback: the pointer position (context menus).
-    pub on_secondary: Option<Box<dyn FnMut(Vec2)>>,
+    pub on_secondary: Option<SecondaryFn>,
     pub on_drag: Option<DragFn>,
-    /// Absolute-position pointer callback: press + move while held, with the
-    /// control's rect and the pointer position (sliders / pickers).
-    pub on_pointer: Option<Box<dyn FnMut(Rect, Vec2)>>,
-    /// Tree-aware absolute-position pointer callback (text fields: place the
-    /// caret and repaint). Dispatched before [`Spec::on_pointer`].
-    pub on_pointer_tree: Option<Box<dyn FnMut(&mut SceneTree, igui_ui::PointerPhase, Rect, Vec2)>>,
-    pub on_scroll: Option<Box<dyn FnMut(Vec2)>>,
+    /// Pointer callback: press + move while held + release + double click, with
+    /// the control's rect and the pointer position (sliders / pickers / text
+    /// fields).
+    pub on_pointer: Option<PointerFn>,
+    pub on_scroll: Option<ScrollFn>,
     pub cursor_provider: Option<Box<dyn Fn() -> Cursor>>,
     /// Whether the control accepts focused key / text / IME input.
     pub focusable: bool,
@@ -101,7 +115,6 @@ impl Default for Spec {
             on_secondary: None,
             on_drag: None,
             on_pointer: None,
-            on_pointer_tree: None,
             on_scroll: None,
             cursor_provider: None,
             focusable: false,
@@ -300,49 +313,48 @@ pub trait Component: Sized {
         self
     }
 
-    /// Runs `callback` when the node is clicked or activated.
-    fn on_click(mut self, callback: impl FnMut() + 'static) -> Self {
+    /// Runs `callback(tree, node)` when the node is clicked or activated.
+    fn on_click(mut self, callback: impl FnMut(&mut SceneTree, NodeId) + 'static) -> Self {
         self.spec().on_click = Some(Box::new(callback));
         self
     }
 
-    /// Runs `callback` on a secondary (right) click, with the pointer position
-    /// in viewport coordinates (used to open a context menu at the cursor).
-    fn on_secondary_click(mut self, callback: impl FnMut(Vec2) + 'static) -> Self {
+    /// Runs `callback(tree, node, pointer)` on a secondary (right) click, with
+    /// the pointer position in viewport coordinates (used to open a context menu
+    /// at the cursor).
+    fn on_secondary_click(
+        mut self,
+        callback: impl FnMut(&mut SceneTree, NodeId, Vec2) + 'static,
+    ) -> Self {
         self.spec().on_secondary = Some(Box::new(callback));
         self
     }
 
-    /// Runs `callback` on drag start/move/end while the node is held, with the
-    /// delta since the previous event. Gives the node pointer capture.
-    fn on_drag(mut self, callback: impl FnMut(&mut SceneTree, DragPhase, Vec2) + 'static) -> Self {
+    /// Runs `callback(tree, node, phase, delta)` on drag start/move/end while
+    /// the node is held. Gives the node pointer capture.
+    fn on_drag(
+        mut self,
+        callback: impl FnMut(&mut SceneTree, NodeId, DragPhase, Vec2) + 'static,
+    ) -> Self {
         self.spec().on_drag = Some(Box::new(callback));
         self
     }
 
-    /// Runs `callback(rect, pointer)` on press and on every move while the
-    /// pointer is held on this node, so a component can map the pointer onto
-    /// its own rectangle (sliders, colour pickers).
-    fn on_pointer(mut self, callback: impl FnMut(Rect, Vec2) + 'static) -> Self {
-        self.spec().on_pointer = Some(Box::new(callback));
-        self
-    }
-
-    /// Like [`on_pointer`](Component::on_pointer), but the callback also
-    /// receives the tree, so it can mark the UI for repaint after the edit
-    /// (text fields placing their caret).
-    fn on_pointer_tree(
+    /// Runs `callback(tree, node, phase, rect, pointer)` on press and on every
+    /// move while the pointer is held on this node, so a component can map the
+    /// pointer onto its own rectangle (sliders, colour pickers, text fields).
+    fn on_pointer(
         mut self,
-        callback: impl FnMut(&mut SceneTree, igui_ui::PointerPhase, Rect, Vec2) + 'static,
+        callback: impl FnMut(&mut SceneTree, NodeId, igui_ui::PointerPhase, Rect, Vec2) + 'static,
     ) -> Self {
-        self.spec().on_pointer_tree = Some(Box::new(callback));
+        self.spec().on_pointer = Some(Box::new(callback));
         self
     }
 
     /// Sends keys to this component while it is focused.
     fn on_key(
         mut self,
-        callback: impl FnMut(&mut SceneTree, Key, bool, Modifiers) -> EventResult + 'static,
+        callback: impl FnMut(&mut SceneTree, NodeId, Key, bool, Modifiers) -> EventResult + 'static,
     ) -> Self {
         self.spec().on_key = Some(Box::new(callback));
         self
@@ -350,13 +362,13 @@ pub trait Component: Sized {
 
     /// Sends committed text (typing / IME commit) to this component while it is
     /// focused.
-    fn on_text(mut self, callback: impl FnMut(&mut SceneTree, &str) + 'static) -> Self {
+    fn on_text(mut self, callback: impl FnMut(&mut SceneTree, NodeId, &str) + 'static) -> Self {
         self.spec().on_text = Some(Box::new(callback));
         self
     }
 
     /// Sends IME composition events to this component while it is focused.
-    fn on_ime(mut self, callback: impl FnMut(&mut SceneTree, &ImeEvent) + 'static) -> Self {
+    fn on_ime(mut self, callback: impl FnMut(&mut SceneTree, NodeId, &ImeEvent) + 'static) -> Self {
         self.spec().on_ime = Some(Box::new(callback));
         self
     }
@@ -447,7 +459,7 @@ pub trait Component: Sized {
     ///
     /// The nearest ancestor with a scroll callback owns the event, so a list
     /// can scroll itself and everything else stays unhandled.
-    fn on_scroll(mut self, callback: impl FnMut(Vec2) + 'static) -> Self {
+    fn on_scroll(mut self, callback: impl FnMut(&mut SceneTree, NodeId, Vec2) + 'static) -> Self {
         self.spec().on_scroll = Some(Box::new(callback));
         self
     }
@@ -555,9 +567,6 @@ pub fn apply_spec(tree: &mut SceneTree, id: NodeId, spec: Spec) {
     }
     if let Some(callback) = spec.on_pointer {
         set_pointer_callback(tree, id, callback);
-    }
-    if let Some(callback) = spec.on_pointer_tree {
-        igui_ui::set_pointer_tree_callback(tree, id, callback);
     }
     if let Some(callback) = spec.on_scroll {
         set_on_scroll(tree, id, callback);

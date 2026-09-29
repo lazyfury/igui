@@ -17,8 +17,8 @@ pub struct Area {
     node: NodeId,
     shape: CollisionShape,
     enabled: bool,
-    on_enter: Option<Box<dyn FnMut(NodeId)>>,
-    on_exit: Option<Box<dyn FnMut(NodeId)>>,
+    on_enter: Option<Box<dyn FnMut(&mut SceneTree, NodeId, NodeId)>>,
+    on_exit: Option<Box<dyn FnMut(&mut SceneTree, NodeId, NodeId)>>,
 }
 
 impl Area {
@@ -39,14 +39,20 @@ impl Area {
         self
     }
 
-    /// Called with the other node's id when an overlap begins.
-    pub fn on_enter(mut self, callback: impl FnMut(NodeId) + 'static) -> Self {
+    /// Called `(tree, this_area, other)` when an overlap begins.
+    pub fn on_enter(
+        mut self,
+        callback: impl FnMut(&mut SceneTree, NodeId, NodeId) + 'static,
+    ) -> Self {
         self.on_enter = Some(Box::new(callback));
         self
     }
 
-    /// Called with the other node's id when an overlap ends.
-    pub fn on_exit(mut self, callback: impl FnMut(NodeId) + 'static) -> Self {
+    /// Called `(tree, this_area, other)` when an overlap ends.
+    pub fn on_exit(
+        mut self,
+        callback: impl FnMut(&mut SceneTree, NodeId, NodeId) + 'static,
+    ) -> Self {
         self.on_exit = Some(Box::new(callback));
         self
     }
@@ -118,7 +124,10 @@ impl Areas {
     /// Areas whose node is no longer in `tree` are dropped (any overlap they
     /// had is reported as an exit). O(pairs), which is fine for an MVP; a broad
     /// phase can come later.
-    pub fn update(&mut self, tree: &SceneTree) {
+    ///
+    /// The callbacks receive `&mut SceneTree`, so an `on_enter` may score,
+    /// spawn or remove nodes directly (no deferred-mutation queue needed).
+    pub fn update(&mut self, tree: &mut SceneTree) {
         let mut current: Vec<(NodeId, NodeId)> = Vec::new();
         for i in 0..self.areas.len() {
             for j in (i + 1)..self.areas.len() {
@@ -153,18 +162,18 @@ impl Areas {
         self.overlaps = current;
 
         for (a, b) in entered {
-            self.fire(a, b, true);
-            self.fire(b, a, true);
+            self.fire(tree, a, b, true);
+            self.fire(tree, b, a, true);
         }
         for (a, b) in exited {
-            self.fire(a, b, false);
-            self.fire(b, a, false);
+            self.fire(tree, a, b, false);
+            self.fire(tree, b, a, false);
         }
 
         self.areas.retain(|area| tree.contains(area.node));
     }
 
-    fn fire(&mut self, owner: NodeId, other: NodeId, enter: bool) {
+    fn fire(&mut self, tree: &mut SceneTree, owner: NodeId, other: NodeId, enter: bool) {
         let Some(area) = self.areas.iter_mut().find(|area| area.node == owner) else {
             return;
         };
@@ -174,7 +183,7 @@ impl Areas {
             area.on_exit.as_mut()
         };
         if let Some(callback) = callback {
-            callback(other);
+            callback(tree, owner, other);
         }
     }
 }
@@ -219,8 +228,8 @@ mod tests {
         let mut areas = Areas::new();
         areas.add(
             Area::new(a, CollisionShape::aabb(Size::splat(10.0)))
-                .on_enter(move |other| la.borrow_mut().push(('>', other)))
-                .on_exit(move |other| lb.borrow_mut().push(('<', other))),
+                .on_enter(move |_tree, _self, other| la.borrow_mut().push(('>', other)))
+                .on_exit(move |_tree, _self, other| lb.borrow_mut().push(('<', other))),
         );
         areas.add(Area::new(b, CollisionShape::aabb(Size::splat(10.0))));
         (tree, a, b, areas, log)
@@ -229,22 +238,22 @@ mod tests {
     #[test]
     fn enter_fires_once_then_exit_when_they_part() {
         let (mut tree, a, b, mut areas, log) = setup();
-        areas.update(&tree);
+        areas.update(&mut tree);
         assert!(!areas.is_overlapping(a, b));
 
         tree.set_position(b, Vec2::new(5.0, 0.0));
         tree.update();
-        areas.update(&tree);
+        areas.update(&mut tree);
         assert!(areas.is_overlapping(a, b));
         assert_eq!(&*log.borrow(), &[('>', b)], "one enter");
 
         // Staying overlapped does not re-fire.
-        areas.update(&tree);
+        areas.update(&mut tree);
         assert_eq!(log.borrow().len(), 1);
 
         tree.set_position(b, Vec2::new(100.0, 0.0));
         tree.update();
-        areas.update(&tree);
+        areas.update(&mut tree);
         assert!(!areas.is_overlapping(a, b));
         assert_eq!(&*log.borrow(), &[('>', b), ('<', b)], "then one exit");
     }
@@ -254,11 +263,11 @@ mod tests {
         let (mut tree, a, b, mut areas, log) = setup();
         tree.set_position(b, Vec2::new(5.0, 0.0));
         tree.update();
-        areas.update(&tree);
+        areas.update(&mut tree);
         assert!(areas.is_overlapping(a, b));
 
         assert!(tree.remove(b));
-        areas.update(&tree);
+        areas.update(&mut tree);
         assert!(!areas.is_overlapping(a, b));
         assert_eq!(log.borrow().last(), Some(&('<', b)));
         assert_eq!(areas.len(), 1, "the removed area is dropped");
@@ -272,7 +281,7 @@ mod tests {
         areas.remove(b);
         areas.add(Area::new(b, CollisionShape::aabb(Size::splat(10.0))).enabled(false));
 
-        areas.update(&tree);
+        areas.update(&mut tree);
         assert!(!areas.is_overlapping(a, b));
     }
 }

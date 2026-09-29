@@ -141,7 +141,6 @@ impl App {
         game.set_text_measurer(Rc::new(BackendTextMeasurer {
             metrics: backend.text_metrics(),
         }));
-        game.set_scale_factor(self.scale as f32);
         if let Err(error) = game.init(&mut backend) {
             eprintln!("game init failed: {error:?}");
         }
@@ -176,9 +175,6 @@ impl App {
     fn render(&mut self) {
         let scale = self.scale;
         let now = Instant::now();
-        if let Some(game) = self.game.as_mut() {
-            game.set_scale_factor(scale as f32);
-        }
         let Some((surface, backend, config)) = self
             .surface
             .as_ref()
@@ -201,10 +197,7 @@ impl App {
         self.last_frame = now;
 
         game.layout(viewport);
-        if let Err(error) = game.advance(dt, backend) {
-            eprintln!("advance failed: {error:?}");
-            return;
-        }
+        game.advance(dt);
         let mut ctx = PaintContext::new();
         game.paint(&mut ctx);
         let list = ctx.into_draw_list();

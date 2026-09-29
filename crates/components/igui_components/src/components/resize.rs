@@ -183,7 +183,7 @@ impl Component for ResizeHandle {
         };
         let (min, max) = (self.min, self.max);
         let invert = self.invert;
-        self.spec.on_drag = Some(Box::new(move |tree, phase, delta| match phase {
+        self.spec.on_drag = Some(Box::new(move |tree, _id, phase, delta| match phase {
             DragPhase::Start => dragging.set(true),
             DragPhase::End => dragging.set(false),
             DragPhase::Move => {

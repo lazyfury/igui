@@ -33,7 +33,7 @@ pub struct Button {
     text_color: Option<Color>,
     /// Dimmed and inert: no hover, no click, muted label.
     disabled: bool,
-    on_click: Option<Box<dyn FnMut()>>,
+    on_click: Option<crate::base::ClickFn>,
 }
 
 impl Button {
@@ -125,7 +125,7 @@ impl Button {
         self
     }
 
-    pub fn on_click(mut self, callback: impl FnMut() + 'static) -> Self {
+    pub fn on_click(mut self, callback: impl FnMut(&mut SceneTree, NodeId) + 'static) -> Self {
         self.on_click = Some(Box::new(callback));
         self
     }
@@ -443,7 +443,7 @@ mod tests {
             &mut tree,
             Button::new("A", theme)
                 .disabled(true)
-                .on_click(move || flag.set(true)),
+                .on_click(move |_tree, _id| flag.set(true)),
         );
         igui_ui::layout(&mut tree, ViewportSize::new(Size::new(400.0, 300.0)));
         let center = control(&tree, id).unwrap().rect.center();
@@ -459,7 +459,7 @@ mod tests {
         let mut tree = SceneTree::new();
         let id = column(
             &mut tree,
-            Button::new("A", theme).on_click(move || flag.set(true)),
+            Button::new("A", theme).on_click(move |_tree, _id| flag.set(true)),
         );
         igui_ui::layout(&mut tree, ViewportSize::new(Size::new(400.0, 300.0)));
         let center = control(&tree, id).unwrap().rect.center();
@@ -475,7 +475,7 @@ mod tests {
         let mut tree = SceneTree::new();
         let id = column(
             &mut tree,
-            Button::new("A", theme).on_click(move || counter.set(counter.get() + 1)),
+            Button::new("A", theme).on_click(move |_tree, _id| counter.set(counter.get() + 1)),
         );
         let viewport = ViewportSize::new(Size::new(400.0, 300.0));
         igui_ui::layout(&mut tree, viewport);

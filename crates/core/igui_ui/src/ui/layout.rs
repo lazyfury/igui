@@ -63,9 +63,21 @@ impl Ui {
                 })
                 .collect();
             for root in roots {
-                rects.insert(root, viewport_rect);
+                // A UI root resolves against its parent's anchorable rect
+                // (Godot `Control::get_parent_anchorable_rect`): the viewport
+                // for a layer/root-parented UI, or the parent `Node2D`'s origin
+                // (size 0) so a control parented to a node follows the world
+                // (H2). A viewport root stays pinned to the viewport (its own
+                // container is ignored; children are placed by anchors).
+                let parent_rect = self.anchorable_rect(tree, root, viewport_rect);
+                let root_rect = if parent_rect == viewport_rect {
+                    viewport_rect
+                } else {
+                    self.resolve_child_rect(tree, cache, root, parent_rect)
+                };
+                rects.insert(root, root_rect);
                 for child in self.children_vec(tree, root) {
-                    let child_rect = self.resolve_child_rect(tree, cache, child, viewport_rect);
+                    let child_rect = self.resolve_child_rect(tree, cache, child, root_rect);
                     self.arrange_node(tree, cache, child, child_rect, &mut rects, &dirty);
                 }
             }
@@ -117,6 +129,20 @@ impl Ui {
         cache.valid = true;
         cache.viewport = viewport;
         cache.count += 1;
+    }
+
+    /// The rect a control's anchors resolve against (Godot
+    /// `Control::get_parent_anchorable_rect`): the parent `Control`'s rect, else
+    /// a non-`Control` `CanvasItem`'s origin with size 0, else the containing
+    /// viewport's visible rect.
+    fn anchorable_rect(&self, tree: &SceneTree, id: NodeId, viewport: Rect) -> Rect {
+        match tree.parent(id) {
+            Some(parent) if control_of(tree, parent).is_some() => {
+                control_of(tree, parent).map_or(viewport, |control| control.data.rect)
+            }
+            Some(parent) if tree.get(parent).and_then(|node| node.canvas()).is_some() => Rect::ZERO,
+            _ => viewport,
+        }
     }
 
     /// Places `id` at `rect` and arranges its subtree.

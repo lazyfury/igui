@@ -8,7 +8,7 @@ pub fn control_mut(tree: &mut SceneTree, id: NodeId) -> Option<&mut Control> {
 /// Registers a click callback on `id`.
 pub fn set_on_click<F>(tree: &mut SceneTree, id: NodeId, callback: F) -> bool
 where
-    F: FnMut() + 'static,
+    F: FnMut(&mut SceneTree, NodeId) + 'static,
 {
     match tree.data_mut::<Control>(id) {
         Some(control) => {
@@ -22,7 +22,7 @@ where
 /// Registers a secondary (right) click callback on `id`.
 pub fn set_on_secondary<F>(tree: &mut SceneTree, id: NodeId, callback: F) -> bool
 where
-    F: FnMut(Vec2) + 'static,
+    F: FnMut(&mut SceneTree, NodeId, Vec2) + 'static,
 {
     match tree.data_mut::<Control>(id) {
         Some(control) => {
@@ -36,7 +36,7 @@ where
 /// Registers a pointer-drag callback on `id` (pointer capture while held).
 pub fn set_on_drag<F>(tree: &mut SceneTree, id: NodeId, callback: F) -> bool
 where
-    F: FnMut(&mut SceneTree, DragPhase, Vec2) + 'static,
+    F: FnMut(&mut SceneTree, NodeId, DragPhase, Vec2) + 'static,
 {
     match tree.data_mut::<Control>(id) {
         Some(control) => {
@@ -50,7 +50,7 @@ where
 /// Registers an absolute-position pointer callback on `id`.
 pub fn set_pointer_callback<F>(tree: &mut SceneTree, id: NodeId, callback: F) -> bool
 where
-    F: FnMut(Rect, Vec2) + 'static,
+    F: FnMut(&mut SceneTree, NodeId, igui_ui::PointerPhase, Rect, Vec2) + 'static,
 {
     match tree.data_mut::<Control>(id) {
         Some(control) => {
@@ -64,7 +64,7 @@ where
 /// Registers a wheel callback on `id`, so it (and its subtree) owns scrolling.
 pub fn set_on_scroll<F>(tree: &mut SceneTree, id: NodeId, callback: F) -> bool
 where
-    F: FnMut(Vec2) + 'static,
+    F: FnMut(&mut SceneTree, NodeId, Vec2) + 'static,
 {
     match tree.data_mut::<Control>(id) {
         Some(control) => {

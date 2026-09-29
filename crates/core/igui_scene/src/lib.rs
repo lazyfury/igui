@@ -15,6 +15,7 @@
 /// Crate name, kept for lightweight smoke checks.
 pub const CRATE: &str = "igui_scene";
 
+mod behavior;
 mod child;
 mod input;
 mod node;
@@ -22,6 +23,7 @@ mod paint;
 mod tree;
 mod viewport;
 
+pub use behavior::{InputCallback, LifecycleCallback};
 pub use child::SceneChild;
 pub use input::GuiInput;
 pub use node::{

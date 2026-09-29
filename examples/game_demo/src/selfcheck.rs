@@ -9,7 +9,7 @@ use igui_core::{InputEvent, Key, Size, Vec2, ViewportSize};
 use igui_render::{DrawCommand, PaintContext};
 use igui_ui::FixedWidthTextMeasurer;
 
-use crate::{Game, TARGET};
+use crate::{Game, PLAYER_TEXTURE};
 
 /// Runs the self-check, returning a description of the first failure.
 pub fn run_selfcheck() -> Result<(), String> {
@@ -31,8 +31,7 @@ pub fn run_selfcheck() -> Result<(), String> {
 
     for _ in 0..120 {
         game.layout(viewport);
-        game.advance(1.0 / 60.0, &mut backend)
-            .map_err(|error| format!("advance: {error:?}"))?;
+        game.advance(1.0 / 60.0);
         let mut ctx = PaintContext::new();
         game.paint(&mut ctx);
         let _ = ctx.into_draw_list();
@@ -47,29 +46,23 @@ pub fn run_selfcheck() -> Result<(), String> {
     if game.score() == 0 {
         return Err("the player never collected a coin".into());
     }
-    if backend.render_target(TARGET).is_none() {
-        return Err("the game view never created its render target".into());
-    }
-    if backend.target_frame_count(TARGET) == 0 {
-        return Err("the game view never rendered into its target".into());
-    }
 
+    // The world sprite is drawn directly by the one tree (no offscreen target).
     let mut ctx = PaintContext::new();
     game.paint(&mut ctx);
     let list = ctx.into_draw_list();
     if !list.commands().iter().any(|command| {
         matches!(
             command,
-            DrawCommand::DrawImage { texture, .. } if *texture == TARGET.texture()
+            DrawCommand::DrawImage { texture, .. } if *texture == PLAYER_TEXTURE
         )
     }) {
-        return Err("the HUD did not composite the game view target".into());
+        return Err("the player sprite was not drawn".into());
     }
 
     println!(
-        "game_demo selfcheck ok: score={}, target_frames={}, player_x={:.1}",
+        "game_demo selfcheck ok: score={}, player_x={:.1}",
         game.score(),
-        backend.target_frame_count(TARGET),
         game.player_position().x
     );
     Ok(())

@@ -5,7 +5,8 @@ use std::rc::Rc;
 
 use crate::base::{Component, Flex, Label, Spec};
 use crate::glyph::{paint_glyph, Glyph};
-use igui_core::{Edges, Size, Vec2};
+use igui_core::{Edges, NodeId, Size, Vec2};
+use igui_scene::SceneTree;
 use igui_theme::{radius, Space, TextSize, Theme};
 use igui_ui::{Align, Container, SurfaceStyle, TextOptions};
 
@@ -165,7 +166,7 @@ impl Component for Checkbox {
 
         let click_state = state;
         let mut on_change = self.on_change.take();
-        self.spec.on_click = Some(Box::new(move || {
+        self.spec.on_click = Some(Box::new(move |_tree: &mut SceneTree, _id: NodeId| {
             // A click on an indeterminate box selects the whole group; a click
             // on a checked box clears it.
             let next = match click_state.get() {
@@ -309,7 +310,7 @@ impl Component for Switch {
 
         let click_state = state;
         let mut on_change = self.on_change.take();
-        self.spec.on_click = Some(Box::new(move || {
+        self.spec.on_click = Some(Box::new(move |_tree: &mut SceneTree, _id: NodeId| {
             let next = !click_state.get();
             click_state.set(next);
             if let Some(callback) = on_change.as_mut() {

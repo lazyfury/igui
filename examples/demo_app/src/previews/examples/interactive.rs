@@ -160,11 +160,11 @@ pub(crate) fn router(card: Card, ctx: &mut Ctx) -> Card {
         .gap(space::SM)
         .child(Button::secondary("View A", theme).on_click({
             let route = route.clone();
-            move || route.set(0)
+            move |_tree, _id| route.set(0)
         }))
         .child(Button::secondary("View B", theme).on_click({
             let route = route.clone();
-            move || route.set(1)
+            move |_tree, _id| route.set(1)
         }));
     card.child(
         Column::new()
@@ -260,7 +260,7 @@ pub(crate) fn menu(card: Card, ctx: &mut Ctx) -> Card {
     card.child(
         Row::new().child(
             Button::secondary("Open menu", theme)
-                .on_click(move || request.set(true))
+                .on_click(move |_tree, _id| request.set(true))
                 .ref_(&ctx.state.menu_anchor),
         ),
     )
@@ -269,13 +269,15 @@ pub(crate) fn menu(card: Card, ctx: &mut Ctx) -> Card {
 pub(crate) fn confirm(card: Card, ctx: &mut Ctx) -> Card {
     let theme = ctx.theme;
     let request = ctx.state.confirm_request.clone();
-    card.child(Button::secondary("Delete item…", theme).on_click(move || request.set(true)))
+    card.child(
+        Button::secondary("Delete item…", theme).on_click(move |_tree, _id| request.set(true)),
+    )
 }
 
 pub(crate) fn message(card: Card, ctx: &mut Ctx) -> Card {
     let theme = ctx.theme;
     let request = ctx.state.message_request.clone();
-    card.child(Button::secondary("Show toast", theme).on_click(move || request.set(true)))
+    card.child(Button::secondary("Show toast", theme).on_click(move |_tree, _id| request.set(true)))
 }
 
 /// The menu opened by the preview's button (built by [`crate::DemoApp::update`]).
@@ -300,7 +302,7 @@ pub(crate) fn focus_navigation(card: Card, ctx: &mut Ctx) -> Card {
     let active = Rc::new(Cell::new(0u8));
     let activate = |index: u8| {
         let active = active.clone();
-        move || active.set(index)
+        move |_tree: &mut SceneTree, _id: NodeId| active.set(index)
     };
     card.child(
         Column::new()

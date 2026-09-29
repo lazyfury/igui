@@ -26,8 +26,7 @@
 //! helper, sprite-sheet frame animation ([`SpriteFrames`] +
 //! [`SpriteAnimations`]), lightweight [`Timers`], typed [`Signal`]s, collision
 //! queries with [`Area`] enter/exit triggers, and a [`FixedTimestep`] clock for
-//! fixed-step hosts. The optional `ui` feature adds `GameView`, an embedded
-//! sub-viewport Control. Rigid bodies and audio are out of scope.
+//! fixed-step hosts. Rigid bodies and audio are out of scope.
 //!
 //! # `needs_frame`
 //!
@@ -43,8 +42,6 @@ mod animation;
 mod area;
 mod clock;
 mod frames;
-#[cfg(feature = "ui")]
-mod game_view;
 mod shape;
 mod signal;
 mod sprite;
@@ -55,10 +52,8 @@ pub use animation::SpriteAnimations;
 pub use area::{Area, Areas};
 pub use clock::{FixedTimestep, Tick};
 pub use frames::SpriteFrames;
-#[cfg(feature = "ui")]
-pub use game_view::GameView;
 pub use shape::{aabb_circle_overlap, aabb_overlap, circle_overlap, CollisionShape, WorldShape};
-pub use signal::Signal;
+pub use signal::{Connection, Signal};
 pub use sprite::Sprite;
 pub use texture::upload_texture;
 pub use timer::{TimerId, Timers};

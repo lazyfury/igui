@@ -1,11 +1,14 @@
 //! `game_demo` — a small top-down collect game built on the igui game layer.
 //!
-//! The world lives in a [`GameView`] embedded in a `igui_ui` HUD: a player
-//! sprite (animated from an embedded PNG atlas) moves with the arrow keys /
-//! WASD, a `Camera2D` follows, and coins spawn on a timer; touching a coin fires
-//! an `Area` `on_enter` that scores. Movement runs at a fixed step via
-//! [`FixedTimestep`], while the view renders its own offscreen target that the
-//! HUD composites.
+//! Game-first, one [`SceneTree`]: the root viewport is the game. The world
+//! (arena `Node2D`, a `Camera2D`, the player sprite, coins) lives directly under
+//! the root; the HUD lives under a `CanvasLayer` (screen-fixed, ignores the
+//! camera); and the player's name tag is a `Control` parented to the player
+//! `Node2D`, so it follows the actor and the camera (the H2 world-space
+//! `Control`).
+//!
+//! Movement runs at a fixed step via [`FixedTimestep`]; a coin pickup is an
+//! `Area::on_enter` that scores and removes the coin through the tree.
 //!
 //! Hosts call the pipeline in order: [`Game::layout`] -> [`Game::advance`] ->
 //! [`Game::paint`], and use [`Game::needs_frame`] to sleep when idle.
@@ -18,27 +21,20 @@ pub use selfcheck::run_selfcheck;
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
-use igui_anim::{Easing, TweenSpec};
-use igui_components::{Component, Flex, NodeRef, Panel, Text};
-use igui_core::{Color, Edges, InputEvent, Key, NodeId, Size, Vec2, ViewportSize};
+use igui_anim::{Animator, Easing, TweenSpec};
+use igui_components::{Component, Flex, NodeRef, Text};
+use igui_core::{Edges, InputEvent, Key, NodeId, Size, Vec2, ViewportSize};
 use igui_game::{
-    upload_texture, Area, CollisionShape, FixedTimestep, GameView, Sprite, SpriteFrames,
+    upload_texture, Area, Areas, CollisionShape, FixedTimestep, Sprite, SpriteAnimations,
+    SpriteFrames, Timers,
 };
-use igui_render::{PaintContext, RenderBackend, RenderTargetId, TextureId};
-use igui_scene::{SceneChild, SceneTree, Visual};
+use igui_render::{PaintContext, RenderBackend, TextureId};
+use igui_scene::{SceneTree, Visual};
 use igui_theme::{default_theme, space, Mode, SurfaceLevel, Theme};
 use igui_ui::{self, TextMeasurer};
 
 /// Crate name, kept for lightweight smoke checks.
 pub const CRATE: &str = "game_demo";
-
-/// The render target the `GameView` renders into.
-///
-/// A render target shares the `TextureId` space (see [`RenderTargetId`]), so it
-/// must use a number disjoint from the uploaded textures below.
-///
-/// [`RenderTargetId`]: igui_render::RenderTargetId
-pub const TARGET: RenderTargetId = RenderTargetId::from_raw(100);
 
 const PLAYER_TEXTURE: TextureId = TextureId::new(1);
 const COIN_TEXTURE: TextureId = TextureId::new(2);
@@ -59,19 +55,20 @@ struct Keys {
     down: bool,
 }
 
-/// The demo's whole state: the UI/HUD tree and the embedded game view.
+/// The demo's whole state: one scene tree, its runners and its HUD.
 pub struct Game {
     theme: &'static dyn Theme,
+    /// The single tree: root viewport (game) + a `CanvasLayer` HUD.
     ui: SceneTree,
-    view: GameView,
+    anim: Animator,
+    sprites: SpriteAnimations,
+    timers: Timers,
+    areas: Areas,
     score: Rc<Cell<u32>>,
     keys: Rc<RefCell<Keys>>,
     clock: FixedTimestep,
-    collect_marks: Rc<RefCell<Vec<NodeId>>>,
-    pickups: Vec<NodeId>,
     player: Option<NodeId>,
     camera: Option<NodeId>,
-    view_control: Option<NodeId>,
     score_label: Option<NodeId>,
     player_frames: Option<SpriteFrames>,
     painting_walk: bool,
@@ -93,15 +90,15 @@ impl Game {
         Self {
             theme,
             ui: SceneTree::new(),
-            view: GameView::new(TARGET),
+            anim: Animator::new(),
+            sprites: SpriteAnimations::new(),
+            timers: Timers::new(),
+            areas: Areas::new(),
             score: Rc::new(Cell::new(0)),
             keys: Rc::new(RefCell::new(Keys::default())),
             clock: FixedTimestep::from_hz(120.0).max_steps(8),
-            collect_marks: Rc::new(RefCell::new(Vec::new())),
-            pickups: Vec::new(),
             player: None,
             camera: None,
-            view_control: None,
             score_label: None,
             player_frames: None,
             painting_walk: false,
@@ -129,54 +126,51 @@ impl Game {
             .fps(9.0),
         );
 
-        let root = self.view.world().root();
-        let arena = self.view.world_mut().add_node2d(root, "arena");
-        self.view.world_mut().set_visual(
+        let root = self.ui.root();
+        let arena = self.ui.add_node2d(root, "arena");
+        self.ui.set_visual(
             arena,
             Visual::Rect {
                 size: Size::splat(ARENA),
                 color: self.theme.surface(SurfaceLevel::Base),
             },
         );
-        self.view
-            .world_mut()
-            .set_position(arena, Vec2::splat(-ARENA * 0.5));
+        self.ui.set_position(arena, Vec2::splat(-ARENA * 0.5));
 
-        let camera = self.view.world_mut().add_camera_2d(root, "camera");
-        self.view.world_mut().set_camera_current(camera, true);
+        let camera = self.ui.add_camera_2d(root, "camera");
+        self.ui.set_camera_current(camera, true);
         self.camera = Some(camera);
 
-        let player = self.view.world_mut().add_child(
+        let player = self.ui.add_child(
             root,
             Sprite::new(PLAYER_TEXTURE, Size::splat(16.0)).named("player"),
         );
         self.player = Some(player);
-        self.view.world_mut().set_scale(player, Vec2::ZERO);
-        self.view
-            .areas()
+        self.ui.set_scale(player, Vec2::ZERO);
+        self.areas
             .add(Area::new(player, CollisionShape::circle(PLAYER_RADIUS)));
-        self.view.animator().tween_scale(
+        self.anim.tween_scale(
             player,
             Vec2::splat(1.0),
             TweenSpec::new(0.45).easing(Easing::BackOut),
         );
 
+        // World-space name tag: a `Control` parented to the player `Node2D`, so
+        // it follows the actor and the camera.
+        self.ui
+            .add_child(player, Text::caption("player", self.theme));
+
         for index in 0..4 {
             self.add_pickup_at(pickup_position(index as f32));
         }
 
-        self.build_ui();
+        self.build_hud();
         Ok(())
     }
 
     /// Installs `measurer` for the HUD.
     pub fn set_text_measurer(&mut self, measurer: Rc<dyn TextMeasurer>) {
         igui_ui::set_text_measurer(&mut self.ui, measurer);
-    }
-
-    /// Device-pixel ratio for the game view's offscreen target.
-    pub fn set_scale_factor(&mut self, scale: f32) {
-        self.view.set_scale_factor(scale);
     }
 
     /// Resolves the HUD layout for `viewport`.
@@ -186,8 +180,8 @@ impl Game {
         self.ui.update();
     }
 
-    /// Advances the fixed-step world and renders the view for `dt` seconds.
-    pub fn advance<B: RenderBackend>(&mut self, dt: f32, backend: &mut B) -> Result<(), B::Error> {
+    /// Advances the fixed-step world and its runners for `dt` seconds.
+    pub fn advance(&mut self, dt: f32) {
         let tick = self.clock.advance(dt);
         for _ in 0..tick.steps {
             self.physics_step(self.clock.step());
@@ -201,24 +195,15 @@ impl Game {
         }
 
         self.sync_walk_animation();
-
-        let control_size = self
-            .view_control
-            .and_then(|id| igui_ui::control(&self.ui, id))
-            .map_or(self.viewport.logical_size(), |control| control.rect.size);
-        self.view.set_viewport(ViewportSize::new(control_size));
-        self.view.update(dt, backend)?;
-
-        let collected = std::mem::take(&mut *self.collect_marks.borrow_mut());
-        for id in collected {
-            self.view.world_mut().remove(id);
-            self.pickups.retain(|pickup| *pickup != id);
-        }
+        self.anim.update(dt, &mut self.ui);
+        self.sprites.update(dt, &mut self.ui);
+        self.timers.update(dt, &mut self.ui);
+        self.areas.update(&mut self.ui);
+        self.ui.update();
 
         if let Some(label) = self.score_label {
             igui_components::set_text(&mut self.ui, label, format!("Score: {}", self.score.get()));
         }
-        Ok(())
     }
 
     /// Routes an input event to the key state.
@@ -238,16 +223,19 @@ impl Game {
         }
     }
 
-    /// Paints the HUD (and composites the game view) into `ctx`.
+    /// Paints the whole tree (world + HUD) into `ctx`.
     pub fn paint(&self, ctx: &mut PaintContext) {
         igui_ui::paint(&self.ui, ctx);
         self.painted_generation
             .set(igui_ui::paint_generation(&self.ui));
     }
 
-    /// Whether another frame is needed (view animating, HUD dirty, unpainted).
+    /// Whether another frame is needed (a runner animating, the tree dirty,
+    /// or an unpainted change).
     pub fn needs_frame(&self) -> bool {
-        self.view.needs_frame()
+        self.anim.is_animating()
+            || self.sprites.is_animating()
+            || self.timers.is_animating()
             || igui_ui::needs_layout(&self.ui)
             || self.ui.needs_update()
             || self.painted_generation.get() != igui_ui::paint_generation(&self.ui)
@@ -261,73 +249,52 @@ impl Game {
     /// The player's world position.
     pub fn player_position(&self) -> Vec2 {
         self.player
-            .and_then(|id| self.view.world().position(id))
+            .and_then(|id| self.ui.position(id))
             .unwrap_or(Vec2::ZERO)
     }
 
     /// Adds a coin at `position` (also used by `--selfcheck`).
     pub fn add_pickup_at(&mut self, position: Vec2) -> NodeId {
-        let root = self.view.world().root();
-        let id = self.view.world_mut().add_child(
+        let root = self.ui.root();
+        let id = self.ui.add_child(
             root,
             Sprite::new(COIN_TEXTURE, Size::splat(16.0))
                 .named("coin")
                 .position(position),
         );
         let score = self.score.clone();
-        let marks = self.collect_marks.clone();
         let player = self.player;
-        self.view
-            .areas()
-            .add(
-                Area::new(id, CollisionShape::circle(COIN_RADIUS)).on_enter(move |other| {
+        self.areas
+            .add(Area::new(id, CollisionShape::circle(COIN_RADIUS)).on_enter(
+                move |tree, self_id, other| {
                     if Some(other) == player {
                         score.set(score.get() + 1);
-                        marks.borrow_mut().push(id);
+                        tree.remove(self_id);
                     }
-                }),
-            );
-        self.pickups.push(id);
+                },
+            ));
         self.spawned += 1;
         id
     }
 
-    /// The UI tree (HUD + the mounted game view control).
+    /// The one scene tree (world + HUD).
     pub fn tree(&self) -> &SceneTree {
         &self.ui
     }
 
-    fn build_ui(&mut self) {
+    fn build_hud(&mut self) {
         let theme = self.theme;
-        let view_slot = NodeRef::new();
         let score_slot = NodeRef::new();
-
-        let tree = Flex::column()
-            .child(
-                Panel::new()
-                    .color(Color::TRANSPARENT)
-                    .flat()
-                    .grow(1.0)
-                    .clip(true)
-                    .child(
-                        Panel::new()
-                            .color(Color::TRANSPARENT)
-                            .flat()
-                            .grow(1.0)
-                            .ref_(&view_slot),
-                    ),
-            )
-            .child(
-                Flex::row()
-                    .min_size(0.0, HUD_HEIGHT)
-                    .padding(Edges::new(space::MD, space::XS, space::MD, space::XS))
-                    .child(Text::subheading("Score: 0", theme).ref_(&score_slot)),
-            )
-            .into_tree();
-
-        self.ui = tree;
-        let parent = view_slot.get().expect("view slot mounted");
-        self.view_control = Some(self.view.mount(&mut self.ui, parent));
+        let root = self.ui.root();
+        let hud = self.ui.add_canvas_layer(root, "HUD");
+        self.ui.set_canvas_layer(hud, 10);
+        self.ui.add_child(
+            hud,
+            Flex::row()
+                .min_size(0.0, HUD_HEIGHT)
+                .padding(Edges::new(space::MD, space::XS, space::MD, space::XS))
+                .child(Text::subheading("Score: 0", theme).ref_(&score_slot)),
+        );
         self.score_label = score_slot.get();
     }
 
@@ -350,12 +317,12 @@ impl Game {
 
         let limit = ARENA * 0.5 - 8.0;
         if let Some(player) = self.player {
-            let current = self.view.world().position(player).unwrap_or(Vec2::ZERO);
+            let current = self.ui.position(player).unwrap_or(Vec2::ZERO);
             let next = current + direction * (PLAYER_SPEED * step);
             let next = Vec2::new(next.x.clamp(-limit, limit), next.y.clamp(-limit, limit));
-            self.view.world_mut().set_position(player, next);
+            self.ui.set_position(player, next);
             if let Some(camera) = self.camera {
-                self.view.world_mut().set_position(camera, next);
+                self.ui.set_position(camera, next);
             }
         }
     }
@@ -370,11 +337,11 @@ impl Game {
         };
         if moving && !self.painting_walk {
             if let Some(frames) = self.player_frames.clone() {
-                self.view.play_animation(player, frames);
+                self.sprites.play(&mut self.ui, player, frames);
                 self.painting_walk = true;
             }
         } else if !moving && self.painting_walk {
-            self.view.stop_animation(player);
+            self.sprites.stop(player);
             self.painting_walk = false;
         }
     }
@@ -399,6 +366,7 @@ fn pickup_position(index: f32) -> Vec2 {
 mod tests {
     use super::*;
     use igui_backend_recording::RecordingBackend;
+    use igui_render::DrawCommand;
     use igui_ui::FixedWidthTextMeasurer;
 
     #[test]
@@ -407,7 +375,7 @@ mod tests {
     }
 
     #[test]
-    fn a_frame_renders_the_view_and_composites_the_hud() {
+    fn a_frame_draws_the_world_and_the_hud() {
         let mut game = Game::new();
         game.set_text_measurer(Rc::new(FixedWidthTextMeasurer::default()));
         let mut backend = RecordingBackend::new();
@@ -415,10 +383,7 @@ mod tests {
 
         let viewport = ViewportSize::new(Size::new(640.0, 480.0));
         game.layout(viewport);
-        game.advance(1.0 / 60.0, &mut backend).unwrap();
-
-        assert!(backend.render_target(TARGET).is_some());
-        assert_eq!(backend.target_frame_count(TARGET), 1);
+        game.advance(1.0 / 60.0);
 
         let mut ctx = PaintContext::new();
         game.paint(&mut ctx);
@@ -426,10 +391,15 @@ mod tests {
         assert!(
             list.commands().iter().any(|command| matches!(
                 command,
-                igui_render::DrawCommand::DrawImage { texture, .. }
-                    if *texture == TARGET.texture()
+                DrawCommand::DrawImage { texture, .. } if *texture == PLAYER_TEXTURE
             )),
-            "the HUD should composite the game view target"
+            "the world sprite is drawn into the one tree"
+        );
+        assert!(
+            list.commands()
+                .iter()
+                .any(|command| matches!(command, DrawCommand::DrawText { text, .. } if text.contains("Score:"))),
+            "the HUD is drawn in the same pass"
         );
     }
 
@@ -445,7 +415,7 @@ mod tests {
             key: Key::ArrowRight,
         });
         for _ in 0..120 {
-            game.advance(1.0 / 60.0, &mut backend).unwrap();
+            game.advance(1.0 / 60.0);
         }
         game.event(&InputEvent::KeyUp {
             key: Key::ArrowRight,

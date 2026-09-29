@@ -12,13 +12,17 @@ use crate::focus::FocusNav;
 use crate::layout::{ApproxTextMeasurer, ContentSize, LayoutStyle, TextMeasurer, TextOptions};
 
 /// How a control reacts to pointer events during hit testing.
+///
+/// igui uses "the topmost non-[`Ignore`](MouseFilter::Ignore) control wins, and
+/// an activation bubbles to its nearest ancestor carrying a click callback"
+/// rather than Godot's `MOUSE_FILTER_PASS` `_gui_call_input` walk; a `Pass`
+/// variant that behaved identically to [`Stop`](MouseFilter::Stop) would be a
+/// trap, so it is deliberately not modelled. See `docs/viewport-model.md`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum MouseFilter {
     /// Consume the event and stop the search (topmost control wins).
     #[default]
     Stop,
-    /// Report the hit but let a control underneath also be considered.
-    Pass,
     /// Never hit-testable (transparent to the pointer).
     Ignore,
 }
@@ -113,8 +117,9 @@ impl ControlData {
     }
 }
 
-/// A callback invoked when a control is activated (clicked / Enter).
-pub type ClickCallback = Rc<RefCell<dyn FnMut()>>;
+/// A callback invoked when a control is activated (clicked / Enter): the
+/// owning tree and the activated node.
+pub type ClickCallback = Rc<RefCell<dyn FnMut(&mut SceneTree, NodeId)>>;
 
 /// Phase of a pointer drag.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -129,18 +134,21 @@ pub enum DragPhase {
 
 /// A callback invoked while a control owns a pointer drag.
 ///
-/// It receives the owning tree, the drag [`DragPhase`] and the **delta** since
-/// the previous pointer event (logical pixels), so a component can accumulate
-/// the drag and react to start/end without tracking the pointer itself.
-pub type DragCallback = Rc<RefCell<dyn FnMut(&mut SceneTree, DragPhase, Vec2)>>;
+/// It receives the owning tree, the dragged node, the drag [`DragPhase`] and the
+/// **delta** since the previous pointer event (logical pixels), so a component
+/// can accumulate the drag and react to start/end without tracking the pointer
+/// itself.
+pub type DragCallback = Rc<RefCell<dyn FnMut(&mut SceneTree, NodeId, DragPhase, Vec2)>>;
 
-/// A callback invoked while the pointer is **pressed** on a control, with the
+/// A callback invoked while the pointer interacts with a control, with the
+/// owning tree, the control's id, the interaction [`PointerPhase`], the
 /// control's current rect and the pointer position (same coordinate space).
 ///
-/// Unlike [`DragCallback`] (which only reports a delta), this gives an absolute
-/// position, so a component can implement a slider / colour picker that maps the
-/// pointer onto its own rectangle. Fires on press and on every move while held.
-pub type PointerCallback = Rc<RefCell<dyn FnMut(Rect, Vec2)>>;
+/// It always receives the tree so the control can mark itself for repaint
+/// ([`igui_ui::request_paint`](crate::request_paint)) and implement selection,
+/// and covers press / drag / release / double-click in one place. This replaces
+/// the old split `PointerCallback` (no tree) + `PointerTreeCallback`.
+pub type PointerCallback = Rc<RefCell<dyn FnMut(&mut SceneTree, NodeId, PointerPhase, Rect, Vec2)>>;
 
 /// Phase of an absolute-position pointer interaction, so a control can react to
 /// press / drag / release and to a double click (a text field: place the caret,
@@ -157,18 +165,10 @@ pub enum PointerPhase {
     DoubleClick,
 }
 
-/// Like [`PointerCallback`] but receives the owning tree and the interaction
-/// [`PointerPhase`], so the control can mark itself for repaint
-/// ([`igui_ui::request_paint`](crate::request_paint)) and implement selection.
-///
-/// Additive: [`Control::pointer_callback`] keeps its original signature, so
-/// existing components are unaffected. The router dispatches this one first
-/// when a control registered both.
-pub type PointerTreeCallback = Rc<RefCell<dyn FnMut(&mut SceneTree, PointerPhase, Rect, Vec2)>>;
-
-/// A callback invoked on a secondary (right) click, with the pointer position in
-/// viewport coordinates — enough to anchor a context menu at the cursor.
-pub type SecondaryCallback = Rc<RefCell<dyn FnMut(Vec2)>>;
+/// A callback invoked on a secondary (right) click, with the owning tree, the
+/// control and the pointer position in viewport coordinates — enough to anchor
+/// a context menu at the cursor.
+pub type SecondaryCallback = Rc<RefCell<dyn FnMut(&mut SceneTree, NodeId, Vec2)>>;
 
 /// A closure returning a control's cursor, evaluated by the framework while the
 /// control is hovered. Lets a component derive its cursor from its own state
@@ -176,11 +176,12 @@ pub type SecondaryCallback = Rc<RefCell<dyn FnMut(Vec2)>>;
 pub type CursorProvider = Rc<dyn Fn() -> Cursor>;
 
 /// A callback invoked when a wheel event lands on a control or one of its
-/// descendants, with the scroll delta in logical pixels (`y > 0` scrolls down).
+/// descendants: the owning tree, the control and the scroll delta in logical
+/// pixels (`y > 0` scrolls down).
 ///
 /// The nearest ancestor carrying one owns the event: a list scrolls its own
 /// rows and stops there, and a wheel over anything else stays `Ignored`.
-pub type ScrollCallback = Rc<RefCell<dyn FnMut(Vec2)>>;
+pub type ScrollCallback = Rc<RefCell<dyn FnMut(&mut SceneTree, NodeId, Vec2)>>;
 
 /// A key callback for a focused text control: the owning tree, the key,
 /// whether it was pressed (`true`) or released (`false`), and the held
@@ -189,14 +190,16 @@ pub type ScrollCallback = Rc<RefCell<dyn FnMut(Vec2)>>;
 /// The UI router walks up from the focused control to the nearest ancestor
 /// carrying one, so a field root owns the keys even when a child label was
 /// clicked.
-pub type KeyCallback = Rc<RefCell<dyn FnMut(&mut SceneTree, Key, bool, Modifiers) -> EventResult>>;
+pub type KeyCallback =
+    Rc<RefCell<dyn FnMut(&mut SceneTree, NodeId, Key, bool, Modifiers) -> EventResult>>;
 
 /// A committed-text callback (keyboard typing or an IME commit): the owning
-/// tree and the text to insert.
-pub type TextCallback = Rc<RefCell<dyn FnMut(&mut SceneTree, &str)>>;
+/// tree, the target node and the text to insert.
+pub type TextCallback = Rc<RefCell<dyn FnMut(&mut SceneTree, NodeId, &str)>>;
 
-/// An IME composition callback: the owning tree and the platform event.
-pub type ImeCallback = Rc<RefCell<dyn FnMut(&mut SceneTree, &ImeEvent)>>;
+/// An IME composition callback: the owning tree, the target node and the
+/// platform event.
+pub type ImeCallback = Rc<RefCell<dyn FnMut(&mut SceneTree, NodeId, &ImeEvent)>>;
 
 /// Reports where a focused control's caret currently is, in viewport
 /// coordinates, so a host can place the platform IME candidate window
@@ -268,10 +271,8 @@ pub struct Control {
     pub callback: Option<ClickCallback>,
     /// Pointer-drag callback (pointer capture while held).
     pub drag_callback: Option<DragCallback>,
-    /// Absolute-position pointer callback (press + move while held).
+    /// Pointer callback (press + move while held + release + double click).
     pub pointer_callback: Option<PointerCallback>,
-    /// Absolute-position pointer callback that also receives the tree.
-    pub pointer_tree_callback: Option<PointerTreeCallback>,
     /// Secondary (right) click callback: the pointer position, so a caller can
     /// open a context menu at the cursor.
     pub secondary_callback: Option<SecondaryCallback>,
@@ -318,7 +319,6 @@ impl Control {
             callback: None,
             drag_callback: None,
             pointer_callback: None,
-            pointer_tree_callback: None,
             secondary_callback: None,
             scroll_callback: None,
             cursor_provider: None,
@@ -498,7 +498,7 @@ pub(crate) fn bump_paint_generation(tree: &mut SceneTree) {
 /// Registers a key callback on `id` (see [`KeyCallback`]).
 pub fn set_key_callback<F>(tree: &mut SceneTree, id: NodeId, callback: F) -> bool
 where
-    F: FnMut(&mut SceneTree, Key, bool, Modifiers) -> EventResult + 'static,
+    F: FnMut(&mut SceneTree, NodeId, Key, bool, Modifiers) -> EventResult + 'static,
 {
     match control_mut(tree, id) {
         Some(control) => {
@@ -512,7 +512,7 @@ where
 /// Registers a committed-text callback on `id` (see [`TextCallback`]).
 pub fn set_text_callback<F>(tree: &mut SceneTree, id: NodeId, callback: F) -> bool
 where
-    F: FnMut(&mut SceneTree, &str) + 'static,
+    F: FnMut(&mut SceneTree, NodeId, &str) + 'static,
 {
     match control_mut(tree, id) {
         Some(control) => {
@@ -526,7 +526,7 @@ where
 /// Registers an IME callback on `id` (see [`ImeCallback`]).
 pub fn set_ime_callback<F>(tree: &mut SceneTree, id: NodeId, callback: F) -> bool
 where
-    F: FnMut(&mut SceneTree, &ImeEvent) + 'static,
+    F: FnMut(&mut SceneTree, NodeId, &ImeEvent) + 'static,
 {
     match control_mut(tree, id) {
         Some(control) => {
@@ -537,15 +537,14 @@ where
     }
 }
 
-/// Registers a tree-aware pointer callback on `id` (see
-/// [`PointerTreeCallback`]).
-pub fn set_pointer_tree_callback<F>(tree: &mut SceneTree, id: NodeId, callback: F) -> bool
+/// Registers a pointer callback on `id` (see [`PointerCallback`]).
+pub fn set_pointer_callback<F>(tree: &mut SceneTree, id: NodeId, callback: F) -> bool
 where
-    F: FnMut(&mut SceneTree, PointerPhase, Rect, Vec2) + 'static,
+    F: FnMut(&mut SceneTree, NodeId, PointerPhase, Rect, Vec2) + 'static,
 {
     match control_mut(tree, id) {
         Some(control) => {
-            control.pointer_tree_callback = Some(Rc::new(RefCell::new(callback)));
+            control.pointer_callback = Some(Rc::new(RefCell::new(callback)));
             true
         }
         None => false,

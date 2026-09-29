@@ -498,7 +498,7 @@ impl ListInner {
                 SurfaceStyle::new(Color::TRANSPARENT)
             }
         });
-        set_on_click(tree, root, move || {
+        set_on_click(tree, root, move |_tree: &mut SceneTree, _id: NodeId| {
             let index = click_first.get() + slot_index;
             click_selected.set(Some(index));
             if let Some(callback) = &activate {
@@ -507,9 +507,13 @@ impl ListInner {
         });
         if let Some(context) = context {
             let context_first = first.clone();
-            set_on_secondary(tree, root, move |position| {
-                context(context_first.get() + slot_index, position);
-            });
+            set_on_secondary(
+                tree,
+                root,
+                move |_tree: &mut SceneTree, _id: NodeId, position| {
+                    context(context_first.get() + slot_index, position);
+                },
+            );
         }
 
         Slot {
@@ -760,7 +764,11 @@ impl Component for List {
             inner.gap = self.gap;
         }
         let scrolling = self.state.clone();
-        set_on_scroll(tree, id, move |delta: Vec2| scrolling.scroll_by(delta.y));
+        set_on_scroll(
+            tree,
+            id,
+            move |_tree: &mut SceneTree, _id: NodeId, delta: Vec2| scrolling.scroll_by(delta.y),
+        );
         id
     }
 }

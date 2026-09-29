@@ -801,7 +801,7 @@ fn build_entry(
             let id = entry.id;
             let cancel_actions = actions.clone();
             let confirm_actions = actions;
-            let cancel = Button::ghost(cancel.clone(), theme).on_click(move || {
+            let cancel = Button::ghost(cancel.clone(), theme).on_click(move |_tree, _id| {
                 cancel_actions.borrow_mut().push(Action::Cancel(id));
             });
             let confirm = if *destructive {
@@ -809,7 +809,7 @@ fn build_entry(
             } else {
                 Button::primary(confirm.clone(), theme)
             }
-            .on_click(move || {
+            .on_click(move |_tree, _id| {
                 confirm_actions.borrow_mut().push(Action::Confirm(id));
             });
 
@@ -852,10 +852,10 @@ fn build_entry(
             let id = entry.id;
             let cancel_actions = actions.clone();
             let confirm_actions = actions;
-            let cancel = Button::ghost(cancel.clone(), theme).on_click(move || {
+            let cancel = Button::ghost(cancel.clone(), theme).on_click(move |_tree, _id| {
                 cancel_actions.borrow_mut().push(Action::Cancel(id));
             });
-            let confirm = Button::primary(confirm.clone(), theme).on_click(move || {
+            let confirm = Button::primary(confirm.clone(), theme).on_click(move |_tree, _id| {
                 confirm_actions.borrow_mut().push(Action::Confirm(id));
             });
 

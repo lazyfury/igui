@@ -461,7 +461,7 @@ pub(crate) fn wire(
         let theme = theme;
         let measurer = measurer.clone();
         let field = field.clone();
-        spec.on_key = Some(Box::new(move |tree, key, pressed, modifiers| {
+        spec.on_key = Some(Box::new(move |tree, _id, key, pressed, modifiers| {
             if !pressed {
                 return EventResult::Ignored;
             }
@@ -564,7 +564,7 @@ pub(crate) fn wire(
         let theme = theme;
         let measurer = measurer.clone();
         let field = field.clone();
-        spec.on_text = Some(Box::new(move |tree, text| {
+        spec.on_text = Some(Box::new(move |tree, _id, text| {
             field.edit.borrow_mut().commit_text(text);
             let measurer = measurer.borrow().clone();
             ensure_caret_visible(theme, measurer.as_ref(), &field, masked, multiline);
@@ -576,7 +576,7 @@ pub(crate) fn wire(
         let theme = theme;
         let measurer = measurer.clone();
         let field = field.clone();
-        spec.on_ime = Some(Box::new(move |tree, ime| {
+        spec.on_ime = Some(Box::new(move |tree, _id, ime| {
             match ime {
                 ImeEvent::Preedit { text, cursor } => {
                     field.edit.borrow_mut().set_preedit(text.clone(), *cursor)
@@ -595,7 +595,7 @@ pub(crate) fn wire(
         let theme = theme;
         let measurer = measurer.clone();
         let field = field.clone();
-        spec.on_pointer_tree = Some(Box::new(move |tree, phase, rect, point| {
+        spec.on_pointer = Some(Box::new(move |tree, _id, phase, rect, point| {
             match phase {
                 PointerPhase::Down => {
                     let measurer = measurer.borrow().clone();

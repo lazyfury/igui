@@ -86,13 +86,12 @@ pub fn handle_input(tree: &mut SceneTree, event: &InputEvent) -> EventResult {
                     .data::<Control>(dragging)
                     .and_then(|control| control.drag_callback.clone())
                 {
-                    (callback.borrow_mut())(tree, crate::DragPhase::Move, delta);
+                    (callback.borrow_mut())(tree, dragging, crate::DragPhase::Move, delta);
                 }
                 return EventResult::Handled;
             }
-            // Absolute-position pointer callback (sliders / pickers / text
-            // fields): keep feeding the control that was pressed, even outside
-            // its rect. The tree-aware variant wins when both are registered.
+            // Pointer callback (sliders / pickers / text fields): keep feeding
+            // the control that was pressed, even outside its rect.
             if let Some(pressed) = crate::gui_state_of(tree).and_then(|state| state.pressed) {
                 let rect = tree
                     .data::<Control>(pressed)
@@ -100,16 +99,9 @@ pub fn handle_input(tree: &mut SceneTree, event: &InputEvent) -> EventResult {
                     .unwrap_or(Rect::ZERO);
                 if let Some(callback) = tree
                     .data::<Control>(pressed)
-                    .and_then(|control| control.pointer_tree_callback.clone())
-                {
-                    (callback.borrow_mut())(tree, PointerPhase::Move, rect, *position);
-                    return EventResult::Handled;
-                }
-                if let Some(callback) = tree
-                    .data::<Control>(pressed)
                     .and_then(|control| control.pointer_callback.clone())
                 {
-                    (callback.borrow_mut())(rect, *position);
+                    (callback.borrow_mut())(tree, pressed, PointerPhase::Move, rect, *position);
                     return EventResult::Handled;
                 }
             }
@@ -144,7 +136,7 @@ pub fn handle_input(tree: &mut SceneTree, event: &InputEvent) -> EventResult {
                     .data::<Control>(drag)
                     .and_then(|control| control.drag_callback.clone())
                 {
-                    (callback.borrow_mut())(tree, crate::DragPhase::Start, Vec2::ZERO);
+                    (callback.borrow_mut())(tree, drag, crate::DragPhase::Start, Vec2::ZERO);
                 }
                 return EventResult::Handled;
             }
@@ -157,14 +149,9 @@ pub fn handle_input(tree: &mut SceneTree, event: &InputEvent) -> EventResult {
                     .unwrap_or(Rect::ZERO);
                 if let Some(callback) = tree
                     .data::<Control>(id)
-                    .and_then(|control| control.pointer_tree_callback.clone())
-                {
-                    (callback.borrow_mut())(tree, PointerPhase::Down, rect, *position);
-                } else if let Some(callback) = tree
-                    .data::<Control>(id)
                     .and_then(|control| control.pointer_callback.clone())
                 {
-                    (callback.borrow_mut())(rect, *position);
+                    (callback.borrow_mut())(tree, id, PointerPhase::Down, rect, *position);
                 }
                 EventResult::Handled
             } else {
@@ -183,7 +170,7 @@ pub fn handle_input(tree: &mut SceneTree, event: &InputEvent) -> EventResult {
                     .data::<Control>(id)
                     .and_then(|control| control.secondary_callback.clone())
                 {
-                    (callback.borrow_mut())(*position);
+                    (callback.borrow_mut())(tree, id, *position);
                     return EventResult::Handled;
                 }
                 current = tree.parent(id);
@@ -199,7 +186,7 @@ pub fn handle_input(tree: &mut SceneTree, event: &InputEvent) -> EventResult {
                     .data::<Control>(dragging)
                     .and_then(|control| control.drag_callback.clone())
                 {
-                    (callback.borrow_mut())(tree, crate::DragPhase::End, Vec2::ZERO);
+                    (callback.borrow_mut())(tree, dragging, crate::DragPhase::End, Vec2::ZERO);
                 }
                 let state = crate::gui_state_mut(tree);
                 state.dragging = None;
@@ -217,9 +204,9 @@ pub fn handle_input(tree: &mut SceneTree, event: &InputEvent) -> EventResult {
                     .unwrap_or(Rect::ZERO);
                 if let Some(callback) = tree
                     .data::<Control>(pressed)
-                    .and_then(|control| control.pointer_tree_callback.clone())
+                    .and_then(|control| control.pointer_callback.clone())
                 {
-                    (callback.borrow_mut())(tree, PointerPhase::Up, rect, *position);
+                    (callback.borrow_mut())(tree, pressed, PointerPhase::Up, rect, *position);
                 }
                 if hit == Some(pressed) {
                     activate(tree, pressed);
@@ -242,9 +229,9 @@ pub fn handle_input(tree: &mut SceneTree, event: &InputEvent) -> EventResult {
                 .unwrap_or(Rect::ZERO);
             if let Some(callback) = tree
                 .data::<Control>(id)
-                .and_then(|control| control.pointer_tree_callback.clone())
+                .and_then(|control| control.pointer_callback.clone())
             {
-                (callback.borrow_mut())(tree, PointerPhase::DoubleClick, rect, *position);
+                (callback.borrow_mut())(tree, id, PointerPhase::DoubleClick, rect, *position);
                 EventResult::Handled
             } else {
                 EventResult::Ignored
@@ -266,7 +253,7 @@ pub fn handle_input(tree: &mut SceneTree, event: &InputEvent) -> EventResult {
             else {
                 return EventResult::Ignored;
             };
-            (callback.borrow_mut())(*delta);
+            (callback.borrow_mut())(tree, owner, *delta);
             EventResult::Handled
         }
         InputEvent::ModifiersChanged(modifiers) => {
@@ -281,8 +268,10 @@ pub fn handle_input(tree: &mut SceneTree, event: &InputEvent) -> EventResult {
             // A focused text control owns the key first. When it ignores the
             // key, framework focus navigation still gets a chance — a text
             // field returns `Handled` for the arrows it uses for the caret.
-            if let Some(callback) = focused_ancestor(tree, |control| control.key_callback.clone()) {
-                let result = (callback.borrow_mut())(tree, *key, true, modifiers);
+            if let Some((node, callback)) =
+                focused_ancestor(tree, |control| control.key_callback.clone())
+            {
+                let result = (callback.borrow_mut())(tree, node, *key, true, modifiers);
                 if result == EventResult::Handled {
                     return result;
                 }
@@ -321,24 +310,29 @@ pub fn handle_input(tree: &mut SceneTree, event: &InputEvent) -> EventResult {
             }
         }
         InputEvent::KeyUp { key } => {
-            if let Some(callback) = focused_ancestor(tree, |control| control.key_callback.clone()) {
+            if let Some((node, callback)) =
+                focused_ancestor(tree, |control| control.key_callback.clone())
+            {
                 let modifiers =
                     crate::gui_state_of(tree).map_or(Modifiers::NONE, |state| state.modifiers);
-                return (callback.borrow_mut())(tree, *key, false, modifiers);
+                return (callback.borrow_mut())(tree, node, *key, false, modifiers);
             }
             EventResult::Ignored
         }
         InputEvent::TextInput { text } => {
-            if let Some(callback) = focused_ancestor(tree, |control| control.text_callback.clone())
+            if let Some((node, callback)) =
+                focused_ancestor(tree, |control| control.text_callback.clone())
             {
-                (callback.borrow_mut())(tree, text);
+                (callback.borrow_mut())(tree, node, text);
                 return EventResult::Handled;
             }
             EventResult::Ignored
         }
         InputEvent::Ime(ime) => {
-            if let Some(callback) = focused_ancestor(tree, |control| control.ime_callback.clone()) {
-                (callback.borrow_mut())(tree, ime);
+            if let Some((node, callback)) =
+                focused_ancestor(tree, |control| control.ime_callback.clone())
+            {
+                (callback.borrow_mut())(tree, node, ime);
                 return EventResult::Handled;
             }
             EventResult::Ignored
@@ -350,11 +344,14 @@ pub fn handle_input(tree: &mut SceneTree, event: &InputEvent) -> EventResult {
 /// Clones the callback closest to the focused control (walking up its
 /// ancestors, including itself). Cloning the `Rc` releases the tree borrow
 /// before the callback is invoked with `&mut SceneTree`.
-fn focused_ancestor<T>(tree: &SceneTree, pick: impl Fn(&Control) -> Option<T>) -> Option<T> {
+fn focused_ancestor<T>(
+    tree: &SceneTree,
+    pick: impl Fn(&Control) -> Option<T>,
+) -> Option<(NodeId, T)> {
     let mut current = focused(tree);
     while let Some(id) = current {
         if let Some(found) = tree.data::<Control>(id).and_then(&pick) {
-            return Some(found);
+            return Some((id, found));
         }
         current = tree.parent(id);
     }
@@ -392,19 +389,19 @@ fn activate(tree: &mut SceneTree, id: NodeId) {
     // Dispatch to the nearest ancestor with a callback: a component root owns
     // its click, so a hit on a descendant activates it.
     let mut current = Some(id);
-    let mut callback = None;
+    let mut found = None;
     while let Some(node) = current {
         if let Some(registered) = tree
             .data::<Control>(node)
             .and_then(|control| control.callback.clone())
         {
-            callback = Some(registered);
+            found = Some((node, registered));
             break;
         }
         current = tree.parent(node);
     }
-    if let Some(callback) = callback {
-        (callback.borrow_mut())();
+    if let Some((owner, callback)) = found {
+        (callback.borrow_mut())(tree, owner);
     }
 }
 
@@ -691,10 +688,11 @@ mod tests {
             (outer, outer_scrolls.clone()),
             (inner, inner_scrolls.clone()),
         ] {
-            tree.data_mut::<Control>(id).unwrap().scroll_callback =
-                Some(Rc::new(RefCell::new(move |delta: Vec2| {
+            tree.data_mut::<Control>(id).unwrap().scroll_callback = Some(Rc::new(RefCell::new(
+                move |_tree: &mut SceneTree, _id: NodeId, delta: Vec2| {
                     total.set(total.get() + delta.y)
-                })));
+                },
+            )));
         }
 
         let handled = handle_input(
@@ -729,10 +727,15 @@ mod tests {
         let target = slab(&mut tree, container, 10.0, 10.0, 60.0, 60.0, panel());
         let seen: Rc<Cell<Option<(Rect, Vec2)>>> = Rc::new(Cell::new(None));
         let seen_by_cb = seen.clone();
-        tree.data_mut::<Control>(target).unwrap().pointer_callback =
-            Some(Rc::new(RefCell::new(move |rect, at| {
+        tree.data_mut::<Control>(target).unwrap().pointer_callback = Some(Rc::new(RefCell::new(
+            move |_tree: &mut SceneTree,
+                  _id: NodeId,
+                  _phase: PointerPhase,
+                  rect: Rect,
+                  at: Vec2| {
                 seen_by_cb.set(Some((rect, at)));
-            })));
+            },
+        )));
         crate::layout(&mut tree, ViewportSize::new(Size::new(200.0, 200.0)));
         let rect = tree.data::<Control>(target).unwrap().data.rect;
         let center = rect.center();
@@ -764,12 +767,12 @@ mod tests {
         let target = slab(&mut tree, container, 10.0, 10.0, 60.0, 60.0, panel());
         let seen: Rc<RefCell<Vec<PointerPhase>>> = Rc::new(RefCell::new(Vec::new()));
         let seen_by_cb = seen.clone();
-        let callback: crate::control::PointerTreeCallback = Rc::new(RefCell::new(
-            move |_tree: &mut SceneTree, phase, _rect, _at| seen_by_cb.borrow_mut().push(phase),
+        let callback: crate::control::PointerCallback = Rc::new(RefCell::new(
+            move |_tree: &mut SceneTree, _id, phase, _rect, _at| {
+                seen_by_cb.borrow_mut().push(phase)
+            },
         ));
-        tree.data_mut::<Control>(target)
-            .unwrap()
-            .pointer_tree_callback = Some(callback);
+        tree.data_mut::<Control>(target).unwrap().pointer_callback = Some(callback);
         crate::layout(&mut tree, ViewportSize::new(Size::new(200.0, 200.0)));
         let center = tree.data::<Control>(target).unwrap().data.rect.center();
 
@@ -869,7 +872,7 @@ mod tests {
         crate::layout(&mut tree, ViewportSize::new(Size::new(400.0, 400.0)));
         let set_handler = |tree: &mut SceneTree, result: EventResult| {
             tree.data_mut::<Control>(field).unwrap().key_callback = Some(Rc::new(RefCell::new(
-                move |_: &mut SceneTree, _: Key, _: bool, _: Modifiers| result,
+                move |_: &mut SceneTree, _: NodeId, _: Key, _: bool, _: Modifiers| result,
             )));
         };
 

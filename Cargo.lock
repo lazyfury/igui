@@ -903,7 +903,6 @@ dependencies = [
  "igui_core",
  "igui_render",
  "igui_scene",
- "igui_ui",
 ]
 
 [[package]]
