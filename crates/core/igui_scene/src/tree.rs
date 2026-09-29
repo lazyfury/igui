@@ -112,21 +112,49 @@ impl SceneTree {
 
     /// The canvas transform that applies to `id` (Godot
     /// `CanvasItem::get_canvas_transform`): its nearest `CanvasLayer`'s final
-    /// transform, or the root viewport's `canvas_transform` on the default
+    /// transform, or the nearest `Viewport`'s `canvas_transform` on the default
     /// canvas.
     pub fn canvas_transform_of(&self, id: NodeId) -> Transform2D {
+        let viewport = self.nearest_viewport(id);
         match self.canvas_layer_of(id) {
-            Some((_, data)) => self.canvas_layer_final_transform(&data),
-            None => self.canvas_transform(),
+            Some((_, data)) => self.canvas_layer_final_transform(&data, viewport),
+            None => self.viewport_canvas_transform(viewport),
         }
     }
 
+    /// The nearest ancestor `Viewport` (or `id` itself when it is one), falling
+    /// back to the tree root. Every canvas item resolves its camera through
+    /// this, so a non-root `Viewport` (`SubViewport`) has its own canvas.
+    pub fn nearest_viewport(&self, id: NodeId) -> NodeId {
+        let mut current = Some(id);
+        while let Some(node) = current {
+            if self.get(node).and_then(Node::viewport).is_some() {
+                return node;
+            }
+            current = self.parent(node);
+        }
+        self.root
+    }
+
+    /// A viewport's camera canvas transform (`identity` for a non-viewport).
+    pub fn viewport_canvas_transform(&self, viewport: NodeId) -> Transform2D {
+        self.get(viewport)
+            .and_then(Node::viewport)
+            .map_or(Transform2D::IDENTITY, |viewport| {
+                viewport.canvas_transform()
+            })
+    }
+
     /// Godot `CanvasLayer::get_final_transform`: the layer's own transform, or
-    /// the viewport camera composed before it when `follow_viewport` is set.
-    /// (`follow_viewport_scale` is not modeled yet.)
-    fn canvas_layer_final_transform(&self, data: &CanvasLayerData) -> Transform2D {
+    /// the **containing viewport's** camera composed before it when
+    /// `follow_viewport` is set.
+    fn canvas_layer_final_transform(
+        &self,
+        data: &CanvasLayerData,
+        viewport: NodeId,
+    ) -> Transform2D {
         if data.follow_viewport {
-            self.canvas_transform() * data.transform
+            self.viewport_canvas_transform(viewport) * data.transform
         } else {
             data.transform
         }
@@ -237,6 +265,27 @@ impl SceneTree {
     /// Panics if `parent` is not a live node.
     pub fn add_canvas_layer(&mut self, parent: NodeId, name: impl Into<String>) -> NodeId {
         self.insert(parent, name, NodeKind::CanvasLayer)
+    }
+
+    /// Adds a non-root `Viewport` (Godot `SubViewport`) under `parent`.
+    ///
+    /// Its subtree resolves its own `Camera2D` and would be painted into its own
+    /// canvas, so it is excluded from the root pass; paint it on demand with
+    /// [`SceneTree::paint_viewport`] (a host renders that `DrawList` into a
+    /// render target and composites it through a container `Control`).
+    pub fn add_sub_viewport(&mut self, parent: NodeId, name: impl Into<String>) -> NodeId {
+        self.insert(parent, name, NodeKind::Viewport)
+    }
+
+    /// Sets a (non-root) viewport node's logical size.
+    pub fn set_viewport_size_of(&mut self, id: NodeId, size: Size) -> bool {
+        match self.get_mut(id).and_then(|node| node.viewport.as_mut()) {
+            Some(viewport) => {
+                viewport.set_size(size);
+                true
+            }
+            None => false,
+        }
     }
 
     /// Adds a `Camera2D` canvas item under `parent`.
@@ -592,7 +641,7 @@ impl SceneTree {
     /// recomputed. A second call with no intervening changes returns `0`.
     pub fn update(&mut self) -> usize {
         let recomputed = self.update_subtree(self.root, Transform2D::IDENTITY, false, true, false);
-        self.update_camera();
+        self.update_cameras();
         recomputed
     }
 
@@ -611,24 +660,40 @@ impl SceneTree {
         })
     }
 
-    /// Recomputes the root viewport's `canvas_transform` from the current
-    /// `Camera2D` (Godot `Camera2D::get_camera_transform`). With no current,
-    /// enabled camera the transform is the identity.
-    fn update_camera(&mut self) {
-        let camera = self.iter().find(|&id| {
-            self.get(id)
-                .and_then(Node::camera_2d)
-                .is_some_and(|c| c.current && c.enabled)
-        });
-        let transform = match camera {
-            Some(id) => {
-                let world = self.world_transform(id).unwrap_or(Transform2D::IDENTITY);
-                let data = *self.node(id).camera_2d().expect("camera has data");
-                camera_canvas_transform(world, &data, self.viewport().size())
+    /// Recomputes every `Viewport`'s `canvas_transform` from the current
+    /// `Camera2D` in its own subtree (Godot `Camera2D::get_camera_transform`). A
+    /// viewport with no current, enabled camera stays identity.
+    fn update_cameras(&mut self) {
+        let viewports: Vec<NodeId> = self
+            .iter()
+            .filter(|id| self.get(*id).and_then(Node::viewport).is_some())
+            .collect();
+        for viewport in viewports {
+            let camera = self.iter().find(|&id| {
+                self.nearest_viewport(id) == viewport
+                    && self
+                        .get(id)
+                        .and_then(Node::camera_2d)
+                        .is_some_and(|camera| camera.current && camera.enabled)
+            });
+            let size = self
+                .get(viewport)
+                .and_then(Node::viewport)
+                .map_or(Size::ZERO, |viewport| viewport.size());
+            let transform = match camera {
+                Some(id) => {
+                    let world = self.world_transform(id).unwrap_or(Transform2D::IDENTITY);
+                    let data = *self.node(id).camera_2d().expect("camera has data");
+                    camera_canvas_transform(world, &data, size)
+                }
+                None => Transform2D::IDENTITY,
+            };
+            if let Some(node) = self.get_mut(viewport) {
+                if let Some(viewport) = node.viewport.as_mut() {
+                    viewport.set_canvas_transform(transform);
+                }
             }
-            None => Transform2D::IDENTITY,
-        };
-        self.viewport_mut().set_canvas_transform(transform);
+        }
     }
 
     fn update_subtree(

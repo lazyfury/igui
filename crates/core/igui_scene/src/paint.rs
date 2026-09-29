@@ -56,7 +56,18 @@ impl SceneTree {
     /// camera, or its `CanvasLayer`'s final transform), so the output is
     /// deterministic for a given scene.
     pub fn paint(&self, ctx: &mut PaintContext) {
-        for item in self.paint_items() {
+        self.paint_items_into(&self.paint_items(), ctx);
+    }
+
+    /// Paints one (non-root) `Viewport`'s subtree into `ctx` under that
+    /// viewport's own camera — the pass a host runs to render a `SubViewport`
+    /// into its offscreen target.
+    pub fn paint_viewport(&self, viewport: NodeId, ctx: &mut PaintContext) {
+        self.paint_items_into(&self.paint_items_in(viewport), ctx);
+    }
+
+    fn paint_items_into(&self, items: &[PaintItem], ctx: &mut PaintContext) {
+        for item in items {
             let Some(canvas) = self.get(item.id).and_then(|node| node.canvas()) else {
                 continue;
             };
@@ -79,8 +90,14 @@ impl SceneTree {
     /// tree / z order within a layer. Items with no [`Visual`] (a `Control`) are
     /// included, so a higher layer can draw world and UI in one pass.
     pub fn paint_items(&self) -> Vec<PaintItem> {
+        self.paint_items_in(self.root())
+    }
+
+    /// Every visible canvas item of one viewport in paint order, with its
+    /// effective canvas transform. Used for the non-root `Viewport` pass.
+    pub fn paint_items_in(&self, viewport: NodeId) -> Vec<PaintItem> {
         let mut items = Vec::new();
-        for group in self.paint_groups() {
+        for group in self.paint_groups_for(viewport) {
             for &id in &group.items {
                 if let Some(canvas) = self.get(id).and_then(|node| node.canvas()) {
                     items.push(PaintItem {
@@ -93,10 +110,21 @@ impl SceneTree {
         items
     }
 
-    /// Collects visible canvas items into layer-ordered groups.
+    /// Collects the root viewport's visible canvas items into layer-ordered
+    /// groups.
     pub(crate) fn paint_groups(&self) -> Vec<PaintGroup> {
+        self.paint_groups_for(self.root())
+    }
+
+    /// Collects one viewport's visible canvas items into layer-ordered groups.
+    /// A subtree under a non-root `Viewport` belongs to that viewport, not its
+    /// ancestors, so it is excluded here (and vice versa).
+    pub(crate) fn paint_groups_for(&self, viewport: NodeId) -> Vec<PaintGroup> {
         let mut groups: Vec<PaintGroup> = Vec::new();
         for id in self.iter_visible() {
+            if self.nearest_viewport(id) != viewport {
+                continue;
+            }
             let Some(node) = self.get(id) else {
                 continue;
             };
@@ -598,5 +626,46 @@ mod tests {
         let transforms = set_transforms(&paint(&tree));
         let expected_world = tree.world_to_screen(Vec2::new(5.0, 5.0));
         assert!((transforms.last().unwrap().origin - expected_world).length() < 1e-5);
+    }
+
+    /// A non-root `Viewport` (`SubViewport`) owns its subtree's canvas: the root
+    /// pass excludes it, `paint_viewport` paints it under its own camera, and the
+    /// two canvases transform independently.
+    #[test]
+    fn a_sub_viewport_has_its_own_canvas() {
+        let mut tree = SceneTree::new();
+        tree.set_viewport_size(Size::new(100.0, 100.0));
+        let root = tree.root();
+
+        let main = tree.add_node2d(root, "main");
+        tree.set_visual(main, rect(Color::RED));
+
+        let sub = tree.add_sub_viewport(root, "minimap");
+        tree.set_viewport_size_of(sub, Size::new(40.0, 40.0));
+        let camera = tree.add_camera_2d(sub, "cam");
+        tree.set_camera_current(camera, true);
+        tree.set_position(camera, Vec2::new(10.0, 10.0));
+        let inside = tree.add_node2d(sub, "inside");
+        tree.set_visual(inside, rect(Color::BLUE));
+        tree.update();
+
+        // The root pass sees only the default-canvas item.
+        let root_items = tree.paint_items();
+        assert_eq!(root_items.len(), 1);
+        assert_eq!(root_items[0].id, main);
+
+        // The sub-viewport pass sees only its own item, under its own camera.
+        let sub_items = tree.paint_items_in(sub);
+        assert_eq!(sub_items.len(), 1);
+        assert_eq!(sub_items[0].id, inside);
+        assert_eq!(
+            sub_items[0].transform,
+            tree.viewport_canvas_transform(sub) * tree.world_transform(inside).unwrap()
+        );
+        assert_ne!(
+            tree.viewport_canvas_transform(sub),
+            tree.canvas_transform(),
+            "the sub-viewport has its own camera transform"
+        );
     }
 }

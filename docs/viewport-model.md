@@ -31,9 +31,15 @@ report and waits for approval (AGENTS rule 6). Roadmap change recorded in
   is the game; HUD under a `CanvasLayer`; the player's name tag is a `Control`
   under the player `Node2D`); `igui_game::GameView` and its `ui` feature are
   removed.
-- **M3 — remaining.** Multi-instance `Viewport` + `SubViewport` (a second
-  view / render target with its own camera and input routing). Not needed by the
-  now-single-tree `game_demo`; it is the next focused stage.
+- **M3 — done (scene-level).** Non-root `Viewport` nodes: `SceneTree::add_sub_viewport`
+  / `set_viewport_size_of`, `nearest_viewport`, and `canvas_transform_of`
+  resolves through the nearest viewport, so each `SubViewport` owns its own
+  `Camera2D` canvas. The root pass excludes a sub-viewport's subtree
+  (`paint_items`); `SceneTree::paint_viewport` / `igui_ui::paint_viewport` paint
+  it under its own camera and `igui_ui::mount_viewport_container` composites the
+  target texture. **Deferred:** per-viewport **UI layout** (a `Control` inside a
+  `SubViewport` still resolves against the root viewport rect) and per-viewport
+  **input routing** (the root viewport's is used).
 - **M6 — done.** Docs updated (`docs/design-system.md`, `AGENTS.md`, README,
   `docs/architecture.md`).
 

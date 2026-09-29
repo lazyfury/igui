@@ -251,7 +251,46 @@ pub fn paint(tree: &SceneTree, ctx: &mut PaintContext) {
     Ui.paint(tree, ctx)
 }
 
+/// Emits one viewport's control visuals into `ctx` in draw order (the
+/// `SubViewport` counterpart of [`paint`], paired with
+/// [`igui_scene::SceneTree::paint_viewport`]).
+pub fn paint_viewport(tree: &SceneTree, viewport: NodeId, ctx: &mut PaintContext) {
+    Ui.paint_viewport(tree, viewport, ctx)
+}
+
 /// Draws debug bounds plus `name#id` labels for every visible control.
 pub fn paint_debug(tree: &SceneTree, ctx: &mut PaintContext, options: &DebugDrawOptions) {
     Ui.paint_debug(tree, ctx, options)
+}
+
+/// Mounts a `Control` under `parent` that composites `target`, filling its
+/// parent — the `SubViewportContainer` half of a non-root [`Viewport`].
+///
+/// Pair it with [`SceneTree::add_sub_viewport`](igui_scene::SceneTree::add_sub_viewport)
+/// (the node that owns the sub-canvas) and
+/// [`SceneTree::paint_viewport`](igui_scene::SceneTree::paint_viewport): the host
+/// renders that `DrawList` into `target` and this control samples it.
+///
+/// ```ignore
+/// let sub = tree.add_sub_viewport(tree.root(), "minimap");
+/// tree.set_viewport_size_of(sub, Size::new(160.0, 160.0));
+/// // ... world under `sub` ...
+/// let container = igui_ui::mount_viewport_container(&mut tree, some_panel, sub_target);
+/// ```
+pub fn mount_viewport_container(
+    tree: &mut SceneTree,
+    parent: NodeId,
+    target: igui_render::RenderTargetId,
+) -> NodeId {
+    let id = tree.add_control(parent, "SubViewportContainer");
+    tree.set_data(
+        id,
+        Control::new(ControlData::fill_parent(), Container::Leaf, None),
+    );
+    let texture = target.texture();
+    add_foreground(tree, id, move |env, rect, _state| {
+        env.ctx
+            .draw_image(texture, rect, None, igui_render::Paint::default());
+    });
+    id
 }

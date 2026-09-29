@@ -9,8 +9,14 @@ use igui_render::{PaintContext, TextAlign};
 use igui_scene::SceneTree;
 
 impl Ui {
-    /// Emits control visuals into `ctx` in draw order.
+    /// Emits the root viewport's control visuals into `ctx` in draw order.
     pub fn paint(&self, tree: &SceneTree, ctx: &mut PaintContext) {
+        self.paint_viewport(tree, tree.root(), ctx);
+    }
+
+    /// Emits one viewport's control visuals into `ctx` in draw order — used for
+    /// a non-root `Viewport` (`SubViewport`) rendered into its own target.
+    pub fn paint_viewport(&self, tree: &SceneTree, viewport: NodeId, ctx: &mut PaintContext) {
         // Hold the root's text cache and measurer for the whole pass (created
         // empty / default if the tree has never been laid out).
         let root = crate::control::root_state(tree);
@@ -28,7 +34,7 @@ impl Ui {
         // `ClipRect` region, so an untransformed, unclipped UI costs no extra
         // commands (the common case stays byte-identical to before).
         let mut active: Option<(Transform2D, Option<Rect>)> = None;
-        for item in tree.paint_items() {
+        for item in tree.paint_items_in(viewport) {
             let id = item.id;
             let Some(control) = control_of(tree, id) else {
                 // A world canvas item (no `Control` runtime). End any control

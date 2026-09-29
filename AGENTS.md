@@ -310,11 +310,11 @@ notes are `docs/godot-migration.md`.
   timestep), Stage 28 (`igui_game` 2D game layer), Stage 27 (refresh decoupling),
   Stage 26 (`igui_anim` + `igui` facade skeleton), Stage 25 (Godot-style
   unified scene), `igui_font`, `Theme` trait.
-- **Next (future stages):** **Phase 8 (observability)**, the `/game_demo`
-  rewrite below (M5), and the remaining host migrations to the `igui_app`
-  runtime (`file_browser`, `deepseek_balance`, `game_demo`, and the sibling
-  `image_editor` / `archiver` / `classic-game-box` checkouts). The deferred
-  file-size splits are follow-ups.
+- **Next (future stages):** **Phase 8 (observability)**, per-viewport UI layout
+  / input for `SubViewport` (the deferred part of M3), and the remaining host
+  migrations to the `igui_app` runtime (`file_browser`, `deepseek_balance`,
+  `game_demo`, and the sibling `image_editor` / `archiver` /
+  `classic-game-box` checkouts). The deferred file-size splits are follow-ups.
 - **Un-numbered enhancement (accepted, in progress): single-tree viewport model
   + world-space `Control` (H2).** **M1** (tree-aware node callbacks with
   clone-out dispatch, one shape `(&mut SceneTree, NodeId, …)` across
@@ -324,8 +324,9 @@ notes are `docs/godot-migration.md`.
   actor — UI-only apps unchanged), **M5** (`examples/game_demo` rewritten
   game-first on one tree; `igui_game::GameView` and its `ui` feature removed),
   and a partial **M4** (`MouseFilter::Pass`, a no-op, removed) are done. **M3**
-  (multi-instance `Viewport` + `SubViewport` for a second view / render target)
-  remains. Full design and progress: `docs/viewport-model.md`.
+  (scene-level multi-instance `Viewport` + `SubViewport`: per-viewport cameras,
+  `paint_viewport`, and a compositing container; per-viewport UI layout and input
+  routing deferred) is done. Full design and progress: `docs/viewport-model.md`.
 - **Un-numbered enhancement (accepted): keyboard focus navigation + named group
   hover.** `igui_ui` gained a `focus` module (`FocusNav`/`FocusDir` +
   `set_focus`/`focus_move`/`focus_up..right`/`focus_next`/`focus_prev`/
