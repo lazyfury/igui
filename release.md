@@ -1,8 +1,45 @@
-# Unreleased
+# Release v0.3.0 — 2026-09-29
+
+Breaking release. Lands the single-tree / game-first model and the multi-viewport
+work that had accumulated since `v0.2.0`, then removes the 2D game layer.
+
+Scope: `git log v0.2.0..v0.3.0`. The `igui`-external consumers (`archiver`,
+`classic-game-box`, `image_editor`) were migrated to this commit in the same
+batch (see "Downstream follow-up").
 
 ## Breaking changes
 
-### Game layer removed
+### 1. Node callbacks unified to `(&mut SceneTree, NodeId, …)`
+
+Every node-triggered callback now receives the owning tree and node as its first
+two arguments, with clone-out dispatch (single-tree M1).
+
+- `igui_scene`: `process` / `physics_process` / `_input` / world pick /
+  `_unhandled_input` take `&mut SceneTree`.
+- `igui_ui`: `Control` click / drag / pointer / secondary / scroll / key / text /
+  IME callbacks gained `NodeId`; `PointerCallback` and `PointerTreeCallback`
+  were merged into one `PointerCallback` (`PointerPhase`).
+- `igui_components`: `Component::on_click` is `FnMut(&mut SceneTree, NodeId)`,
+  `on_pointer` is `FnMut(&mut SceneTree, NodeId, PointerPhase, Rect, Vec2)`,
+  `on_secondary_click` is `FnMut(&mut SceneTree, NodeId, Vec2)`, and `on_key` /
+  `on_text` / `on_drag` gained the tree + node. `Button` / `MenuItem`
+  `on_click`, `Select::on_open` and the `List` activation callback are affected.
+- Unchanged: overlay `on_confirm` / `on_cancel` / `on_close` and
+  `Checkbox`/`Radio` `on_change` (not node-triggered).
+- `MouseFilter::Pass` (a no-op) was removed.
+
+Migration: add `|_tree, _id|` to a click/open closure, `|_tree, _id, _phase, rect,
+point|` to an `on_pointer` closure, `|_tree, _id, point|` to
+`on_secondary_click`, and prepend the two args to a manual `ClickCallback` /
+`DragCallback` invocation.
+
+### 2. `GameView` removed
+
+`igui_game::GameView` and its optional `ui` feature are gone; the world lives in
+the one `SceneTree` (single-tree M5). A game-first host puts the game under the
+root viewport and the HUD under a `CanvasLayer`.
+
+### 3. Game layer removed
 
 `igui_game` and `examples/civ_demo` are gone, and the `igui` facade no longer
 has a `game` feature.
@@ -21,6 +58,43 @@ has a `game` feature.
   `Signal`, collision helpers) have no in-tree replacement. `igui_assets`
   remains a workspace crate (path dependency) but is no longer re-exported by
   the facade.
+
+## New capabilities
+
+- **World-space `Control` (single-tree M2).** A `Control` parented to a `Node2D`
+  resolves anchors against the node origin and paints under
+  `canvas_transform * world_transform`, so a health bar / name tag follows its
+  actor; a `Control` under a transformed `CanvasLayer` composites under it.
+  UI-only apps are byte-identical (identity transform emits no extra commands).
+- **Non-root `Viewport` / `SubViewport` (single-tree M3).** `SceneTree` gained
+  `add_sub_viewport` / `set_viewport_size_of` / `nearest_viewport`;
+  `canvas_transform_of` resolves through the nearest viewport, so each
+  `SubViewport` owns its own `Camera2D` canvas. `SceneTree::paint_viewport` /
+  `igui_ui::paint_viewport` paint a subtree under its own camera and
+  `igui_ui::mount_viewport_container` composites the target texture. Per-viewport
+  UI layout and input routing are deferred.
+- **wgpu backend (79bb259).** Cache and replay a single-list frame's tessellated
+  geometry when the `DrawList` is unchanged (no CPU re-tessellation / GPU vertex
+  re-upload); `set_msaa_samples` / `msaa_samples` (1 disables MSAA);
+  `remove_texture` frees a GPU texture when an image is deleted.
+
+## Downstream follow-up
+
+The three sibling consumers were migrated to this commit (the game-layer removal
+itself needed no source change in any of them):
+
+| Repo | Before | After | Source change |
+|---|---|---|---|
+| `archiver` | `fbcfeae` | `ac734a4` | `on_click` / `on_open` / `MenuItem` callbacks take `(&mut SceneTree, NodeId)` |
+| `classic-game-box` | rev `79bb259` | rev `ac734a4` | as above + `on_secondary_click` + `compact_button`/`icon_button` helpers + custom pointer routing passes the id |
+| `image_editor` | tag `v0.2.0` | rev `ac734a4` | as above + two colour-picker `on_pointer` closures + the layer-panel button helper |
+
+## Verification
+
+Gate for the tag: `cargo fmt --all -- --check`, `cargo check --workspace`,
+`cargo test --workspace`, `cargo bench --workspace --no-run`. Each migrated
+consumer passed its own gate (`fmt` / `check` / `test`) and `--selfcheck`
+(`archiver`, `classic-game-box`, `image_editor`).
 
 # Release v0.2.0 — 2026-09-28
 
