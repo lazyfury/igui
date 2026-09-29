@@ -12,7 +12,6 @@ members = [
     "crates/assets/igui_svg",
     "crates/assets/igui_assets",
     "crates/core/igui_anim",
-    "crates/core/igui_game",
     # concrete backends
     "crates/platform/canvas/igui_backend_canvas",
     "crates/platform/recording/igui_backend_recording",
@@ -36,7 +35,6 @@ members = [
     "examples/demoapp_ffi",
     "examples/wgpu_ffi",
     "examples/wgpu_demo",
-    "examples/civ_demo",
     "examples/multi_tree",
 ]
 
@@ -58,7 +56,6 @@ igui_font = { path = "crates/assets/igui_font" }
 igui_svg = { path = "crates/assets/igui_svg" }
 igui_assets = { path = "crates/assets/igui_assets" }
 igui_anim = { path = "crates/core/igui_anim" }
-igui_game = { path = "crates/core/igui_game" }
 igui_backend_canvas = { path = "crates/platform/canvas/igui_backend_canvas" }
 igui_backend_recording = { path = "crates/platform/recording/igui_backend_recording" }
 igui_backend_wgpu = { path = "crates/platform/wgpu/igui_backend_wgpu" }

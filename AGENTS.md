@@ -118,26 +118,15 @@ igui_anim     -> igui_core, igui_scene
                  (backend-neutral, time-driven tweens/easing; drives node
                   properties or external values. `is_animating` is the host's
                   "needs another frame" signal. No clock, no backend, no UI.)
-igui_game     -> igui_core, igui_render, igui_scene, igui_assets, igui_anim
-                 (2D game layer: sprites as `Node2D` + `Visual::Sprite`, texture
-                  upload through `RenderBackend::register_texture`, sprite-sheet
-                  frame animation, lightweight timers and typed signals, AABB/
-                  circle collision queries and `Area` enter/exit triggers. Every
-                  node callback is tree-aware. No backend; no rigid bodies, no
-                  audio. `igui`'s `game` feature forwards it. `GameView` and its
-                  `ui` feature were removed in M5 — the world lives in the one
-                  `SceneTree`.)
 igui          -> feature-gated re-exports only:
                  `ui`   -> igui_core, igui_render, igui_scene, igui_theme,
                            igui_ui, igui_components
                  `anim` -> igui_anim (+ igui_core, igui_scene)
-                 `game` -> igui_game, igui_assets (+ igui_core, igui_render,
-                           igui_scene)
                  `app`  -> igui_app (+ igui_core, igui_render)
                  `headless` -> igui_headless (+ igui_backend_recording; implies
                            `app`)
-                 (application facade; disabled crates are not compiled; `game`
-                  does not imply `ui`, `anim` is independent of both. No logic.)
+                 (application facade; disabled crates are not compiled; `anim`
+                  is independent of `ui`. No logic.)
 igui_app      -> igui_core, igui_render
                  (**non-core** plugin runtime: `App` / `AppBuilder` /
                   `Plugin` / `AppLogic` / `ServiceMap` / `Runner`, a neutral
@@ -169,15 +158,8 @@ wgpu_demo     -> igui_app, igui_winit, igui_headless, igui_core, igui_render,
                   gallery exercises `TextInput`/`TextArea` so it drives IME and
                   text input, and `--selfcheck` runs the same `AppLogic`
                   headlessly through `igui_headless`)
-civ_demo      -> igui_core, igui_render, igui_scene, igui_ui, igui_theme,
-                 igui_components, igui_anim, igui_game, igui_backend_wgpu, winit
-                 (window host: a small civilization simulation on a square grid —
-                  buildings, resources, gathering, population, consumption. The
-                  pure rules live in `sim.rs`; the tick is a
-                  `set_physics_process` callback, the view a `set_process`
-                  callback, and building name tags are world-space `Control`s
-                  under a `Node2D`. `--selfcheck` runs the real loop headlessly —
-                  no window, no screenshot.)
+civ_demo      -> (removed) a civilization simulation built on the 2D game
+                 layer (`igui_game`); both were deleted with the game layer.
 deepseek_balance -> igui_core, igui_render, igui_scene, igui_theme, igui_ui,
                  igui_components, igui_backend_wgpu, winit, ureq,
                  deepseek_util (own sub-crate `examples/deepseek_balance/util`:
@@ -209,8 +191,8 @@ Planned (future stages, see `docs/godot-migration.md`): no numbered stage is
 open. Phase 8 (observability) and the host migrations below remain.
 
 Crates are grouped by role under `crates/`: `core/` (backend-neutral engine:
-`igui_core` / `igui_render` / `igui_scene` / `igui_ui` / `igui_anim` /
-`igui_game`), `components/` (design system: `igui_theme` + `igui_components`),
+`igui_core` / `igui_render` / `igui_scene` / `igui_ui` / `igui_anim`),
+`components/` (design system: `igui_theme` + `igui_components`),
 `assets/` (backend-neutral services: `igui_font` / `igui_svg` / `igui_assets`),
 `platform/<backend>/` (concrete backends), `ffi/`, `debug/`, `bench/`,
 `window/` (window hosts) and `app/` (runtimes). Internal crates carry the
@@ -218,9 +200,9 @@ Crates are grouped by role under `crates/`: `core/` (backend-neutral engine:
 root). `examples/` keep their own names and are not grouped.
 
 The core crates stay fine-grained on purpose; applications use the `igui`
-facade with opt-in features (`ui`, `anim`, `game`, `app`, `headless`, `wgpu`,
-`canvas`, `wasm`, `profile`, `debug`, `recording`, `bench`). A UI-only app must
-not compile `igui_game`; `anim` is independent of `game`.
+facade with opt-in features (`ui`, `anim`, `app`, `headless`, `wgpu`,
+`canvas`, `wasm`, `profile`, `debug`, `recording`, `bench`). A UI-only app
+compiles only the `ui` feature and the backend it needs; `anim` is independent.
 
 `igui_scene -> igui_render` is intentional: `igui_render` is the backend-neutral
 IR (no backend/browser deps), and the Paint step (Scene -> DrawList) lives in the
@@ -255,7 +237,6 @@ None of the demos is a dependency of the core crates.
 | `examples/multi_tree` | root member | single crate, headless (`igui_backend_recording`) | `cargo test -p multi_tree` | dependency block above |
 | `examples/web_demo` | root member | WASM / Canvas host | `cargo test -p web_demo`; build `./examples/web_demo/build.sh` | `examples/web_demo/README.md` |
 | `examples/wgpu_demo` | root member | native `wgpu` + `winit`; `igui_app` + `igui_winit` plugins | `cargo test -p wgpu_demo`; run `cargo run -p wgpu_demo --release`; `cargo run -p wgpu_demo -- --selfcheck` | `examples/wgpu_demo/README.md`, `docs/debug.md` |
-| `examples/civ_demo` | root member | civilization simulation on a square grid (buildings/resources/gathering/population); native `wgpu` + `winit` | `cargo test -p civ_demo`; run `cargo run -p civ_demo --release`; `cargo run -p civ_demo -- --selfcheck` | dependency block above |
 | `examples/deepseek_balance` | **standalone** (own workspace) | own `util` sub-crate (member of that workspace); native `wgpu` + `winit` + `ureq` | `cargo test --manifest-path examples/deepseek_balance/Cargo.toml`; `cargo run --manifest-path examples/deepseek_balance/Cargo.toml -- --selfcheck` | dependency block above, crate module docs |
 | `examples/file_browser` | **standalone** (own workspace) | single crate; native `wgpu` + `winit` | `cargo test --manifest-path examples/file_browser/Cargo.toml`; `cargo run --manifest-path examples/file_browser/Cargo.toml -- --selfcheck` (`--dump` too) | dependency block above |
 | `examples/cpp_ffi` | **standalone** (C++/CMake; no Cargo workspace) | C++17 UI + OpenGL 3.3 backend; links `igui_ffi` + `demoapp_ffi` + `wgpu_ffi` | `./examples/cpp_ffi/build.sh`; `./examples/cpp_ffi/build/cpp_ffi --selfcheck` (`--dump`, `--gallery`, `--demoapp`, `--wgpu` too) | `examples/cpp_ffi/README.md`, `docs/cpp-ffi.md` |
@@ -314,7 +295,7 @@ notes are `docs/godot-migration.md`.
 - **Next (future stages):** **Phase 8 (observability)**, per-viewport UI layout
   / input for `SubViewport` (the deferred part of M3), and the remaining host
   migrations to the `igui_app` runtime (`file_browser`, `deepseek_balance`,
-  `civ_demo`, and the sibling `image_editor` / `archiver` /
+  and the sibling `image_editor` / `archiver` /
   `classic-game-box` checkouts). The deferred file-size splits are follow-ups.
 - **Un-numbered enhancement (accepted, in progress): single-tree viewport model
   + world-space `Control` (H2).** **M1** (tree-aware node callbacks with
@@ -361,6 +342,13 @@ notes are `docs/godot-migration.md`.
   (`GameView`/sub-viewport + fixed timestep), Stage 28 (`igui_game` 2D game
   layer), Stage 27 (refresh decoupling), Stage 26 (`igui_anim` + `igui` facade
   skeleton), Stage 25 (Godot-style unified scene), `igui_font`, `Theme` trait.
+- **Game layer removed (breaking, un-numbered).** `igui_game` and
+  `examples/civ_demo` were deleted, and the `igui` facade's `game` feature is
+  gone. `igui_anim` (time-driven tweens/easing, used by `demo_app`'s Animation
+  gallery) and `igui_assets` (backend-neutral PNG decode) stay; the only
+  consumer of `igui_game` was `civ_demo`. `Node2D` / `Visual::Sprite` and the
+  tree-aware `(&mut SceneTree, NodeId, …)` callbacks remain in `igui_scene` for
+  the UI and the benchmark suite. Recorded in `release.md`.
 
 On acceptance of a whole user task, the agent writes the durable summary into
 this file (the "Current stage" bullet under "Stages" plus any doc updates).

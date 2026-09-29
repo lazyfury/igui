@@ -8,7 +8,6 @@
 //! |---|---|
 //! | `ui` | `igui_core`, `igui_render`, `igui_scene`, `igui_theme`, `igui_ui`, `igui_components` |
 //! | `anim` | `igui_anim` (+ the `igui_core` / `igui_scene` it targets) |
-//! | `game` | `igui_game` + `igui_assets` (+ `igui_core` / `igui_render` / `igui_scene`) |
 //! | `app` | `igui_app` — the plugin-based `App` runtime (+ `igui_core` / `igui_render`) |
 //! | `headless` | `igui_headless` — a recording `Presenter` for headless self-checks (implies `app`) |
 //! | `wgpu` | `igui_backend_wgpu` — the native render backend |
@@ -20,8 +19,7 @@
 //! | `bench` | `igui_bench`, `igui_bench_suite` — benchmarks |
 //!
 //! Disabled crates are not compiled at all. A UI-only app enables `ui` and a
-//! backend; it never enables `game` or `anim`. `game` does **not** imply `ui`,
-//! and `anim` is independent of both. This crate contains no logic — only
+//! backend; it never enables `anim`. This crate contains no logic — only
 //! re-exports.
 //!
 //! ```toml
@@ -29,8 +27,6 @@
 //! igui = { path = ".../igui", default-features = false, features = ["ui", "wgpu"] }
 //! # web UI app
 //! igui = { path = ".../igui", default-features = false, features = ["ui", "canvas", "wasm"] }
-//! # 2D game
-//! igui = { path = ".../igui", default-features = false, features = ["game", "wgpu"] }
 //! # plugin runtime + headless self-check
 //! igui = { path = ".../igui", default-features = false, features = ["ui", "app", "headless"] }
 //! ```
@@ -41,7 +37,6 @@ pub const CRATE: &str = "igui";
 #[cfg(any(
     feature = "ui",
     feature = "anim",
-    feature = "game",
     feature = "app",
     feature = "wgpu",
     feature = "canvas",
@@ -51,12 +46,11 @@ pub const CRATE: &str = "igui";
 ))]
 pub use igui_core;
 
-#[cfg(any(feature = "ui", feature = "anim", feature = "game"))]
+#[cfg(any(feature = "ui", feature = "anim"))]
 pub use igui_scene;
 
 #[cfg(any(
     feature = "ui",
-    feature = "game",
     feature = "app",
     feature = "wgpu",
     feature = "canvas",
@@ -77,12 +71,6 @@ pub use igui_components;
 
 #[cfg(feature = "anim")]
 pub use igui_anim;
-
-#[cfg(feature = "game")]
-pub use igui_game;
-
-#[cfg(feature = "game")]
-pub use igui_assets;
 
 #[cfg(feature = "app")]
 pub use igui_app;

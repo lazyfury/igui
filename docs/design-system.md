@@ -596,11 +596,12 @@ clone-out dispatch. In `igui_scene`, `process` / `physics_process` / `_input` /
 world pick / `_unhandled_input` take `&mut SceneTree`; in `igui_ui`, `Control`'s
 click / drag / pointer / secondary / scroll / key / text / IME callbacks gained
 `NodeId` and the `PointerCallback` + `PointerTreeCallback` split was merged into
-one `PointerCallback` (`PointerPhase`); in `igui_game`, `Area` / `Timers` /
-`Signal` handlers receive `&mut SceneTree` (a game callback can now score, spawn
-or remove nodes with no `Rc<Cell>`/deferred-mutation workaround). `Signal` also
-gained a per-handler `Connection` / `disconnect`. `Control`/`GuiState` and
-`ControlData` keep their shapes.
+one `PointerCallback` (`PointerPhase`); the (since-removed) game layer
+`igui_game`'s `Area` / `Timers` / `Signal` handlers also received
+`&mut SceneTree` (a callback could score, spawn or remove nodes with no
+`Rc<Cell>`/deferred-mutation workaround). `igui_game` and its handlers were
+later deleted with the game layer; the tree-aware callback shape stays.
+`Control`/`GuiState` and `ControlData` keep their shapes.
 
 **M2 (H2 — `Control` as a first-class `CanvasItem`).** Non-breaking for UI-only
 apps: a `Control` parented to a `CanvasLayer`/root is pinned to the viewport and

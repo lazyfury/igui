@@ -33,7 +33,7 @@ Input -> SceneTree -> Update -> Layout -> Paint -> DrawList -> RenderBackend -> 
 | `igui_wasm` | browser glue (events, RAF, canvas wiring) |
 
 `igui` is the **facade** over the crates above: it re-exports them behind
-opt-in features (`ui`, `anim`, `game`, `app`, `headless`) without flattening
+opt-in features (`ui`, `anim`, `app`, `headless`) without flattening
 names, so imports still read `igui_components::…`. Dependency direction is
 enforced by crate boundaries: the pure core crates never depend on browser APIs
 or a concrete backend. See [`AGENTS.md`](AGENTS.md).
@@ -87,7 +87,6 @@ for the migration plan.
 | `examples/demo_app` | Shared three-column, macOS-style notes app (backend-neutral `DemoApp`) |
 | `examples/web_demo` | `demo_app` on the Canvas 2D backend (`igui_wasm`) |
 | `examples/wgpu_demo` | `demo_app` on a native `wgpu` surface + component/perf debug overlays |
-| `examples/civ_demo` | Civilization simulation on a square grid (buildings, resources, population) |
 | `examples/multi_tree` | Headless: repeated `into_tree()` calls yield independent trees (no shared ids/state) |
 | `examples/cpp_ffi` | C++ UI + OpenGL backend on the `igui` C ABI (`igui_ffi`/`demoapp_ffi`/`wgpu_ffi`) |
 | `examples/deepseek_balance` | Standalone macOS menu-bar tool: DeepSeek balance panel built from `igui_theme`/`igui_components` on a transparent `wgpu` surface |
@@ -192,7 +191,6 @@ down as a skill; when an API moves, update the skill in the same change.
   - `igui-ui` — build / route / paint a UI (`docs/ui-guide.md`, `docs/components.md`)
   - `igui-backend` — choose or add a backend (`docs/backend.md`)
   - `igui-ffi` — the C ABI and foreign hosts (`docs/cpp-ffi.md`)
-  - `igui-game` — the 2D game layer (`igui_game`)
 - **Validate** by running Pi with the repository as the working directory and
   checking the startup diagnostics and the `/skill:<name>` command.
 

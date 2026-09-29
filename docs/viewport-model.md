@@ -5,6 +5,14 @@ game-first, one `SceneTree`, `Viewport` nodes (root + `SubViewport`),
 `CanvasLayer` (screen HUD), and `Control` as a first-class `CanvasItem` so a
 `Control` inside the 2D world follows it (health bars, name tags).
 
+> **Note (breaking):** the `igui_game` crate and the game demo
+> (`examples/game_demo`, later `examples/civ_demo`) were deleted with the game
+> layer; the `igui` facade's `game` feature is gone. The viewport model this
+> document specifies — root `Viewport` + `SubViewport`, `CanvasLayer`, and
+> `Control` as a first-class `CanvasItem` — stays in `igui_scene` / `igui_ui`.
+> References to the game demo and `igui_game` below are kept as the original
+> design history.
+
 This document is the contract for stages **M1–M6**. Each stage ends with a
 report and waits for approval (AGENTS rule 6). Roadmap change recorded in
 `AGENTS.md` (rule 10).
@@ -44,7 +52,8 @@ report and waits for approval (AGENTS rule 6). Roadmap change recorded in
   `docs/architecture.md`).
 
 Owner: `igui_scene` (viewport/transform/lifecycle) + `igui_ui` (layout/paint of
-`Control`). `igui_game` is a consumer. Backend-neutral throughout.
+`Control`). `igui_game` was a consumer until the game layer was removed.
+Backend-neutral throughout.
 
 ---
 

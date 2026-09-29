@@ -16,20 +16,12 @@ ui = [
     "dep:igui_ui",
     "dep:igui_components",
 ]
-# Animation, independent of `ui` and `game`.
+# Animation, independent of `ui`.
 anim = ["dep:igui_anim", "dep:igui_core", "dep:igui_scene"]
 # Application runtime: the plugin-based `igui_app` builder (no platform).
 app = ["dep:igui_app", "dep:igui_core", "dep:igui_render"]
 # Headless recording presenter for `--selfcheck`; no `winit`.
 headless = ["app", "dep:igui_headless", "dep:igui_backend_recording"]
-# 2D game layer. Does not imply `ui`; `anim` stays independent.
-game = [
-    "dep:igui_game",
-    "dep:igui_assets",
-    "dep:igui_core",
-    "dep:igui_render",
-    "dep:igui_scene",
-]
 # Native render backend (wgpu).
 wgpu = ["dep:igui_backend_wgpu", "dep:igui_core", "dep:igui_render"]
 # Web render backend (HTML Canvas 2D). Compiles on any target; active on wasm.
@@ -53,8 +45,6 @@ igui_theme = { workspace = true, optional = true }
 igui_ui = { workspace = true, optional = true }
 igui_components = { workspace = true, optional = true }
 igui_anim = { workspace = true, optional = true }
-igui_game = { workspace = true, optional = true }
-igui_assets = { workspace = true, optional = true }
 igui_app = { workspace = true, optional = true }
 igui_headless = { workspace = true, optional = true }
 igui_backend_recording = { workspace = true, optional = true }

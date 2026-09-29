@@ -7,6 +7,12 @@ are future stages, not part of Stage 25's acceptance. Post-25.16 work:
 + `DefaultTheme`. **Stages 26-32 (animation + game + GameView + facade + the
 `igui_app` runtime) are approved**; see "Approved plan — Stages 26-32" below.
 
+> **Game layer removed (breaking):** `igui_game` and `examples/civ_demo` were
+> deleted and the `igui` facade's `game` feature is gone (only `civ_demo`
+> consumed `igui_game`). The Phase 6 / Stage 28-30 text below is kept as
+> history. `igui_anim` (used by `demo_app`'s Animation gallery) and
+> `igui_assets` (backend-neutral PNG decode) stay.
+
 Goal: turn igui from "a UI toolkit that also has a scene tree" into a
 **2D-first scene engine** modeled on Godot, where a single `SceneTree` owns both
 world (`Node2D`) and UI (`Control`), the camera drives the world only, and UI
@@ -578,9 +584,9 @@ Phase 5-6 are the second batch.
    while adding the borrowed API; migrate demos afterwards.
 4. **Packaging.** Core crates stay fine-grained (they enforce the boundaries);
    applications use a single facade crate `igui` with opt-in features.
-   Game logic lives only in `igui_game`, never in the core, so a UI-only app
-   cannot compile it. See the Packaging section. Implementation is deferred to
-   Phase 9.
+   Game logic lived only in `igui_game` (since removed), never in the core, so a
+   UI-only app could not compile it. See the Packaging section. Implementation is
+   deferred to Phase 9.
 
 ## Packaging — facade crate `igui`
 
@@ -597,20 +603,19 @@ igui_core ──┬─ igui_render ──┬─ igui_scene ── igui_ui ──
             ├─ igui_profile
             └─ igui_backend_{canvas,recording,wgpu}
 
-igui_game -> igui_scene (+ optional igui_ui)   [Phase 6]
+igui_game -> igui_scene (+ optional igui_ui)   [Phase 6 — removed]
 igui      -> re-exports, feature-gated                    [Phase 9]
 ```
 
 Minimum for a **UI-only app**: `igui_core`, `igui_render`, `igui_scene`,
 `igui_theme`, `igui_ui`, `igui_components` + one backend. It never pulls
-`igui_game`, `igui_profile`, `igui_debug_ui` or the benches unless asked.
+`igui_profile`, `igui_debug_ui` or the benches unless asked.
 
 The `igui` facade feature matrix:
 
 | feature | forwards to | notes |
 |---|---|---|
 | `ui` | `igui_core`, `igui_render`, `igui_scene`, `igui_theme`, `igui_ui`, `igui_components` | base for any app |
-| `game` | `igui_game` | 2D world / sprites / collision; **does not imply `ui`** |
 | `wgpu` | `igui_backend_wgpu` | native rendering |
 | `canvas` | `igui_backend_canvas` | web rendering |
 | `wasm` | `igui_wasm` | browser glue (implies `canvas`) |

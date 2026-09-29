@@ -143,7 +143,8 @@ logical size plus the world -> screen `canvas_transform`.)
   `is_animating` is the host's "needs another frame" signal. No clock, backend
   or UI dependency. The same task created the `igui` facade skeleton as
   re-exports only, with opt-in `ui` / `anim` features (`game` landed in Stage
-  28; the backend/observability features in Stage 32).
+  28 and was **removed** later — see the game-layer removal note at the end of
+  this list; the backend/observability features landed in Stage 32).
 - Stage 27 — refresh decoupling [done]: additive core plumbing so a host can
   render only on change and keep an unchanged UI out of the frame cost. The
   `igui_ui` root state gained a `paint_generation` (bumped by layout
@@ -210,6 +211,14 @@ logical size plus the world -> screen `canvas_transform`.)
   landed Stage 32). `examples/wgpu_demo` is
   migrated and gains `--selfcheck`. See `docs/godot-migration.md` → "Stage 31
   plan".
+- Game layer removed [breaking]: `crates/core/igui_game` and
+  `examples/civ_demo` were deleted and the `igui` facade's `game` feature is
+  gone (only `civ_demo` consumed `igui_game`). Stages 28-30 above describe the
+  now-removed layer and are kept as history. `igui_anim` (used by
+  `demo_app`'s Animation gallery) and `igui_assets` (backend-neutral PNG decode)
+  stay; `igui_scene`'s `Node2D` / `Visual::Sprite`, the type-keyed `Node.data`
+  store and the tree-aware callbacks stay (used by `igui_ui` and the benchmark
+  suite). Recorded in `release.md`.
 
 ## Debugging & performance inspection
 

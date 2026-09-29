@@ -3,7 +3,7 @@
 //! Decodes image files into tightly packed RGBA8 bytes plus their dimensions,
 //! so a host can upload the result through the backend-neutral
 //! `RenderBackend::register_texture` contract without any codec or backend
-//! dependency leaking into `igui_game`.
+//! dependency leaking into the consumer.
 //!
 //! It depends only on `igui_core` (for [`igui_core::Size`]) and the pure-Rust
 //! `png` decoder; it never touches a browser, GPU or window. Hosts read the

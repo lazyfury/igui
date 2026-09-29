@@ -264,22 +264,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f079e83a288787bcd14a6aea84cee5c87a67c5a3e660c30f557a3d24761b3527"
 
 [[package]]
-name = "civ_demo"
-version = "0.1.0"
-dependencies = [
- "igui_anim",
- "igui_backend_wgpu",
- "igui_components",
- "igui_core",
- "igui_game",
- "igui_render",
- "igui_scene",
- "igui_theme",
- "igui_ui",
- "winit",
-]
-
-[[package]]
 name = "clipboard-win"
 version = "5.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -747,7 +731,6 @@ version = "0.1.0"
 dependencies = [
  "igui_anim",
  "igui_app",
- "igui_assets",
  "igui_backend_canvas",
  "igui_backend_recording",
  "igui_backend_wgpu",
@@ -756,7 +739,6 @@ dependencies = [
  "igui_components",
  "igui_core",
  "igui_debug_ui",
- "igui_game",
  "igui_headless",
  "igui_profile",
  "igui_render",
@@ -889,18 +871,6 @@ dependencies = [
  "ttf-parser",
  "unicode-bidi",
  "unicode-script",
-]
-
-[[package]]
-name = "igui_game"
-version = "0.1.0"
-dependencies = [
- "igui_anim",
- "igui_assets",
- "igui_backend_recording",
- "igui_core",
- "igui_render",
- "igui_scene",
 ]
 
 [[package]]

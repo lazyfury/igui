@@ -1,3 +1,27 @@
+# Unreleased
+
+## Breaking changes
+
+### Game layer removed
+
+`igui_game` and `examples/civ_demo` are gone, and the `igui` facade no longer
+has a `game` feature.
+
+- **Deleted:** `crates/core/igui_game` (sprites, `Area`, timers, typed signals,
+  AABB/circle collision, sprite-frame animation, `GameView`) and
+  `examples/civ_demo`.
+- **Removed:** the `igui` `game` feature and its `igui_game` / `igui_assets`
+  re-exports; the root workspace no longer lists either crate/example.
+- **Kept on purpose:** `igui_anim` (time-driven tweens/easing, used by
+  `demo_app`'s Animation gallery) and `igui_assets` (backend-neutral PNG
+  decode) are not game APIs; `igui_scene`'s `Node2D` / `Visual::Sprite`, the
+  type-keyed `Node.data` store and the tree-aware callbacks stay.
+- **Migration:** a host that enabled `igui`'s `game` feature / depended on
+  `igui_game` drops it; the game-specific types (`Sprite2D`, `Area`, `Timer`,
+  `Signal`, collision helpers) have no in-tree replacement. `igui_assets`
+  remains a workspace crate (path dependency) but is no longer re-exported by
+  the facade.
+
 # Release v0.2.0 — 2026-09-28
 
 Same-day follow-up to `v0.1.0`, which was an intermediate checkpoint taken at

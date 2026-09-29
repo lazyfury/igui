@@ -12,9 +12,11 @@ primitives, and the demo. Keep this short and move finished items to the
 > `godot-migration.md` wins.
 
 > **Stages 26-31 approved** (animation + game + GameView + `igui` facade):
-> `igui_anim` (26), refresh decoupling (27), `igui_game` (28), GameView /
-> sub-viewport + fixed timestep (29), `examples/game_demo` (30), `igui` facade
-> (31). See `docs/godot-migration.md` → "Approved plan — Stages 26-31".
+> `igui_anim` (26), refresh decoupling (27), `igui_game` (28, **later
+> removed**), GameView / sub-viewport + fixed timestep (29),
+> `examples/game_demo` (30, **later removed**), `igui` facade (31). The game
+> layer and its demos were deleted (see `release.md`); `igui_anim` stays. See
+> `docs/godot-migration.md` → "Approved plan — Stages 26-31".
 
 ## Drawing primitives
 
@@ -149,19 +151,6 @@ host is already continuous. Next:
 
 - Keyboard navigation (arrow keys move between groups and cards).
 - Command palette overlay using the `List`/`Input` components.
-
-## Demo (`examples/civ_demo`)
-
-A small civilization simulation on a square grid, and the reference for the
-single-tree / logic-on-nodes model. The pure rules (tiles, resources, gathering,
-population, consumption) live in `sim.rs` and are unit tested without a tree.
-The scene tick is a `set_physics_process` callback, the view (tile colours, HUD
-counters) is a `set_process` callback, and building name tags are world-space
-`Control`s under a `Node2D`. The window host is `winit` + `igui_backend_wgpu`;
-`--selfcheck` runs the real loop headlessly. Next:
-
-- Enemy/obstacle behaviour and a game-over/restart flow.
-- Interpolation between fixed steps for smoother motion at low step rates.
 
 ## Demo (`image_editor`)
 
