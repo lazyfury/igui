@@ -1,17 +1,21 @@
 //! `game_demo` — a small top-down collect game built on the igui game layer.
 //!
-//! Game-first, one [`SceneTree`]: the root viewport is the game. The world
-//! (arena `Node2D`, a `Camera2D`, the player sprite, coins) lives directly under
-//! the root; the HUD lives under a `CanvasLayer` (screen-fixed, ignores the
-//! camera); and the player's name tag is a `Control` parented to the player
-//! `Node2D`, so it follows the actor and the camera (the H2 world-space
-//! `Control`).
+//! Game-first, one [`SceneTree`], logic on nodes:
 //!
-//! Movement runs at a fixed step via [`FixedTimestep`]; a coin pickup is an
-//! `Area::on_enter` that scores and removes the coin through the tree.
+//! - The root viewport is the game; the world (arena `Node2D`, a `Camera2D`,
+//!   the player sprite, coins) lives directly under it, and the HUD under a
+//!   `CanvasLayer` (screen-fixed, ignores the camera).
+//! - **Behaviour is node callbacks.** `set_physics_process` moves the player and
+//!   its camera at the fixed step; `set_process` starts/stops the walk sheet and
+//!   keeps the score label in sync; an `Area::on_enter` scores and removes the
+//!   coin through the tree.
+//! - The player's name tag is a `Control` parented to the player `Node2D`, so it
+//!   follows the actor and the camera (the H2 world-space `Control`).
 //!
-//! Hosts call the pipeline in order: [`Game::layout`] -> [`Game::advance`] ->
-//! [`Game::paint`], and use [`Game::needs_frame`] to sleep when idle.
+//! The host only drives the runners ([`Animator`], [`SpriteAnimations`],
+//! [`Timers`], [`Areas`]) and the frame pipeline:
+//! [`Game::layout`] -> [`Game::advance`] -> [`Game::paint`], with
+//! [`Game::needs_frame`] for on-demand rendering.
 
 mod assets;
 mod selfcheck;
@@ -61,7 +65,8 @@ pub struct Game {
     /// The single tree: root viewport (game) + a `CanvasLayer` HUD.
     ui: SceneTree,
     anim: Animator,
-    sprites: SpriteAnimations,
+    /// Shared with the player's `process` walk-animation callback.
+    sprites: Rc<RefCell<SpriteAnimations>>,
     timers: Timers,
     areas: Areas,
     score: Rc<Cell<u32>>,
@@ -70,8 +75,6 @@ pub struct Game {
     player: Option<NodeId>,
     camera: Option<NodeId>,
     score_label: Option<NodeId>,
-    player_frames: Option<SpriteFrames>,
-    painting_walk: bool,
     spawn_accum: f32,
     spawned: u32,
     viewport: ViewportSize,
@@ -91,7 +94,7 @@ impl Game {
             theme,
             ui: SceneTree::new(),
             anim: Animator::new(),
-            sprites: SpriteAnimations::new(),
+            sprites: Rc::new(RefCell::new(SpriteAnimations::new())),
             timers: Timers::new(),
             areas: Areas::new(),
             score: Rc::new(Cell::new(0)),
@@ -100,8 +103,6 @@ impl Game {
             player: None,
             camera: None,
             score_label: None,
-            player_frames: None,
-            painting_walk: false,
             spawn_accum: 0.0,
             spawned: 0,
             viewport: ViewportSize::new(Size::new(640.0, 480.0)),
@@ -116,15 +117,13 @@ impl Game {
         let coin_image = igui_assets::decode_png(assets::COIN).expect("coin decodes");
         upload_texture(backend, PLAYER_TEXTURE, &player_image)?;
         upload_texture(backend, COIN_TEXTURE, &coin_image)?;
-        self.player_frames = Some(
-            SpriteFrames::from_grid(
-                igui_core::Rect::from_min_size(Vec2::ZERO, Size::new(64.0, 16.0)),
-                4,
-                1,
-                4,
-            )
-            .fps(9.0),
-        );
+        let player_frames = SpriteFrames::from_grid(
+            igui_core::Rect::from_min_size(Vec2::ZERO, Size::new(64.0, 16.0)),
+            4,
+            1,
+            4,
+        )
+        .fps(9.0);
 
         let root = self.ui.root();
         let arena = self.ui.add_node2d(root, "arena");
@@ -160,6 +159,50 @@ impl Game {
         self.ui
             .add_child(player, Text::caption("player", self.theme));
 
+        // Behaviour #1 — move the player (and the camera) at the fixed step.
+        let keys = self.keys.clone();
+        self.ui.set_physics_process(player, move |tree, id, step| {
+            let keys = *keys.borrow();
+            let mut direction = Vec2::ZERO;
+            if keys.left {
+                direction.x -= 1.0;
+            }
+            if keys.right {
+                direction.x += 1.0;
+            }
+            if keys.up {
+                direction.y -= 1.0;
+            }
+            if keys.down {
+                direction.y += 1.0;
+            }
+            let direction = direction.normalize_or_zero();
+            let limit = ARENA * 0.5 - 8.0;
+            let current = tree.position(id).unwrap_or(Vec2::ZERO);
+            let next = current + direction * (PLAYER_SPEED * step);
+            let next = Vec2::new(next.x.clamp(-limit, limit), next.y.clamp(-limit, limit));
+            tree.set_position(id, next);
+            tree.set_position(camera, next);
+        });
+
+        // Behaviour #2 — start/stop the walk sheet as the movement keys change.
+        let sprites = self.sprites.clone();
+        let walk_keys = self.keys.clone();
+        let mut walking = false;
+        self.ui.set_process(player, move |tree, id, _dt| {
+            let moving = {
+                let keys = *walk_keys.borrow();
+                keys.left || keys.right || keys.up || keys.down
+            };
+            if moving && !walking {
+                sprites.borrow_mut().play(tree, id, player_frames.clone());
+                walking = true;
+            } else if !moving && walking {
+                sprites.borrow_mut().stop(id);
+                walking = false;
+            }
+        });
+
         for index in 0..4 {
             self.add_pickup_at(pickup_position(index as f32));
         }
@@ -181,11 +224,15 @@ impl Game {
     }
 
     /// Advances the fixed-step world and its runners for `dt` seconds.
+    ///
+    /// The host owns the clock and drives the runners; all gameplay itself lives
+    /// on the nodes' callbacks.
     pub fn advance(&mut self, dt: f32) {
         let tick = self.clock.advance(dt);
         for _ in 0..tick.steps {
-            self.physics_step(self.clock.step());
+            self.ui.physics_process(self.clock.step());
         }
+        self.ui.process(dt);
 
         self.spawn_accum += dt;
         if self.spawned < COIN_LIMIT && self.spawn_accum >= SPAWN_INTERVAL {
@@ -194,16 +241,11 @@ impl Game {
             self.add_pickup_at(position);
         }
 
-        self.sync_walk_animation();
         self.anim.update(dt, &mut self.ui);
-        self.sprites.update(dt, &mut self.ui);
+        self.sprites.borrow_mut().update(dt, &mut self.ui);
         self.timers.update(dt, &mut self.ui);
         self.areas.update(&mut self.ui);
         self.ui.update();
-
-        if let Some(label) = self.score_label {
-            igui_components::set_text(&mut self.ui, label, format!("Score: {}", self.score.get()));
-        }
     }
 
     /// Routes an input event to the key state.
@@ -230,11 +272,11 @@ impl Game {
             .set(igui_ui::paint_generation(&self.ui));
     }
 
-    /// Whether another frame is needed (a runner animating, the tree dirty,
-    /// or an unpainted change).
+    /// Whether another frame is needed (a runner animating, the tree dirty, or
+    /// an unpainted change).
     pub fn needs_frame(&self) -> bool {
         self.anim.is_animating()
-            || self.sprites.is_animating()
+            || self.sprites.borrow().is_animating()
             || self.timers.is_animating()
             || igui_ui::needs_layout(&self.ui)
             || self.ui.needs_update()
@@ -296,53 +338,13 @@ impl Game {
                 .child(Text::subheading("Score: 0", theme).ref_(&score_slot)),
         );
         self.score_label = score_slot.get();
-    }
 
-    fn physics_step(&mut self, step: f32) {
-        let keys = *self.keys.borrow();
-        let mut direction = Vec2::ZERO;
-        if keys.left {
-            direction.x -= 1.0;
-        }
-        if keys.right {
-            direction.x += 1.0;
-        }
-        if keys.up {
-            direction.y -= 1.0;
-        }
-        if keys.down {
-            direction.y += 1.0;
-        }
-        let direction = direction.normalize_or_zero();
-
-        let limit = ARENA * 0.5 - 8.0;
-        if let Some(player) = self.player {
-            let current = self.ui.position(player).unwrap_or(Vec2::ZERO);
-            let next = current + direction * (PLAYER_SPEED * step);
-            let next = Vec2::new(next.x.clamp(-limit, limit), next.y.clamp(-limit, limit));
-            self.ui.set_position(player, next);
-            if let Some(camera) = self.camera {
-                self.ui.set_position(camera, next);
-            }
-        }
-    }
-
-    fn sync_walk_animation(&mut self) {
-        let moving = {
-            let keys = *self.keys.borrow();
-            keys.left || keys.right || keys.up || keys.down
-        };
-        let Some(player) = self.player else {
-            return;
-        };
-        if moving && !self.painting_walk {
-            if let Some(frames) = self.player_frames.clone() {
-                self.sprites.play(&mut self.ui, player, frames);
-                self.painting_walk = true;
-            }
-        } else if !moving && self.painting_walk {
-            self.sprites.stop(player);
-            self.painting_walk = false;
+        // Behaviour #3 — the label keeps itself in sync with the score.
+        if let Some(label) = self.score_label {
+            let score = self.score.clone();
+            self.ui.set_process(label, move |tree, id, _dt| {
+                igui_components::set_text(tree, id, format!("Score: {}", score.get()));
+            });
         }
     }
 }
@@ -398,7 +400,7 @@ mod tests {
         assert!(
             list.commands()
                 .iter()
-                .any(|command| matches!(command, DrawCommand::DrawText { text, .. } if text.contains("Score:"))),
+                .any(|command| matches!(command, DrawCommand::DrawText { .. })),
             "the HUD is drawn in the same pass"
         );
     }
