@@ -150,17 +150,15 @@ host is already continuous. Next:
 - Keyboard navigation (arrow keys move between groups and cards).
 - Command palette overlay using the `List`/`Input` components.
 
-## Demo (`examples/game_demo`)
+## Demo (`examples/civ_demo`)
 
-A top-down collect game and the reference game host. Game-first on one
-`SceneTree`: the root viewport is the game, the HUD lives under a `CanvasLayer`,
-and the player's name tag is a `Control` under the player `Node2D` (a world-space
-control). An embedded PNG atlas decoded by `igui_assets` drives `SpriteFrames`
-walk animation, a `Camera2D` follows the player, `Area` coin pickups score and
-remove the coin through the tree, a `igui_anim` tween scales the player in, and
-movement runs at a 120 Hz `FixedTimestep`. The window host is `winit` +
-`igui_backend_wgpu` with on-demand redraw; `--selfcheck` renders the same
-pipeline headlessly through `igui_backend_recording`. Next:
+A small civilization simulation on a square grid, and the reference for the
+single-tree / logic-on-nodes model. The pure rules (tiles, resources, gathering,
+population, consumption) live in `sim.rs` and are unit tested without a tree.
+The scene tick is a `set_physics_process` callback, the view (tile colours, HUD
+counters) is a `set_process` callback, and building name tags are world-space
+`Control`s under a `Node2D`. The window host is `winit` + `igui_backend_wgpu`;
+`--selfcheck` runs the real loop headlessly. Next:
 
 - Enemy/obstacle behaviour and a game-over/restart flow.
 - Interpolation between fixed steps for smoother motion at low step rates.

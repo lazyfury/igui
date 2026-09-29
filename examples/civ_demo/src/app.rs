@@ -1,22 +1,22 @@
-//! The `winit` + wgpu window host for the game demo.
+//! The `winit` + wgpu window host for the civilization demo.
 
 use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Instant;
 
-use game_demo::Game;
+use civ_demo::CivGame;
 use igui_backend_wgpu::{wgpu, FontConfig, FontMetrics, FontMode, WgpuBackend};
-use igui_core::{FontWeight, InputEvent, Key, Size, ViewportSize};
+use igui_core::{FontWeight, InputEvent, Key, PointerButton, Size, Vec2, ViewportSize};
 use igui_render::{PaintContext, RenderBackend};
 use igui_ui::TextMeasurer;
 use winit::application::ApplicationHandler;
 use winit::dpi::LogicalSize;
-use winit::event::{ElementState, WindowEvent};
+use winit::event::{ElementState, MouseButton, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::keyboard::{Key as WinitKey, NamedKey};
 use winit::window::{Window, WindowId};
 
-/// Adapts the backend's font metrics to the HUD layout engine.
+/// Adapts the backend's font metrics to the layout engine.
 struct BackendTextMeasurer {
     metrics: FontMetrics,
 }
@@ -62,9 +62,10 @@ struct App {
     backend: Option<WgpuBackend>,
     config: Option<wgpu::SurfaceConfiguration>,
     scale: f64,
-    game: Option<Game>,
+    game: Option<CivGame>,
     last_frame: Instant,
     font_mode: FontMode,
+    cursor: Vec2,
 }
 
 impl App {
@@ -79,6 +80,7 @@ impl App {
             game: None,
             last_frame: Instant::now(),
             font_mode: FontMode::System,
+            cursor: Vec2::ZERO,
         }
     }
 
@@ -90,7 +92,7 @@ impl App {
             event_loop
                 .create_window(
                     Window::default_attributes()
-                        .with_title("igui — Game")
+                        .with_title("igui — Civilization")
                         .with_inner_size(LogicalSize::new(900.0, 640.0)),
                 )
                 .expect("create window"),
@@ -128,7 +130,7 @@ impl App {
 
         self.scale = window.scale_factor();
         backend.set_scale_factor(self.scale as f32);
-        backend.set_clear_color(igui_core::Color::new(0.05, 0.06, 0.08, 1.0));
+        backend.set_clear_color(igui_core::Color::new(0.05, 0.07, 0.09, 1.0));
         if let Err(error) = backend.set_font_config(FontConfig {
             mode: self.font_mode,
             device_pixel_rasterization: true,
@@ -137,13 +139,11 @@ impl App {
             eprintln!("font setup failed: {error}");
         }
 
-        let mut game = Game::new();
+        let mut game = CivGame::new();
         game.set_text_measurer(Rc::new(BackendTextMeasurer {
             metrics: backend.text_metrics(),
         }));
-        if let Err(error) = game.init(&mut backend) {
-            eprintln!("game init failed: {error:?}");
-        }
+        game.init();
 
         self.window = Some(window);
         self.surface = Some(surface);
@@ -261,6 +261,22 @@ impl ApplicationHandler for App {
                     backend.set_scale_factor(scale_factor as f32);
                 }
             }
+            WindowEvent::CursorMoved { position, .. } => {
+                let logical = position.to_logical::<f32>(self.scale);
+                self.cursor = Vec2::new(logical.x, logical.y);
+            }
+            WindowEvent::MouseInput {
+                state: ElementState::Pressed,
+                button: MouseButton::Left,
+                ..
+            } => {
+                if let Some(game) = self.game.as_mut() {
+                    game.event(&InputEvent::PointerDown {
+                        position: self.cursor,
+                        button: PointerButton::Left,
+                    });
+                }
+            }
             WindowEvent::KeyboardInput { event, .. } => {
                 let Some(key) = map_key(&event.logical_key) else {
                     return;
@@ -283,10 +299,6 @@ impl ApplicationHandler for App {
 
 fn map_key(key: &WinitKey) -> Option<Key> {
     match key {
-        WinitKey::Named(NamedKey::ArrowLeft) => Some(Key::ArrowLeft),
-        WinitKey::Named(NamedKey::ArrowRight) => Some(Key::ArrowRight),
-        WinitKey::Named(NamedKey::ArrowUp) => Some(Key::ArrowUp),
-        WinitKey::Named(NamedKey::ArrowDown) => Some(Key::ArrowDown),
         WinitKey::Named(NamedKey::Escape) => Some(Key::Escape),
         WinitKey::Character(text) => text.chars().next().map(Key::Character),
         _ => None,

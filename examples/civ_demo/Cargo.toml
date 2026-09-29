@@ -1,5 +1,5 @@
 [package]
-name = "game_demo"
+name = "civ_demo"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -14,8 +14,6 @@ igui_ui.workspace = true
 igui_theme.workspace = true
 igui_components.workspace = true
 igui_anim.workspace = true
-igui_assets.workspace = true
 igui_game.workspace = true
 igui_backend_wgpu.workspace = true
-igui_backend_recording.workspace = true
 winit = "0.30"

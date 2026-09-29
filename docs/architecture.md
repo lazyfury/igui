@@ -179,9 +179,9 @@ logical size plus the world -> screen `canvas_transform`.)
   drives the same pipeline headlessly through `igui_backend_recording`. Render
   targets share the texture id space, so their ids are kept disjoint from uploaded
   textures (the wgpu backend rejects a collision). **Later (M5, single-tree
-  migration) `GameView` was removed:** `examples/game_demo` is now game-first on
-  one `SceneTree`, so the render target and its `ui` feature are gone. See
-  `docs/viewport-model.md`.
+  migration) `GameView` was removed** and `examples/game_demo` became game-first
+  on one `SceneTree`; it was then replaced by **`examples/civ_demo`** (a square-
+  grid civilization simulation), see `docs/plan.md`. See `docs/viewport-model.md`.
 - Editable text input + shared host [done]: `igui_core` gained `Modifiers`
   (`InputEvent::ModifiersChanged`) and `InputEvent::Ime(ImeEvent)`; `igui_ui`
   gained the dependency-free `TextEdit` state machine, focused key/text/IME

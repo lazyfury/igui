@@ -87,7 +87,7 @@ for the migration plan.
 | `examples/demo_app` | Shared three-column, macOS-style notes app (backend-neutral `DemoApp`) |
 | `examples/web_demo` | `demo_app` on the Canvas 2D backend (`igui_wasm`) |
 | `examples/wgpu_demo` | `demo_app` on a native `wgpu` surface + component/perf debug overlays |
-| `examples/game_demo` | Game-first top-down collect game on one `SceneTree` + HUD |
+| `examples/civ_demo` | Civilization simulation on a square grid (buildings, resources, population) |
 | `examples/multi_tree` | Headless: repeated `into_tree()` calls yield independent trees (no shared ids/state) |
 | `examples/cpp_ffi` | C++ UI + OpenGL backend on the `igui` C ABI (`igui_ffi`/`demoapp_ffi`/`wgpu_ffi`) |
 | `examples/deepseek_balance` | Standalone macOS menu-bar tool: DeepSeek balance panel built from `igui_theme`/`igui_components` on a transparent `wgpu` surface |
