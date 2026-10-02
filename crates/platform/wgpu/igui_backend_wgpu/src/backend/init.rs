@@ -170,6 +170,7 @@ impl WgpuBackend {
             offscreen: None,
             msaa: None,
             frame: None,
+            last_frame_offscreen: false,
             msaa_samples: DEFAULT_MSAA_SAMPLES,
             in_frame: false,
             viewport: ViewportSize::default(),

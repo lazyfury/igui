@@ -299,7 +299,6 @@ pub(super) struct Frame {
     pub(super) width: u32,
     pub(super) height: u32,
     pub(super) format: wgpu::TextureFormat,
-    pub(super) offscreen: bool,
 }
 
 /// A `wgpu` [`RenderBackend`] rendering to an offscreen texture or a surface.
@@ -339,7 +338,12 @@ pub struct WgpuBackend {
 
     pub(super) offscreen: Option<OffscreenTarget>,
     pub(super) msaa: Option<MsaaTarget>,
+    /// The frame being built; dropped by [`RenderBackend::end_frame`].
     pub(super) frame: Option<Frame>,
+    /// Whether the last completed frame was offscreen. [`Frame`] is dropped at
+    /// the end of a frame, but `read_pixels` still needs to know where the
+    /// pixels came from, so the flag outlives it.
+    pub(super) last_frame_offscreen: bool,
     /// Active multisample count; `1` disables MSAA.
     pub(super) msaa_samples: u32,
 
@@ -861,8 +865,8 @@ impl RenderBackend for WgpuBackend {
             width,
             height,
             format: TARGET_FORMAT,
-            offscreen: true,
         });
+        self.last_frame_offscreen = true;
         Ok(())
     }
 
@@ -922,6 +926,9 @@ impl RenderBackend for WgpuBackend {
             self.cached_geometry = None;
         }
         self.render_frame();
+        // Drop the frame (and with it any surface texture view) so a swap
+        // chain can be resized without a live reference to a back buffer.
+        self.frame = None;
         Ok(())
     }
 

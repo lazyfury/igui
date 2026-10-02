@@ -31,15 +31,16 @@ impl WgpuBackend {
             width,
             height,
             format,
-            offscreen: false,
         });
+        self.last_frame_offscreen = false;
         Ok(())
     }
 
-    /// Returns `true` when the current frame targets the offscreen texture, so
-    /// [`WgpuBackend::read_pixels`] will reflect this frame.
+    /// Returns `true` when the last completed frame targeted the offscreen
+    /// texture, so [`WgpuBackend::read_pixels`] reflects it. Valid to call
+    /// after [`RenderBackend::end_frame`].
     pub fn is_offscreen_frame(&self) -> bool {
-        self.frame.as_ref().is_some_and(|frame| frame.offscreen)
+        self.last_frame_offscreen
     }
 
     /// Ensures a render pipeline exists for `format`, creating it on demand.
