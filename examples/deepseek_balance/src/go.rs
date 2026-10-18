@@ -15,7 +15,8 @@ use std::time::Duration;
 use deepseek_util::time::parse_rfc3339_utc;
 use serde::Deserialize;
 
-use crate::api::{error_detail, non_blank};
+use crate::keyring::{self, non_blank, Spec};
+use crate::net::{self, Error};
 
 /// Usage endpoint used when `OPENCODE_GO_USAGE_URL` is not set.
 const DEFAULT_USAGE_URL: &str = "https://opencode.ai/zen/go/v1/usage";
@@ -199,67 +200,32 @@ pub fn api_key_from_auth_json() -> Option<String> {
     None
 }
 
-/// Key from `auth.json` first, then `OPENCODE_GO_API_KEY`, `None` when neither
-/// has one.
-pub fn api_key() -> Option<String> {
-    api_key_from_auth_json().or_else(|| non_blank(std::env::var("OPENCODE_GO_API_KEY").ok()))
+/// How the key is found: OpenCode's `auth.json`, then the process environment,
+/// then the user's login shell (see [`crate::keyring`]).
+fn key_spec() -> Spec<'static> {
+    Spec {
+        env_var: "OPENCODE_GO_API_KEY",
+        marker: "__IGUI_GO_KEY__",
+        missing: MISSING_KEY_MESSAGE,
+    }
 }
 
-/// Re-reads `OPENCODE_GO_API_KEY` from the user's login + interactive shell.
-///
-/// Same reason as [`crate::api::api_key_from_shell`]: a packaged app inherits no
-/// shell environment, and a running process cannot see a variable set after it
-/// started. `auth.json` is the common case, so this is the last resort.
-pub fn api_key_from_shell() -> Option<String> {
-    const MARKER: &str = "__IGUI_GO_KEY__";
-    let shell = std::env::var("SHELL").ok()?;
-    let output = std::process::Command::new(shell)
-        .args([
-            "-lic",
-            &format!("printf %s \"{MARKER}${{OPENCODE_GO_API_KEY}}\""),
-        ])
-        .stdin(std::process::Stdio::null())
-        .output()
-        .ok()?;
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    non_blank(stdout.rsplit(MARKER).next().map(String::from))
-}
-
-/// The key to fetch with: `auth.json`, then the process env, then the login
-/// shell. Without a key anywhere this is the error the view shows verbatim.
+/// The key to fetch with, or the error the view shows verbatim.
 pub fn resolve_api_key() -> Result<String, String> {
-    api_key()
-        .or_else(api_key_from_shell)
-        .ok_or_else(|| MISSING_KEY_MESSAGE.to_string())
+    keyring::resolve(&key_spec(), api_key_from_auth_json())
 }
 
 /// Queries the usage endpoint. Blocking; call it off the UI thread.
 pub fn fetch(endpoint: &str, api_key: &str) -> Result<GoUsage, String> {
-    let response = ureq::get(endpoint)
-        .set("Authorization", &format!("Bearer {api_key}"))
-        .set("Accept", "application/json")
-        .call();
-
-    match response {
-        Ok(response) => {
-            let body = response
-                .into_string()
-                .map_err(|error| format!("读取响应失败: {error}"))?;
-            GoUsage::parse(&body)
-        }
-        Err(ureq::Error::Status(code, response)) => {
-            let body = response.into_string().unwrap_or_default();
-            // The two failures a Go user actually hits deserve a sentence, not
-            // just the number: a rejected key, and a key with no Go plan. The
-            // endpoint joins the plan, so "no subscription" arrives as 401/403.
-            match code {
-                401 => Err("OpenCode Go 密钥被拒绝（401）".to_string()),
-                403 => Err("该密钥没有 OpenCode Go 订阅（403）".to_string()),
-                _ => Err(format!("HTTP {code}: {}", error_detail(&body))),
-            }
-        }
-        Err(error) => Err(format!("请求失败: {error}")),
-    }
+    let body = net::get(endpoint, api_key).map_err(|error| match error {
+        // The two failures a Go user actually hits deserve a sentence, not just
+        // the number: a rejected key, and a key with no Go plan. The endpoint
+        // joins the plan, so "no subscription" arrives as 401/403.
+        Error::Http { status: 401, .. } => "OpenCode Go 密钥被拒绝（401）".to_string(),
+        Error::Http { status: 403, .. } => "该密钥没有 OpenCode Go 订阅（403）".to_string(),
+        other => other.message(),
+    })?;
+    GoUsage::parse(&body)
 }
 
 #[cfg(test)]

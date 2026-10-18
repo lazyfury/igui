@@ -32,8 +32,10 @@ mod api;
 mod badge;
 mod go;
 mod host;
+mod keyring;
 #[cfg(target_os = "macos")]
 mod menubar;
+mod net;
 mod selfcheck;
 mod settings;
 mod ui;
