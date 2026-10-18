@@ -1155,7 +1155,7 @@ dependencies = [
 
 [[package]]
 name = "igui_backend_recording"
-version = "0.1.0"
+version = "0.3.1"
 dependencies = [
  "igui_core",
  "igui_render",
@@ -1163,7 +1163,7 @@ dependencies = [
 
 [[package]]
 name = "igui_backend_wgpu"
-version = "0.1.0"
+version = "0.3.1"
 dependencies = [
  "bytemuck",
  "igui_core",
@@ -1175,7 +1175,7 @@ dependencies = [
 
 [[package]]
 name = "igui_components"
-version = "0.1.0"
+version = "0.3.1"
 dependencies = [
  "igui_core",
  "igui_render",
@@ -1186,11 +1186,11 @@ dependencies = [
 
 [[package]]
 name = "igui_core"
-version = "0.1.0"
+version = "0.3.1"
 
 [[package]]
 name = "igui_font"
-version = "0.1.0"
+version = "0.3.1"
 dependencies = [
  "ab_glyph",
  "font8x8",
@@ -1204,7 +1204,7 @@ dependencies = [
 
 [[package]]
 name = "igui_profile"
-version = "0.1.0"
+version = "0.3.1"
 dependencies = [
  "igui_core",
  "igui_render",
@@ -1212,14 +1212,14 @@ dependencies = [
 
 [[package]]
 name = "igui_render"
-version = "0.1.0"
+version = "0.3.1"
 dependencies = [
  "igui_core",
 ]
 
 [[package]]
 name = "igui_scene"
-version = "0.1.0"
+version = "0.3.1"
 dependencies = [
  "igui_core",
  "igui_render",
@@ -1227,14 +1227,14 @@ dependencies = [
 
 [[package]]
 name = "igui_theme"
-version = "0.1.0"
+version = "0.3.1"
 dependencies = [
  "igui_core",
 ]
 
 [[package]]
 name = "igui_ui"
-version = "0.1.0"
+version = "0.3.1"
 dependencies = [
  "igui_core",
  "igui_render",
