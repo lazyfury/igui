@@ -1,9 +1,10 @@
 //! 查询 DeepSeek 账户余额与 OpenCode Go 配额的小工具。
 //!
-//! 面板是两个标签页：`DeepSeek 余额` 和 `OpenCode Go`（滚动 5 小时 / 本周 /
-//! 本月的剩余百分比与重置倒计时）。一次刷新同时查询两个来源。
+//! 面板是三个标签页：`DeepSeek` 余额、`OpenCode Go`（滚动 5 小时 / 本周 /
+//! 本月的剩余百分比与重置倒计时）和`控制台`（OpenCode Console 的月度预算与已用）。
+//! 一次刷新同时查询三个来源。
 //!
-//! 三个前端，同一份数据层（[`api`] / [`go`]）：
+//! 三个前端，同一份数据层（[`api`] / [`go`] / [`console`]）：
 //!
 //! - 默认（macOS）：**菜单栏应用** —— 状态栏显示余额，左键弹出面板，右键菜单。
 //!   用本仓库自己的 UI 栈（`igui_theme` / `igui_components` / `igui_ui`
@@ -30,6 +31,7 @@
 
 mod api;
 mod badge;
+mod console;
 mod go;
 mod host;
 mod keyring;
@@ -74,11 +76,15 @@ deepseek_balance — 查询 DeepSeek 账户余额
   OPENCODE_GO_API_KEY    OpenCode Go 密钥；未设置时读
                          ~/.local/share/opencode/auth.json 的 opencode-go 项
   OPENCODE_GO_USAGE_URL  覆盖默认的 https://opencode.ai/zen/go/v1/usage
+  OPENCODE_CONSOLE_API_KEY
+                         OpenCode Console 服务密钥（oc_sk_…，权限需为 All）；
+                         用于读取工作区成员的月度预算
+  OPENCODE_CONSOLE_URL   覆盖默认的 https://opencode.ai/console
 
 用法（macOS 菜单栏）:
   左键状态栏项            打开 / 收起余额面板
   右键状态栏项            刷新 / 暂停·继续自动刷新 / 打开面板 / 退出
-  面板内 标签             在 DeepSeek 余额与 OpenCode Go 之间切换
+  面板内 标签             在 DeepSeek、OpenCode Go 与控制台之间切换
   面板内 R / F5           刷新（两个来源一起查）
   面板内 Esc              收起面板
 

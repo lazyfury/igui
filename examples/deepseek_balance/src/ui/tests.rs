@@ -50,6 +50,19 @@ fn sample_go() -> GoUsage {
     }
 }
 
+/// A canned OpenCode Console reply: one custom budget, no reset stamp so the
+/// remaining value stays stable for assertions.
+fn sample_console() -> MemberBudget {
+    MemberBudget {
+        email: "self@example.com".to_string(),
+        limit_micro_cents: Some("7525000000".to_string()),
+        spent_micro_cents: Some("1250000000".to_string()),
+        exceeded: false,
+        resets_at: None,
+        source: Some("custom".to_string()),
+    }
+}
+
 /// A view laid out at `width` x `height`, with the on-open refresh still
 /// pending (the state the first frame sees).
 fn laid_out(width: f32, height: f32) -> BalanceApp {
@@ -61,14 +74,15 @@ fn laid_out(width: f32, height: f32) -> BalanceApp {
 }
 
 /// A view whose on-open refresh has already been answered, so the tests
-/// below start from a settled screen. Both sources reply, because one
-/// refresh queries both; the throttle is still armed, so this is what the
-/// panel looks like a second after it opens.
+/// below start from a settled screen. Every source replies, because one
+/// refresh queries all of them; the throttle is still armed, so this is what
+/// the panel looks like a second after it opens.
 fn settled(width: f32, height: f32) -> BalanceApp {
     let mut app = laid_out(width, height);
     assert!(app.take_refresh_request(), "the view refreshes on open");
     app.apply_result(Ok(sample()));
     app.apply_go_result(Ok(sample_go()));
+    app.apply_console_result(Ok(sample_console()));
     app.layout(viewport(width, height));
     app
 }
@@ -286,6 +300,7 @@ fn a_zero_gap_turns_the_throttle_off() {
     );
     app.apply_result(Ok(sample()));
     app.apply_go_result(Ok(sample_go()));
+    app.apply_console_result(Ok(sample_console()));
     app.layout(viewport);
     assert_eq!(app.cooldown_left(), None, "nothing to wait for");
 
@@ -462,6 +477,7 @@ fn the_tab_bar_switches_the_page() {
     assert_eq!(app.tab(), Tab::DeepSeek);
     assert_eq!(app.page_visible(Tab::DeepSeek), Some(true));
     assert_eq!(app.page_visible(Tab::Go), Some(false));
+    assert_eq!(app.page_visible(Tab::Console), Some(false));
 
     let point = app.tab_center(Tab::Go).expect("the tab is laid out");
     app.event(&InputEvent::PointerDown {
@@ -478,6 +494,21 @@ fn the_tab_bar_switches_the_page() {
     assert_eq!(app.tab(), Tab::Go);
     assert_eq!(app.page_visible(Tab::DeepSeek), Some(false));
     assert_eq!(app.page_visible(Tab::Go), Some(true));
+
+    // The Console tab is the third page; the same click mechanism opens it.
+    let point = app.tab_center(Tab::Console).expect("the tab is laid out");
+    app.event(&InputEvent::PointerDown {
+        position: point,
+        button: PointerButton::Left,
+    });
+    app.event(&InputEvent::PointerUp {
+        position: point,
+        button: PointerButton::Left,
+    });
+    app.update(viewport(520.0, 460.0), 0.016);
+    assert_eq!(app.tab(), Tab::Console);
+    assert_eq!(app.page_visible(Tab::Go), Some(false));
+    assert_eq!(app.page_visible(Tab::Console), Some(true));
 }
 
 /// A failed Go fetch explains itself on the Go page without touching the
@@ -498,20 +529,67 @@ fn a_failed_go_fetch_shows_on_the_go_page() {
     assert!(app.last_go().is_some());
 }
 
-/// One refresh queries both sources; the button stays busy until the second
+// -- the OpenCode Console page -----------------------------------------
+
+/// A Console reply fills the budget rows with dollars.
+#[test]
+fn applying_a_console_reply_fills_the_budget_rows() {
+    let app = settled(520.0, 460.0);
+    assert_eq!(app.console_limit_text(), Some("$75.25"));
+    assert_eq!(app.console_spent_text(), Some("$12.50"));
+    assert_eq!(app.console_remaining_text(), Some("$62.75"));
+    assert!(app.last_console().is_some());
+}
+
+/// A reset stamp adds "… 后重置" to the remainder, like a Go window.
+#[test]
+fn a_console_budget_shows_the_time_to_reset() {
+    let mut app = settled(520.0, 460.0);
+    let mut budget = sample_console();
+    budget.resets_at = Some("2099-01-01T00:00:00Z".to_string());
+    app.apply_console_result(Ok(budget));
+    app.layout(viewport(520.0, 460.0));
+
+    let value = app.console_remaining_text().expect("row");
+    assert!(value.starts_with("$62.75"), "{value}");
+    assert!(value.contains("后重置"), "{value}");
+}
+
+/// A failed Console fetch explains itself on the Console page without touching
+/// the other pages.
+#[test]
+fn a_failed_console_fetch_shows_on_the_console_page() {
+    let mut app = settled(520.0, 460.0);
+    app.apply_console_result(Err("未配置 OpenCode 控制台密钥".to_string()));
+
+    assert_eq!(app.console_error_text(), Some("未配置 OpenCode 控制台密钥"));
+    assert_eq!(app.console_status_text(), Some(STATUS_FAILED));
+    assert!(
+        app.error_text().unwrap_or_default().is_empty(),
+        "the DeepSeek error line stays untouched"
+    );
+    // The last good numbers stay, like the other pages on a failure.
+    assert_eq!(app.console_remaining_text(), Some("$62.75"));
+    assert!(app.last_console().is_some());
+}
+
+/// One refresh queries every source; the button stays busy until the last
 /// reply lands and only then starts cooling.
 #[test]
-fn one_refresh_waits_for_both_sources() {
+fn one_refresh_waits_for_all_sources() {
     let mut app = ready(520.0, 460.0);
     app.request_refresh();
     app.update(viewport(520.0, 460.0), 0.016);
-    assert!(app.is_loading(), "both fetches are out");
+    assert!(app.is_loading(), "every fetch is out");
 
     app.apply_result(Ok(sample()));
     assert!(app.is_loading(), "the Go fetch is still out");
 
     app.apply_go_result(Ok(sample_go()));
-    assert!(!app.is_loading(), "both replied");
+    assert!(app.is_loading(), "the Console fetch is still out");
+
+    app.apply_console_result(Ok(sample_console()));
+    assert!(!app.is_loading(), "all replied");
     assert!(!app.refresh_ready(), "the throttle is armed again");
 }
 

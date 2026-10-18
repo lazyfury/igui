@@ -107,10 +107,10 @@ mod tests {
 
     #[test]
     fn the_tab_index_round_trips() {
-        for tab in [Tab::DeepSeek, Tab::Go] {
+        for tab in [Tab::DeepSeek, Tab::Go, Tab::Console] {
             assert_eq!(Tab::from_index(tab.index()), Some(tab));
         }
-        assert_eq!(Tab::from_index(2), None);
+        assert_eq!(Tab::from_index(3), None);
     }
 
     /// The override variable wins, which is what keeps the tests off the real

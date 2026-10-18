@@ -51,6 +51,10 @@ pub const BALANCE_PREFIX: &str = "余额：";
 pub const GO_TITLE: &str = "OpenCode Go";
 /// OpenCode Go 余量行的前缀。
 pub const GO_PREFIX: &str = "余量：";
+/// OpenCode 控制台标签页的标题行。
+pub const CONSOLE_TITLE: &str = "OpenCode 控制台";
+/// OpenCode 控制台剩余预算行的前缀。
+pub const CONSOLE_PREFIX: &str = "剩余：";
 /// 还没拿到第一份回复时的占位值（与主视图同一套文案）。
 pub const IDLE: &str = "—";
 /// 请求在途。

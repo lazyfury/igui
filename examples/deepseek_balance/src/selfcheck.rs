@@ -27,6 +27,7 @@ use igui_theme::{default_theme, Mode};
 
 use crate::api::{Balance, BalanceInfo};
 use crate::badge::{self, BadgeApp};
+use crate::console::MemberBudget;
 use crate::go::{GoUsage, Usage, UsageWindow};
 use crate::ui::{BalanceApp, Tab};
 
@@ -74,12 +75,25 @@ fn sample_go() -> GoUsage {
     }
 }
 
+/// Canned OpenCode Console reply: one custom budget, no reset stamp so the
+/// remaining value is stable to assert against.
+fn sample_console() -> MemberBudget {
+    MemberBudget {
+        email: "self@example.com".to_string(),
+        limit_micro_cents: Some("7525000000".to_string()),
+        spent_micro_cents: Some("1250000000".to_string()),
+        exceeded: false,
+        resets_at: None,
+        source: Some("custom".to_string()),
+    }
+}
+
 /// Drives one view through the real frame lifecycle and records the result:
 /// update -> (canned reply) -> update -> layout -> paint -> backend.
 ///
-/// The on-open refresh queries both sources, so both canned replies are applied
-/// — the button only leaves `Busy` when the last one lands. `tab` selects the
-/// page to record after the replies.
+/// The on-open refresh queries every source, so every canned reply is applied —
+/// the button only leaves `Busy` when the last one lands. `tab` selects the page
+/// to record after the replies.
 fn record_frame(
     mut app: BalanceApp,
     width: f32,
@@ -93,6 +107,7 @@ fn record_frame(
     if app.take_refresh_request() {
         app.apply_result(Ok(sample_balance()));
         app.apply_go_result(Ok(sample_go()));
+        app.apply_console_result(Ok(sample_console()));
     }
     app.select_tab(tab);
     app.update(viewport, 0.016);
@@ -384,7 +399,7 @@ fn semantic_checks(app: &BalanceApp, frame: &RecordedFrame, panel: bool) -> Vec<
 
     // Content: the header and the fetched numbers must be drawn, on screen.
     for (what, needle) in [
-        ("title", "DeepSeek 余额"),
+        ("title", "DeepSeek"),
         ("refresh button", "刷新 ("),
         ("currency", "CNY"),
         ("total", "110.00"),
@@ -437,6 +452,41 @@ fn go_semantic_checks(app: &BalanceApp, frame: &RecordedFrame) -> Vec<String> {
 
     if app.last_go().is_none() {
         failures.push("the canned Go usage was never applied".to_string());
+    }
+
+    failures
+}
+
+/// Semantic checks for the OpenCode Console page: the tab and the budget rows
+/// the canned reply implies.
+fn console_semantic_checks(app: &BalanceApp, frame: &RecordedFrame) -> Vec<String> {
+    let mut failures = Vec::new();
+    let width = frame.viewport.logical_size().width;
+    let height = frame.viewport.logical_size().height;
+
+    if frame.command_count() == 0 {
+        failures.push("the Console frame recorded no draw commands".to_string());
+        return failures;
+    }
+
+    for (what, needle) in [
+        ("tab", "控制台预算"),
+        ("limit", "$75.25"),
+        ("spent", "$12.50"),
+        ("remaining", "$62.75"),
+        ("refresh button", "刷新 ("),
+    ] {
+        match text_commands(frame, needle).first() {
+            Some((_, position)) if on_screen(*position, width, height) => {}
+            Some((_, position)) => failures.push(format!(
+                "console {what}: `{needle}` is drawn at {position:?}, outside the {width}x{height} viewport"
+            )),
+            None => failures.push(format!("console {what}: `{needle}` is not in the draw list")),
+        }
+    }
+
+    if app.last_console().is_none() {
+        failures.push("the canned Console budget was never applied".to_string());
     }
 
     failures
@@ -516,6 +566,7 @@ fn run_one(
     let mut failures = match tab {
         Tab::DeepSeek => semantic_checks(&app, &frame, panel),
         Tab::Go => go_semantic_checks(&app, &frame),
+        Tab::Console => console_semantic_checks(&app, &frame),
     };
     report_findings(&report, &mut failures);
 
@@ -698,6 +749,35 @@ pub fn run(dump: Dump) -> i32 {
     )
     .len();
 
+    // The Console tab is a third page; same reasoning as the Go tab above.
+    failed += run_one(
+        "window/console",
+        BalanceApp::new(
+            default_theme(Mode::Dark),
+            "https://api.deepseek.com/user/balance".to_string(),
+        ),
+        WINDOW_WIDTH,
+        WINDOW_HEIGHT,
+        false,
+        Tab::Console,
+        dump,
+    )
+    .len();
+
+    failed += run_one(
+        "panel/console",
+        BalanceApp::new_panel(
+            default_theme(Mode::Dark),
+            "https://api.deepseek.com/user/balance".to_string(),
+        ),
+        PANEL_BODY_WIDTH,
+        PANEL_BODY_HEIGHT + ARROW_HEIGHT,
+        true,
+        Tab::Console,
+        dump,
+    )
+    .len();
+
     failed += run_badge(dump).len();
 
     if failed == 0 {
@@ -757,6 +837,22 @@ mod tests {
                 Tab::Go,
                 true,
             ),
+            (
+                "window/console",
+                window_app(),
+                WINDOW_WIDTH,
+                WINDOW_HEIGHT,
+                Tab::Console,
+                false,
+            ),
+            (
+                "panel/console",
+                panel_app(),
+                PANEL_BODY_WIDTH,
+                PANEL_BODY_HEIGHT + ARROW_HEIGHT,
+                Tab::Console,
+                true,
+            ),
         ];
 
         for (name, app, width, height, tab, panel) in cases {
@@ -770,6 +866,7 @@ mod tests {
             let failures = match tab {
                 Tab::DeepSeek => semantic_checks(&app, &frame, panel),
                 Tab::Go => go_semantic_checks(&app, &frame),
+                Tab::Console => console_semantic_checks(&app, &frame),
             };
             assert!(failures.is_empty(), "{name}: {failures:?}");
         }

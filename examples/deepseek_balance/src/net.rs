@@ -80,18 +80,20 @@ pub fn get(url: &str, api_key: &str) -> Result<String, Error> {
 
 /// One line of error detail from a response body.
 ///
-/// An API failure (wrong key, no quota) comes back as a JSON object whose
-/// `error.message` is the human-readable reason; showing the body verbatim puts
-/// a dense JSON line on screen. Anything else is shown trimmed. Either way the
-/// result is capped to [`MAX_ERROR_DETAIL_CHARS`].
+/// An API failure carries its reason in one of two shapes: inference/Go use
+/// `error.message`, while the Console API uses a top-level `_tag`. Showing the
+/// body verbatim would put a dense JSON line on screen, so the reason is pulled
+/// out when present; anything else is shown trimmed. Either way the result is
+/// capped to [`MAX_ERROR_DETAIL_CHARS`].
 fn error_detail(body: &str) -> String {
     let detail = serde_json::from_str::<serde_json::Value>(body)
         .ok()
         .and_then(|value| {
             value
-                .get("error")?
-                .get("message")?
-                .as_str()
+                .get("error")
+                .and_then(|error| error.get("message"))
+                .and_then(|message| message.as_str())
+                .or_else(|| value.get("_tag").and_then(|tag| tag.as_str()))
                 .map(str::trim)
                 .filter(|message| !message.is_empty())
                 .map(str::to_string)
@@ -132,6 +134,13 @@ mod tests {
     #[test]
     fn a_non_json_error_body_shows_itself_trimmed() {
         assert_eq!(error_detail("  gateway timeout  "), "gateway timeout");
+    }
+
+    /// The Console API names its error in `_tag`; show the reason, not the JSON.
+    #[test]
+    fn a_tagged_error_body_shows_the_tag() {
+        assert_eq!(error_detail(r#"{"_tag":"Forbidden"}"#), "Forbidden");
+        assert_eq!(error_detail(r#"{"_tag":"Unauthorized"}"#), "Unauthorized");
     }
 
     /// JSON without an `error.message` (or with a blank one) falls back to the

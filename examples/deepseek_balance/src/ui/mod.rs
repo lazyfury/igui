@@ -62,6 +62,7 @@ use igui_theme::{radius, space, SurfaceLevel, Theme, Tone};
 use igui_ui::{fill_rounded_rect, Align, Justify, MouseFilter, SurfaceStyle, TextMeasurer};
 
 use crate::api::Balance;
+use crate::console::MemberBudget;
 use crate::go::{GoUsage, WindowKind};
 
 /// Currency cards the layout reserves up front (extra currencies are ignored).
@@ -88,14 +89,18 @@ pub const ARROW_HEIGHT: f32 = 8.0;
 
 /// Shown in the numeric slots before the first successful fetch.
 const PLACEHOLDER: &str = "—";
-/// The DeepSeek tab's label (also the window's heading).
-const TITLE: &str = "DeepSeek 余额";
-/// The OpenCode Go tab's label.
+/// The DeepSeek tab's label.
+const TITLE: &str = "DeepSeek";
+/// The OpenCode Go page's card title (the tab itself is short: `Go`).
 const GO_TAB_LABEL: &str = "OpenCode Go";
+/// The OpenCode Console page's card title (the tab itself is `控制台`).
+const CONSOLE_TAB_LABEL: &str = "控制台预算";
 /// Footer hint on the Go page: where its key comes from.
 const GO_HINT: &str = "密钥来自 ~/.local/share/opencode/auth.json 或 OPENCODE_GO_API_KEY";
+/// Footer hint on the Console page: its key is a service-account key.
+const CONSOLE_HINT: &str = "密钥来自 OPENCODE_CONSOLE_API_KEY（oc_sk_…，权限需为 All）";
 /// How many sources one refresh queries; the button stays busy until all answer.
-const SOURCES_PER_REFRESH: u32 = 2;
+const SOURCES_PER_REFRESH: u32 = 3;
 /// Idle and busy refresh-button labels.
 const REFRESH_LABEL: &str = "刷新 (R)";
 const REFRESH_BUSY: &str = "刷新中…";
@@ -178,14 +183,17 @@ impl RefreshState {
 pub enum Tab {
     DeepSeek,
     Go,
+    Console,
 }
 
 impl Tab {
-    /// The text on the tab.
+    /// The text on the tab. Kept short so three tabs fit the narrow menu-bar
+    /// panel; the pages carry the full names in their card titles.
     pub fn label(self) -> &'static str {
         match self {
             Self::DeepSeek => TITLE,
-            Self::Go => GO_TAB_LABEL,
+            Self::Go => "Go",
+            Self::Console => "控制台",
         }
     }
 
@@ -194,6 +202,7 @@ impl Tab {
         match self {
             Self::DeepSeek => 0,
             Self::Go => 1,
+            Self::Console => 2,
         }
     }
 
@@ -202,6 +211,7 @@ impl Tab {
         match index {
             0 => Some(Self::DeepSeek),
             1 => Some(Self::Go),
+            2 => Some(Self::Console),
             _ => None,
         }
     }
@@ -300,12 +310,15 @@ pub struct BalanceApp {
     /// The two pages, only one of which is visible at a time.
     deepseek_page: NodeId,
     go_page: NodeId,
+    console_page: NodeId,
     /// The tab buttons. Only the tests need their geometry (a click is routed
     /// through the tree, not by id), so they are kept on the test build only.
     #[cfg(test)]
     deepseek_tab: NodeId,
     #[cfg(test)]
     go_tab: NodeId,
+    #[cfg(test)]
+    console_tab: NodeId,
     /// The Go page's own status / error / window rows.
     go_status: NodeId,
     go_error: NodeId,
@@ -314,6 +327,16 @@ pub struct BalanceApp {
     go_values: Vec<NodeId>,
     /// Last successful Go reply, so the host (and tests) can read it back.
     last_go: Option<GoUsage>,
+    /// The Console page's own status / error / budget rows.
+    console_status: NodeId,
+    console_error: NodeId,
+    console_error_divider: NodeId,
+    console_member: NodeId,
+    console_limit: NodeId,
+    console_spent: NodeId,
+    console_remaining: NodeId,
+    /// Last successful Console reply, so the host (and tests) can read it back.
+    last_console: Option<MemberBudget>,
     /// Fewest seconds between two refresh starts (see
     /// [`DEFAULT_MIN_REFRESH_GAP`]); [`Duration::ZERO`] turns the throttle off.
     min_gap: Duration,
@@ -362,7 +385,8 @@ impl BalanceApp {
             .padding(Edges::new(space::XXL, top, space::XXL, space::XXL))
             .child(tab_bar(theme, &refs, &feed))
             .child(deepseek_page(theme, &endpoint, &refs, &feed).ref_(&refs.deepseek_page))
-            .child(go_page(theme, &refs, &feed).ref_(&refs.go_page));
+            .child(go_page(theme, &refs, &feed).ref_(&refs.go_page))
+            .child(console_page(theme, &refs, &feed).ref_(&refs.console_page));
 
         let tree = Flex::column()
             .mouse_filter(MouseFilter::Ignore)
@@ -383,14 +407,21 @@ impl BalanceApp {
 
         let refresh_button = refs.refresh.get().expect("refresh button mounted");
         let go_refresh_button = refs.go_refresh.get().expect("go refresh button mounted");
-        let refresh_labels: Vec<NodeId> = [refresh_button, go_refresh_button]
-            .into_iter()
-            .map(|button| label_of(&tree, button).expect("the refresh button carries a label"))
-            .collect();
+        let console_refresh_button = refs
+            .console_refresh
+            .get()
+            .expect("console refresh button mounted");
+        let refresh_labels: Vec<NodeId> =
+            [refresh_button, go_refresh_button, console_refresh_button]
+                .into_iter()
+                .map(|button| label_of(&tree, button).expect("the refresh button carries a label"))
+                .collect();
         #[cfg(test)]
         let deepseek_tab = refs.tab_deepseek.get().expect("deepseek tab mounted");
         #[cfg(test)]
         let go_tab = refs.tab_go.get().expect("go tab mounted");
+        #[cfg(test)]
+        let console_tab = refs.tab_console.get().expect("console tab mounted");
 
         let mut app = Self {
             tree,
@@ -413,10 +444,13 @@ impl BalanceApp {
             last_balance: None,
             deepseek_page: refs.deepseek_page.get().expect("deepseek page mounted"),
             go_page: refs.go_page.get().expect("go page mounted"),
+            console_page: refs.console_page.get().expect("console page mounted"),
             #[cfg(test)]
             deepseek_tab,
             #[cfg(test)]
             go_tab,
+            #[cfg(test)]
+            console_tab,
             go_status: refs.go_status.get().expect("go status mounted"),
             go_error: refs.go_error.get().expect("go error mounted"),
             go_error_divider: refs
@@ -429,6 +463,20 @@ impl BalanceApp {
                 .map(|value| value.get().expect("go value mounted"))
                 .collect(),
             last_go: None,
+            console_status: refs.console_status.get().expect("console status mounted"),
+            console_error: refs.console_error.get().expect("console error mounted"),
+            console_error_divider: refs
+                .console_error_divider
+                .get()
+                .expect("console error divider mounted"),
+            console_member: refs.console_member.get().expect("console member mounted"),
+            console_limit: refs.console_limit.get().expect("console limit mounted"),
+            console_spent: refs.console_spent.get().expect("console spent mounted"),
+            console_remaining: refs
+                .console_remaining
+                .get()
+                .expect("console remaining mounted"),
+            last_console: None,
             min_gap: DEFAULT_MIN_REFRESH_GAP,
             blocked_until: None,
             #[cfg(test)]
@@ -442,7 +490,11 @@ impl BalanceApp {
         // node's id. `paint_front` runs before the label child is painted, so the
         // fill is dimmed and the text stays at full contrast.
         let state = app.feed.state.clone();
-        for button in [app.refresh_button, go_refresh_button] {
+        for button in [
+            app.refresh_button,
+            go_refresh_button,
+            console_refresh_button,
+        ] {
             dim_while_busy(&mut app.tree, button, state.clone());
         }
 
@@ -457,6 +509,7 @@ impl BalanceApp {
         // The error line starts empty, so its divider is hidden too.
         app.set_error("");
         app.set_go_error("");
+        app.set_console_error("");
         let hidden: Vec<NodeId> = app.slots[1..].iter().map(|slot| slot.card).collect();
         for card in hidden {
             app.set_visible(card, false);
@@ -514,12 +567,45 @@ impl BalanceApp {
             .and_then(|id| text(&self.tree, *id))
     }
 
-    /// Whether the page for `tab` is on screen (the other is hidden).
+    /// The last successful Console reply, if any.
+    pub fn last_console(&self) -> Option<&MemberBudget> {
+        self.last_console.as_ref()
+    }
+
+    /// The Console status line's text.
+    pub fn console_status_text(&self) -> Option<&str> {
+        text(&self.tree, self.console_status)
+    }
+
+    /// The Console error line's text. The host reads it to decide whether the
+    /// badge shows a failure.
+    pub fn console_error_text(&self) -> Option<&str> {
+        text(&self.tree, self.console_error)
+    }
+
+    /// The Console page's budget cells, for the tests and the self-check.
+    #[cfg(test)]
+    pub fn console_limit_text(&self) -> Option<&str> {
+        text(&self.tree, self.console_limit)
+    }
+
+    #[cfg(test)]
+    pub fn console_spent_text(&self) -> Option<&str> {
+        text(&self.tree, self.console_spent)
+    }
+
+    #[cfg(test)]
+    pub fn console_remaining_text(&self) -> Option<&str> {
+        text(&self.tree, self.console_remaining)
+    }
+
+    /// Whether the page for `tab` is on screen (the others are hidden).
     #[cfg(test)]
     pub fn page_visible(&self, tab: Tab) -> Option<bool> {
         let page = match tab {
             Tab::DeepSeek => self.deepseek_page,
             Tab::Go => self.go_page,
+            Tab::Console => self.console_page,
         };
         self.tree.is_visible(page)
     }
@@ -530,6 +616,7 @@ impl BalanceApp {
         let id = match tab {
             Tab::DeepSeek => self.deepseek_tab,
             Tab::Go => self.go_tab,
+            Tab::Console => self.console_tab,
         };
         igui_ui::control(&self.tree, id).map(|control| control.rect.center())
     }
@@ -551,6 +638,7 @@ impl BalanceApp {
         let (error, status) = match self.tab() {
             Tab::DeepSeek => (self.error_text(), self.status_text()),
             Tab::Go => (self.go_error_text(), self.go_status_text()),
+            Tab::Console => (self.console_error_text(), self.console_status_text()),
         };
         if let Some(error) = error.filter(|error| !error.is_empty()) {
             return error.to_string();
@@ -800,6 +888,8 @@ impl BalanceApp {
         self.set_error("");
         igui_components::set_text(&mut self.tree, self.go_status, STATUS_BUSY);
         self.set_go_error("");
+        igui_components::set_text(&mut self.tree, self.console_status, STATUS_BUSY);
+        self.set_console_error("");
     }
 
     /// Writes the button's state into its label and into the cell its decor
@@ -921,6 +1011,26 @@ impl BalanceApp {
         self.sync_button(self.now());
     }
 
+    /// Applies a finished OpenCode Console request to the Console tab.
+    ///
+    /// Mirrors [`BalanceApp::apply_result`], including the "a failure lifts the
+    /// throttle" rule: a failed Console fetch is not a reason to lock the
+    /// button.
+    pub fn apply_console_result(&mut self, result: Result<MemberBudget, String>) {
+        self.note_reply();
+
+        match result {
+            Ok(budget) => self.show_console_budget(budget),
+            Err(message) => {
+                self.blocked_until = None;
+                igui_components::set_text(&mut self.tree, self.console_status, STATUS_FAILED);
+                self.set_console_error(&message);
+            }
+        }
+
+        self.sync_button(self.now());
+    }
+
     /// Marks one outstanding fetch as answered. The button leaves
     /// [`RefreshState::Busy`] only when the last source has replied.
     fn note_reply(&mut self) {
@@ -932,10 +1042,15 @@ impl BalanceApp {
     /// leaves the layout entirely, so the open one gets its full height.
     pub fn select_tab(&mut self, tab: Tab) {
         self.feed.tab.set(tab);
-        let (deepseek, go) = (self.deepseek_page, self.go_page);
-        let deepseek_visible = tab == Tab::DeepSeek;
-        self.set_visible(deepseek, deepseek_visible);
-        self.set_visible(go, !deepseek_visible);
+        // Each page is shown only for its own tab, so the hidden ones leave the
+        // layout and the open one gets its full height.
+        for (kind, page) in [
+            (Tab::DeepSeek, self.deepseek_page),
+            (Tab::Go, self.go_page),
+            (Tab::Console, self.console_page),
+        ] {
+            self.set_visible(page, kind == tab);
+        }
     }
 
     /// Writes each Go window row: remainder first, then the time to reset.
@@ -970,6 +1085,33 @@ impl BalanceApp {
         }
 
         self.last_go = Some(usage);
+    }
+
+    /// Writes the Console budget: limit, spend and remainder, with the time to
+    /// reset appended to the remainder like a Go window.
+    fn show_console_budget(&mut self, budget: MemberBudget) {
+        igui_components::set_text(
+            &mut self.tree,
+            self.console_status,
+            format!("更新于 {}", timestamp()),
+        );
+        self.set_console_error("");
+        igui_components::set_text(&mut self.tree, self.console_member, budget.email.clone());
+
+        let mut remaining = budget.remaining_label();
+        if let Some(left) = budget.reset_in(now_epoch()) {
+            remaining.push_str(&format!(" · {} 后重置", clock(left)));
+        }
+        let (limit, spent, remaining_node) = (
+            self.console_limit,
+            self.console_spent,
+            self.console_remaining,
+        );
+        igui_components::set_text(&mut self.tree, limit, budget.limit_label());
+        igui_components::set_text(&mut self.tree, spent, budget.spent_label());
+        igui_components::set_text(&mut self.tree, remaining_node, remaining);
+
+        self.last_console = Some(budget);
     }
 
     /// Writes `balance` into the labels and shows exactly the cards it has data
@@ -1052,6 +1194,14 @@ impl BalanceApp {
         self.set_visible(self.go_error_divider, visible);
         igui_components::set_text(&mut self.tree, self.go_error, message);
     }
+
+    /// The Console page's error line, with the same collapse rule.
+    fn set_console_error(&mut self, message: &str) {
+        let visible = !message.is_empty();
+        self.set_visible(self.console_error, visible);
+        self.set_visible(self.console_error_divider, visible);
+        igui_components::set_text(&mut self.tree, self.console_error, message);
+    }
 }
 
 /// Node slots the declarative builders write into.
@@ -1068,13 +1218,23 @@ struct Refs {
     slots: Vec<SlotRefs>,
     tab_deepseek: NodeRef,
     tab_go: NodeRef,
+    tab_console: NodeRef,
     deepseek_page: NodeRef,
     go_page: NodeRef,
+    console_page: NodeRef,
     go_refresh: NodeRef,
     go_status: NodeRef,
     go_error: NodeRef,
     go_error_divider: NodeRef,
     go_values: Vec<NodeRef>,
+    console_refresh: NodeRef,
+    console_status: NodeRef,
+    console_error: NodeRef,
+    console_error_divider: NodeRef,
+    console_member: NodeRef,
+    console_limit: NodeRef,
+    console_spent: NodeRef,
+    console_remaining: NodeRef,
 }
 
 /// `Refs::default()` cannot size the slot vectors, so they are patched here.

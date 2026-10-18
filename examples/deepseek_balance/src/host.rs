@@ -59,6 +59,7 @@ use winit::window::{CursorIcon, Window, WindowId, WindowLevel};
 
 use crate::api::{self, Balance};
 use crate::badge::{self, BadgeApp};
+use crate::console::{self, MemberBudget};
 use crate::go::{self, GoUsage};
 use crate::settings;
 use crate::ui::{BalanceApp, Tab, ARROW_HEIGHT};
@@ -188,6 +189,8 @@ pub enum UserEvent {
     Balance(Result<Balance, String>),
     /// A finished OpenCode Go usage query.
     GoUsage(Result<GoUsage, String>),
+    /// A finished OpenCode Console budget query.
+    ConsoleBudget(Result<MemberBudget, String>),
     /// A click on the status item (macOS menu-bar mode).
     #[cfg(target_os = "macos")]
     Tray(tray_icon::TrayIconEvent),
@@ -419,6 +422,7 @@ fn badge_labels(tab: Tab) -> (&'static str, &'static str) {
     match tab {
         Tab::DeepSeek => (badge::TITLE, badge::BALANCE_PREFIX),
         Tab::Go => (badge::GO_TITLE, badge::GO_PREFIX),
+        Tab::Console => (badge::CONSOLE_TITLE, badge::CONSOLE_PREFIX),
     }
 }
 
@@ -1187,6 +1191,7 @@ impl App {
         match self.view.tab() {
             Tab::DeepSeek => self.view.last_balance().map(Balance::headline),
             Tab::Go => self.view.last_go().map(GoUsage::headline),
+            Tab::Console => self.view.last_console().map(MemberBudget::headline),
         }
     }
 
@@ -1288,6 +1293,7 @@ impl App {
         let value = match self.view.tab() {
             Tab::DeepSeek => self.view.last_balance().map(Balance::headline),
             Tab::Go => self.view.last_go().map(GoUsage::headline),
+            Tab::Console => self.view.last_console().map(MemberBudget::headline),
         };
         if let Some(headline) = value {
             return badge::State::Ready(headline);
@@ -1295,6 +1301,7 @@ impl App {
         let error = match self.view.tab() {
             Tab::DeepSeek => self.view.error_text(),
             Tab::Go => self.view.go_error_text(),
+            Tab::Console => self.view.console_error_text(),
         };
         if has_text(error) {
             badge::State::Failed
@@ -1442,6 +1449,7 @@ impl App {
     fn spawn_fetches(&self) {
         self.spawn_balance_fetch();
         self.spawn_go_fetch();
+        self.spawn_console_fetch();
     }
 
     /// Queries the DeepSeek balance endpoint on a worker thread.
@@ -1480,6 +1488,24 @@ impl App {
                 Err(message) => Err(message),
             };
             let _ = proxy.send_event(UserEvent::GoUsage(result));
+        });
+    }
+
+    /// Queries the OpenCode Console members-and-budgets endpoint on a worker
+    /// thread.
+    ///
+    /// Same shape as [`App::spawn_go_fetch`], with the key coming from the
+    /// Console service account (see [`crate::console::resolve_api_key`]).
+    fn spawn_console_fetch(&self) {
+        let proxy = self.proxy.clone();
+        let endpoint = console::endpoint();
+        self.trace(&format!("发起请求 {endpoint}"));
+        std::thread::spawn(move || {
+            let result = match console::resolve_api_key() {
+                Ok(api_key) => console::fetch(&endpoint, &api_key),
+                Err(message) => Err(message),
+            };
+            let _ = proxy.send_event(UserEvent::ConsoleBudget(result));
         });
     }
 
@@ -1703,6 +1729,12 @@ impl ApplicationHandler<UserEvent> for App {
             }
             UserEvent::GoUsage(result) => {
                 self.view.apply_go_result(result);
+                self.refresh_badge();
+                #[cfg(target_os = "macos")]
+                self.sync_menubar();
+            }
+            UserEvent::ConsoleBudget(result) => {
+                self.view.apply_console_result(result);
                 self.refresh_badge();
                 #[cfg(target_os = "macos")]
                 self.sync_menubar();

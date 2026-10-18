@@ -6,15 +6,17 @@
 use igui_core::FontWeight;
 
 use super::*;
+use crate::console;
 use crate::go;
 
-/// The tab bar: the two page tabs, always visible.
+/// The tab bar: the page tabs, always visible.
 pub(super) fn tab_bar(theme: &'static dyn Theme, refs: &Refs, feed: &Feed) -> Row {
     Row::new()
         .align(Align::Center)
         .gap(space::XS)
         .child(tab_button(theme, Tab::DeepSeek, feed).ref_(&refs.tab_deepseek))
         .child(tab_button(theme, Tab::Go, feed).ref_(&refs.tab_go))
+        .child(tab_button(theme, Tab::Console, feed).ref_(&refs.tab_console))
 }
 
 /// One tab: a label whose background marks the active page.
@@ -122,6 +124,68 @@ pub(super) fn go_footer(theme: &'static dyn Theme, refs: &Refs, feed: &Feed) -> 
         .gap(space::SM)
         .child(Text::caption(GO_HINT, theme).tone(Tone::Subtle))
         .child(refresh_button(theme, &refs.go_refresh, feed))
+}
+
+/// The OpenCode Console page: endpoint header, status, error and the budget.
+pub(super) fn console_page(theme: &'static dyn Theme, refs: &Refs, feed: &Feed) -> Flex {
+    Flex::column()
+        .mouse_filter(MouseFilter::Ignore)
+        .gap(space::LG)
+        .padding(Edges::ZERO)
+        .grow(1.0)
+        .child(endpoint_line(theme, &console::endpoint()))
+        .child(
+            Text::caption("", theme)
+                .tone(Tone::Muted)
+                .ref_(&refs.console_status),
+        )
+        .child(
+            Text::small("", theme)
+                .color(theme.palette().error)
+                .max_lines(2)
+                .wrap(true)
+                .ellipsis(true)
+                .ref_(&refs.console_error),
+        )
+        .child(Divider::horizontal(theme).ref_(&refs.console_error_divider))
+        .child(
+            Card::new(theme)
+                .gap(space::SM)
+                .child(
+                    Row::new()
+                        .align(Align::Center)
+                        .justify(Justify::SpaceBetween)
+                        .child(Text::subheading(CONSOLE_TAB_LABEL, theme))
+                        .child(
+                            Text::caption("", theme)
+                                .tone(Tone::Muted)
+                                .ref_(&refs.console_member),
+                        ),
+                )
+                .child(Divider::horizontal(theme))
+                .child(console_stat_row(theme, "本月预算", &refs.console_limit))
+                .child(console_stat_row(theme, "已用", &refs.console_spent))
+                .child(console_stat_row(theme, "剩余", &refs.console_remaining)),
+        )
+        .child(console_footer(theme, refs, feed))
+}
+
+/// The Console page's footer: the key hint, then the refresh button.
+pub(super) fn console_footer(theme: &'static dyn Theme, refs: &Refs, feed: &Feed) -> Column {
+    Column::new()
+        .gap(space::SM)
+        .child(Text::caption(CONSOLE_HINT, theme).tone(Tone::Subtle))
+        .child(refresh_button(theme, &refs.console_refresh, feed))
+}
+
+/// A "label … value" row inside the Console budget card.
+pub(super) fn console_stat_row(theme: &'static dyn Theme, label: &str, value: &NodeRef) -> Row {
+    Row::new()
+        .align(Align::Center)
+        .justify(Justify::SpaceBetween)
+        .gap(space::SM)
+        .child(Text::small(label, theme).tone(Tone::Muted))
+        .child(Text::small(PLACEHOLDER, theme).ref_(value))
 }
 
 /// A "window … value" row inside the Go card.
