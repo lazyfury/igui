@@ -9,6 +9,12 @@
   `tests/pipeline.rs`).
 - wgpu pixel readback — `igui_backend_wgpu` renders to an offscreen texture and
   asserts on returned RGBA8 pixels (`tests/render.rs`); no window is created.
+- Canvas op mapping — `igui_backend_canvas` resolves every `DrawCommand` into a
+  `CanvasOp` on the CPU (`src/ops.rs`: CSS colours, device-space clip rects,
+  clamped corner radii, resolved image source rects, font spec + `textAlign`)
+  and asserts that mapping with native `cargo test`. Only the `web-sys`
+  executor in `src/canvas.rs` needs a browser, and it makes no decisions of its
+  own.
 - Layout / hit-test / input tests — `igui_ui` unit tests (includes flex/grid
   arrangement, align/justify/order, span-aware tracks, whole-viewport layout
   caching, partial relayout via `last_arranged_nodes`, order-cache
