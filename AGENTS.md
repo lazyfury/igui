@@ -352,8 +352,12 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo check --workspace
 cargo test --workspace
 cargo bench --workspace --no-run
+python3 scripts/check-docs.py
 ```
 
+`scripts/check-docs.py` compiles every ```rust``` block in `README.md`,
+`AGENTS.md`, `release.md` and `docs/` (a fragment must be tagged ```rust,ignore```
+and say what it is missing), so the docs cannot drift off the API.
 
 `--workspace` excludes the **standalone** demos (`examples/deepseek_balance`,
 `examples/file_browser`). When you touch one, also run its own gate with

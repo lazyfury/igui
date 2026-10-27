@@ -175,6 +175,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo check --workspace
 cargo test --workspace
 cargo bench --workspace --no-run
+python3 scripts/check-docs.py   # every ```rust``` block in the docs compiles
 ```
 
 CI runs exactly this gate (plus the MSRV and `wasm32` checks, the facade feature

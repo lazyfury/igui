@@ -108,6 +108,17 @@ jobs:
             echo "::endgroup::"
           done
 
+  # A stale snippet teaches an API that no longer exists; `rust` blocks must
+  # compile (fragments are tagged `rust,ignore` and say what they need).
+  docs:
+    name: docs snippets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: python3 scripts/check-docs.py
+
   standalone:
     name: standalone demos — ${{ matrix.demo }}
     runs-on: macos-14
