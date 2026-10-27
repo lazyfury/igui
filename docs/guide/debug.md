@@ -19,7 +19,8 @@ in its top-left corner — the classic engine "debug bounds" view.
 
 ### Directly from the UI
 
-```rust
+```rust,ignore
+// fragment: `tree` comes from your app
 use igui_ui::DebugDrawOptions;
 
 // after `igui_ui::paint(&tree, &mut ctx)`:
@@ -49,7 +50,8 @@ The label is `"{name} #{id}"`; disable `show_names` / `show_ids` to change it.
 
 `igui_debug_ui::DebugOverlay` wraps the above with an open/closed state:
 
-```rust
+```rust,ignore
+// fragment: `tree` comes from your app
 use igui_debug_ui::DebugOverlay;
 
 let mut debug = DebugOverlay::new(); // visible by default
@@ -71,7 +73,8 @@ It owns no tree, so it draws over any tree you pass in.
 pipeline phase and feeds milliseconds in, which keeps the model deterministic
 and the tests exact.
 
-```rust
+```rust,ignore
+// fragment: `demo` is the view this host owns
 use std::time::Instant;
 use igui_profile::{inspect, FrameCounters, FrameStats, Profiler, StageTimes};
 
@@ -110,7 +113,8 @@ Disable profiling on the hot path with `profiler.set_enabled(false)` /
 
 ### Summary
 
-```rust
+```rust,ignore
+// fragment: needs context from the surrounding code
 if let Some(summary) = profiler.summary() {
     println!(
         "fps {:.0}  avg {:.2}ms  min {:.2}ms  max {:.2}ms  peak commands {}",
@@ -146,7 +150,8 @@ if let Some(summary) = profiler.summary() {
 
 Thresholds:
 
-```rust
+```rust,ignore
+// fragment: `list` is this frame's `DrawList`
 use igui_profile::{inspect_with, InspectionConfig};
 
 let config = InspectionConfig {
@@ -165,7 +170,8 @@ let report = inspect_with(&list, &stats, &config);
 `igui_ui` panel in a viewport corner. It owns its own `SceneTree` subtree, so it
 does not disturb the application's layout or hit-testing.
 
-```rust
+```rust,ignore
+// fragment: needs context from the surrounding code
 use igui_debug_ui::{Corner, OverlayConfig, PerformanceOverlay};
 
 let mut perf = PerformanceOverlay::new();
@@ -186,7 +192,8 @@ The panel shows FPS, current frame time (avg/max), profiler state (`on` /
 `paused`), per-phase averages, commands (current/peak), node & control counts,
 findings by severity, the top findings, and a key legend.
 
-```rust
+```rust,ignore
+// fragment: needs context from the surrounding code
 let perf = PerformanceOverlay::with_config(OverlayConfig {
     corner: Corner::BottomLeft,
     width: 340.0,
@@ -216,6 +223,6 @@ toggles the performance panel, **F5** / **o** toggles the profiler. On macOS the
 top-row F-keys are often system keys — use the `` ` `` / **d** / **p** / **o**
 fallbacks or hold **Fn**.
 
-The window overlays are not screenshot-verified (see `docs/testing.md`); the
+The window overlays are not screenshot-verified (see `docs/internals/testing.md`); the
 component bounds, profiler, inspector and panel are all covered by native
 `cargo test`.

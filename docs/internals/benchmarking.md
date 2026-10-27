@@ -19,7 +19,8 @@ from regressing.
 randomness). It warms up, calibrates an iteration count so one sample runs for
 about `sample_time`, then collects `samples` timed samples.
 
-```rust
+```rust,ignore
+// fragment: needs context from the surrounding code
 use igui_bench::{finish, BenchRunner, RunConfig};
 
 fn main() {
@@ -184,7 +185,7 @@ A frame that scrolls the virtual list but is otherwise idle costs 5.8 µs
 (`pool_size` unchanged, no rows re-bound) — the ~71 µs is the price of re-binding
 all 35 rows on a 2.5-row step. Re-keying the pool so that only the rows entering
 and leaving are re-bound is the next ~12× if it ever matters;
-`docs/plan.md` tracks it.
+`docs/internals/plan.md` tracks it.
 
 
 ---
@@ -210,6 +211,6 @@ and the process exits successfully.
 - It does not replace the profiler: it reports a scalar per scenario, not a
   breakdown.
 - It does not screenshot or measure visual output; correctness is still covered
-  by the pixel/DrawList tests in `docs/testing.md`.
+  by the pixel/DrawList tests in `docs/internals/testing.md`.
 - It is not a micro-architecture profiler: for cache/branch effects use a
   sampling profiler on a benchmark binary.

@@ -135,7 +135,7 @@ impl PaintContext {
     /// every painter here is.
     ///
     /// **Non-breaking addition to `igui_render`** (Stage 27); recorded in
-    /// `docs/design-system.md`.
+    /// `docs/guide/design-system.md`.
     pub fn extend(&mut self, list: &DrawList) {
         self.commands.extend_from_slice(&list.commands);
     }

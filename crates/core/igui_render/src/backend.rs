@@ -36,7 +36,7 @@ pub trait RenderBackend {
     /// must treat `Ok` from such a backend as "decoded but not displayed".
     ///
     /// **Non-breaking addition to `igui_render`** (Stage 28.2); recorded in
-    /// `docs/design-system.md`.
+    /// `docs/guide/design-system.md`.
     fn register_texture(
         &mut self,
         _id: TextureId,

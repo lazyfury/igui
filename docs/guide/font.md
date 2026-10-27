@@ -32,6 +32,7 @@ Decisions (2025-09):
 ## API
 
 ```rust
+use igui_core::FontWeight;
 use igui_font::{FaceRef, FontConfig, FontRequest, FontServer};
 
 let server = FontServer::load_with(FontConfig::default());
@@ -44,7 +45,8 @@ let glyphs = server.shape("Hello 中文", 24.0, FontWeight::NORMAL);
 
 When the application ships or knows its font file, seed it and skip the scan:
 
-```rust
+```rust,ignore
+// fragment: needs context from the surrounding code
 let server = FontServer::load_with(FontConfig {
     default_face: Some(FaceRef::new("/opt/app/fonts/Inter.ttf", 0)),
     ..FontConfig::default()

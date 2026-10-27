@@ -19,7 +19,7 @@
 //!
 //! The visual language is intentionally restrained: monochrome surfaces, thin
 //! borders, compact controls and semantic accent colors only. See
-//! `docs/design-system.md` for the full spec.
+//! `docs/guide/design-system.md` for the full spec.
 
 /// Crate name, kept for lightweight smoke checks.
 pub const CRATE: &str = "igui_theme";

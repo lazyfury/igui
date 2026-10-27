@@ -125,7 +125,7 @@ pub fn last_arranged_nodes(tree: &SceneTree) -> usize {
 /// A host that caches its frame can skip layout while this is `false`.
 ///
 /// **Non-breaking addition to `igui_ui`** (Stage 27); recorded in
-/// `docs/design-system.md`.
+/// `docs/guide/design-system.md`.
 pub fn needs_layout(tree: &SceneTree) -> bool {
     Ui.needs_layout(tree)
 }
@@ -138,7 +138,7 @@ pub fn needs_layout(tree: &SceneTree) -> bool {
 /// this frame.
 ///
 /// **Non-breaking addition to `igui_ui`** (Stage 27); recorded in
-/// `docs/design-system.md`.
+/// `docs/guide/design-system.md`.
 pub fn paint_generation(tree: &SceneTree) -> u64 {
     Ui.paint_generation(tree)
 }
@@ -182,7 +182,7 @@ pub fn add_foreground(
 /// not hit-testable either.
 ///
 /// **Non-breaking addition to `igui_ui`** (`ControlData` gained `clip` /
-/// `clip_rect`); recorded in `docs/design-system.md`.
+/// `clip_rect`); recorded in `docs/guide/design-system.md`.
 pub fn set_clip(tree: &mut SceneTree, id: NodeId, clip: bool) {
     Ui.set_clip(tree, id, clip)
 }
@@ -247,7 +247,7 @@ pub fn layout(tree: &mut SceneTree, viewport: ViewportSize) {
 /// [`layout`] clears that cache, so asking does not disturb a later frame.
 ///
 /// **Note** this is a non-breaking addition to `igui_ui` made for the host in
-/// `examples/deepseek_balance`; see `docs/design-system.md`.
+/// `examples/deepseek_balance`; see `docs/guide/design-system.md`.
 pub fn content_size(tree: &SceneTree, available: Size) -> ContentSize {
     Ui.content_size(tree, available)
 }

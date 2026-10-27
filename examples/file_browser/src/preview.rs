@@ -19,7 +19,7 @@
 //! 文本模式看不出缩进：`igui_ui` 的换行是按词排的，会把**前导空白折叠掉**
 //! （`igui_ui::layout::text::wrap_hard_line`）。要保住缩进得让那一列的
 //! `TextOptions.wrap` 关掉 —— 但 `List` 的列目前没有这个开关，所以记在
-//! `docs/plan.md` 里，没为它动组件 API。
+//! `docs/internals/plan.md` 里，没为它动组件 API。
 //!
 //!
 //! ## 为什么只读前 64 KiB

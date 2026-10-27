@@ -652,7 +652,7 @@ impl SceneTree {
     /// generation and the animation signal to decide whether a frame is needed.
     ///
     /// **Non-breaking addition to `igui_scene`** (Stage 27); recorded in
-    /// `docs/design-system.md`.
+    /// `docs/guide/design-system.md`.
     pub fn needs_update(&self) -> bool {
         self.slots.iter().flatten().any(|node| {
             node.canvas()

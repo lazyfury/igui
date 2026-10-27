@@ -4,7 +4,7 @@
 //! [`UiPaintCache`] keeps the last UI [`DrawList`] and lets a host splice it into
 //! a fresh frame with [`paint_cached`] instead of re-running the paint walk
 //! every frame. This is what keeps a game's frame cost from paying for an
-//! unchanged UI (the refresh-decoupling plan in `docs/godot-migration.md`).
+//! unchanged UI (the refresh-decoupling plan in `docs/internals/godot-migration.md`).
 //!
 //! The cache is owned by the host, not stored on the tree, so one cache belongs
 //! to one tree and the tree stays the single owner of UI state. It is keyed on
@@ -36,7 +36,7 @@ impl PaintStatus {
 /// Holds the UI's last [`DrawList`] across frames.
 ///
 /// **Non-breaking addition to `igui_ui`** (Stage 27); recorded in
-/// `docs/design-system.md`.
+/// `docs/guide/design-system.md`.
 #[derive(Default)]
 pub struct UiPaintCache {
     generation: u64,

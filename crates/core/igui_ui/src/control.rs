@@ -17,7 +17,7 @@ use crate::layout::{ApproxTextMeasurer, ContentSize, LayoutStyle, TextMeasurer, 
 /// an activation bubbles to its nearest ancestor carrying a click callback"
 /// rather than Godot's `MOUSE_FILTER_PASS` `_gui_call_input` walk; a `Pass`
 /// variant that behaved identically to [`Stop`](MouseFilter::Stop) would be a
-/// trap, so it is deliberately not modelled. See `docs/viewport-model.md`.
+/// trap, so it is deliberately not modelled. See `docs/internals/viewport-model.md`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum MouseFilter {
     /// Consume the event and stop the search (topmost control wins).

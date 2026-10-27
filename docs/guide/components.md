@@ -1,7 +1,7 @@
 # Components
 
 > For the app-level walkthrough (frame loop, hosting, conventions), start with
-> `docs/ui-guide.md`; this page is the widget/layout/input reference.
+> `docs/guide/ui-guide.md`; this page is the widget/layout/input reference.
 
 UI is built from **components** on one `igui_scene::SceneTree`. A component is a
 value that builds exactly one primary control node; mount a whole scene with
@@ -25,7 +25,8 @@ root adds the themed library (`Text`, `Card`, `Button`, `Checkbox`, `Switch`,
 Compose declaratively with `.child(..)` / `.children([..])`, then mount the
 whole scene once with `.into_tree()`:
 
-```rust
+```rust,ignore
+// fragment: `viewport` comes from your host
 use igui_components::base::Button;
 use igui_components::{Column, Label, Panel, Row};
 use igui_scene::SceneTree;
@@ -66,7 +67,8 @@ left = parent.left + parent.width  * anchor.left  + offset.left
 right = parent.left + parent.width * anchor.right + offset.right
 ```
 
-```rust
+```rust,ignore
+// fragment: `tree` comes from your app
 use igui_core::Edges;
 
 // fill the parent
@@ -91,7 +93,8 @@ tree.add_child(
 `VBox`/`HBox` are convenience column/row flex containers. For full control use
 `Flex`:
 
-```rust
+```rust,ignore
+// fragment: `tree` comes from your app
 use igui_components::Flex;
 use igui_ui::{Align, Justify};
 
@@ -115,7 +118,8 @@ let row = tree.add_child(
 
 Per-child sizing is a `Component` modifier:
 
-```rust
+```rust,ignore
+// fragment: `tree` comes from your app
 use igui_ui::SizeBasis;
 
 tree.add_child(
@@ -134,7 +138,8 @@ one child.
 
 ### Grid
 
-```rust
+```rust,ignore
+// fragment: `tree` comes from your app
 use igui_components::Grid;
 use igui_ui::{Align, AlignContent, GridPlacement, Track};
 
@@ -167,7 +172,8 @@ for its wrapped lines.
 
 `Label` (and themed `Text`) expose overflow options:
 
-```rust
+```rust,ignore
+// fragment: `tree` comes from your app
 tree.add_child(
     panel,
     Label::new("A long paragraph ...")
@@ -178,7 +184,8 @@ tree.add_child(
 
 Weight is a per-label token too (`igui_core::FontWeight`):
 
-```rust
+```rust,ignore
+// fragment: `tree` comes from your app
 use igui_components::FontWeight;
 
 tree.add_child(panel, Text::heading("Settings", theme).bold());
@@ -193,7 +200,8 @@ wrapping matches the painted face. `Button` also takes `.weight(..)` / `.bold()`
 Measurement is pluggable via `TextMeasurer`, so layout stays deterministic and
 backend-neutral while the host supplies real metrics:
 
-```rust
+```rust,ignore
+// fragment: `tree` comes from your app
 use std::rc::Rc;
 use igui_ui::FixedWidthTextMeasurer;
 
@@ -222,7 +230,8 @@ reuses a per-control cache of wrapped/clipped lines until its text, font, width,
 
 ## Respond to input
 
-```rust
+```rust,ignore
+// fragment: `tree` comes from your app
 use igui_core::{EventResult, InputEvent, PointerButton};
 
 let result: EventResult = igui_ui::handle_input(
@@ -249,7 +258,8 @@ focus. A directional move follows an explicit **named neighbor** first and
 falls back to a spatial search over the resolved rectangles, so a game menu can
 wire its buttons regardless of layout:
 
-```rust
+```rust,ignore
+// fragment: `theme` comes from your app
 Button::primary("Play", theme)
     .focus_name("play")
     .focus_neighbor_up("home")
@@ -277,7 +287,8 @@ not clipped away entirely.
 Hover is per-node, but a control can drive a named **group** and another can
 react to it — a `Card` that lights up while one of its buttons is hovered:
 
-```rust
+```rust,ignore
+// fragment: `theme` comes from your app
 Card::new(theme)
     .group_hover("card")                    // reacts
     .dynamic_background(move |st| if st.group_hovered { hover } else { base });
@@ -296,7 +307,8 @@ pixels, and `PointerUp` releases it. The callback receives a `DragPhase`
 (`Start`/`Move`/`End`) plus the delta, so a component can react to the start and
 end of a drag from inside itself.
 
-```rust
+```rust,ignore
+// fragment: `tree` comes from your app
 tree.add_child(
     split,
     igui_components::ResizeHandle::vertical(theme)
@@ -345,7 +357,8 @@ or the CSS `cursor` property (`igui_wasm::App::cursor`).
 and capture the keyboard while focused. The caller reads (and may write) the
 live state through [`shared`]` -> Rc<RefCell<TextEdit>>`:
 
-```rust
+```rust,ignore
+// fragment: `theme` comes from your app
 use igui_components::{TextArea, TextInput};
 
 let search = TextInput::new(theme).placeholder("Search…").min_width(220.0);
@@ -429,7 +442,7 @@ selects all).
 ### Host wiring
 
 A native host needs three things (all provided by `igui_winit`'s plugins, see
-`docs/ui-guide.md` §6): forward `WindowEvent::Ime` as `InputEvent::Ime`
+`docs/guide/ui-guide.md` §6): forward `WindowEvent::Ime` as `InputEvent::Ime`
 (`ImePlugin`), forward `ModifiersChanged` and committed text (`KeyboardPlugin`),
 and each frame let `ImePlugin` place the IME window from `App::caret()` (which a
 UI app returns as `igui_ui::focused_caret(tree)`). In the WASM host the canvas
@@ -468,7 +481,8 @@ translation yet, so a list inside those demos does not scroll until it is added 
 them as it scrolls, so the node count, the layout work and the emitted commands
 follow the viewport rather than the data:
 
-```rust
+```rust,ignore
+// fragment: needs context from the surrounding code
 use std::cell::Cell;
 use std::rc::Rc;
 use igui_components::{List, ListColumn};
@@ -512,7 +526,7 @@ if state.sync(&mut tree) {                   // mounts/moves/re-binds the pool
 
 The pool is `ceil(viewport_height / row_height) + 1` rows: what fits, plus the
 buffer that makes the next scroll step a pure offset change. Row count therefore
-costs nothing per frame — `docs/benchmarking.md` has the measured shape
+costs nothing per frame — `docs/internals/benchmarking.md` has the measured shape
 (107 controls and 72 commands per frame at 1 K, 10 K and 100 K rows, against a
 naive list's 300 K controls and 200 K commands at 100 K).
 
@@ -534,7 +548,8 @@ arbitrary child in a clipped viewport and translates it by the scroll offset,
 with a draggable scrollbar. The child keeps its natural height; the viewport
 clips.
 
-```rust
+```rust,ignore
+// fragment: `theme` comes from your app
 use igui_components::ScrollView;
 
 let view = ScrollView::new(theme).child(long_column);
@@ -563,7 +578,8 @@ container and hides the rest. All views stay mounted (their state survives a
 switch), and `igui_ui` skips hidden controls in measure / arrange / paint /
 hit-test, so only the active view occupies the pane.
 
-```rust
+```rust,ignore
+// fragment: `tree` comes from your app
 use std::cell::Cell;
 use std::rc::Rc;
 use igui_components::{Button, Panel, Router};
@@ -598,7 +614,8 @@ route once per frame (typically in its `update`).
 an anchor and handles Escape / click-outside. The host opens it in its frame
 update, so click callbacks (which cannot borrow the host) only record a request.
 
-```rust
+```rust,ignore
+// fragment: `theme` comes from your app
 use igui_components::{Menu, MenuItem};
 
 // A menu title click records `Some(index)` in a shared cell...
@@ -633,7 +650,8 @@ core stays file- and backend-free. `paint_glyph` paints a glyph into any
 rectangle (the `Checkbox` check mark uses it), and `Icon` is the themed
 component:
 
-```rust
+```rust,ignore
+// fragment: `tree` comes from your app
 use igui_components::{Glyph, Icon};
 use igui_theme::Tone;
 
@@ -653,7 +671,8 @@ foreground layer).
 The UI is immediate-mode over a persistent tree. Mutate state, call
 `igui_ui::layout(&mut tree, viewport)`, then paint a fresh `DrawList` each frame:
 
-```rust
+```rust,ignore
+// fragment: `tree` comes from your app
 let mut ctx = igui_render::PaintContext::new();
 igui_ui::paint(&tree, &mut ctx);
 let list = ctx.into_draw_list();
@@ -713,7 +732,8 @@ mount time.
 - **Compose** with `.child(..)` / `.children([..])` — deferred, no tree. Build
   leaf components as named locals first, then compose the root once at the end:
 
-  ```rust
+  ```rust,ignore
+  // fragment: `theme` comes from your app
   let header = Row::new().child(app_icon(20.0, theme)).child(Text::subheading("Igui", theme));
   let rows = NOTES.iter().enumerate().map(|(i, note)| {
       let slots = handles.list_rows.clone();
@@ -729,7 +749,8 @@ mount time.
   - custom mount logic → own `spec: Spec`, hand-write `container()`/`content()`,
     override `build(self, tree, parent)`.
 
-  ```rust
+  ```rust,ignore
+  // fragment: needs context from the surrounding code
   struct Sidebar { inner: Column }
   impl Component for Sidebar {
       fn spec(&mut self) -> &mut Spec { self.inner.spec() }
@@ -742,7 +763,8 @@ mount time.
 
 - **Reach a node after mount** with `NodeRef` + `ref_` / `with_ref`:
 
-  ```rust
+  ```rust,ignore
+  // fragment: `theme` comes from your app
   let title = NodeRef::new();
   let header = Row::new().child(Text::subheading("Igui", theme).ref_(&title));
   let tree = Column::new().child(header).into_tree();
@@ -752,7 +774,8 @@ mount time.
 - **Add children in `prepare`** with `Spec::child` / `Spec::children` —
   `Component::child` needs `self` by value, which `prepare(&mut self)` lacks:
 
-  ```rust
+  ```rust,ignore
+  // fragment: method body
   self.spec.child(Label::new(text).font_size(size).color(color));
   ```
 

@@ -48,8 +48,8 @@ report and waits for approval (AGENTS rule 6). Roadmap change recorded in
   target texture. **Deferred:** per-viewport **UI layout** (a `Control` inside a
   `SubViewport` still resolves against the root viewport rect) and per-viewport
   **input routing** (the root viewport's is used).
-- **M6 — done.** Docs updated (`docs/design-system.md`, `AGENTS.md`, README,
-  `docs/architecture.md`).
+- **M6 — done.** Docs updated (`docs/guide/design-system.md`, `AGENTS.md`, README,
+  `docs/internals/architecture.md`).
 
 Owner: `igui_scene` (viewport/transform/lifecycle) + `igui_ui` (layout/paint of
 `Control`). `igui_game` was a consumer until the game layer was removed.
@@ -85,7 +85,7 @@ is **0 %** today. M2 (H2) is the enabling change, not an optimisation.
 ## 2. Godot semantics adopted (authoritative)
 
 Two independent rules decide where a `Control` lands. Both are already recorded
-from the Godot source in `docs/godot-migration.md` (Q1/Q3 Findings) and are
+from the Godot source in `docs/internals/godot-migration.md` (Q1/Q3 Findings) and are
 re-confirmed here as the contract.
 
 ### R1 — anchorable rect (the layout frame)
@@ -207,7 +207,8 @@ finalised in M3.
 
 All node-triggered callbacks use one shape:
 
-```rust
+```rust,ignore
+// fragment: `std::rc::Rc` comes from your state setup
 // igui_scene::behavior
 pub type LifecycleCallback = Rc<RefCell<dyn FnMut(&mut SceneTree, NodeId, f32)>>;
 pub type InputCallback   = Rc<RefCell<dyn FnMut(&mut SceneTree, NodeId, &InputEvent) -> EventResult>>;
@@ -259,7 +260,7 @@ Boundaries:
   draw in local space; clip in the same chain.
 - `crates/core/igui_scene/src/input.rs`: hit-test a world `Control` through the
   inverse `draw_transform`.
-- record in `docs/design-system.md`.
+- record in `docs/guide/design-system.md`.
 
 Acceptance: new tests (a `Control` under a moving `Node2D` emits the composed
 transform; a `Control` under a `CanvasLayer` with a transform is offset; camera
@@ -309,13 +310,13 @@ Acceptance: `cargo test -p game_demo`; `cargo run -p game_demo -- --selfcheck`;
 
 ### M6 — docs + examples close-out
 
-- `AGENTS.md` dependency/roadmap/status; `docs/architecture.md`;
-  `docs/components.md`/`design-system.md`; this doc marked done.
+- `AGENTS.md` dependency/roadmap/status; `docs/internals/architecture.md`;
+  `docs/guide/components.md`/`design-system.md`; this doc marked done.
 
 ## 7. Compatibility / breaking changes
 
 - `igui_scene` and `igui_ui` may change incompatibly (migration window), as
-  already allowed by `docs/godot-migration.md`.
+  already allowed by `docs/internals/godot-migration.md`.
 - `ControlData.rect` changes meaning (absolute → local): every reader of
   `control.rect` that assumed screen coordinates must be audited (paint, input,
   focus nav, debug overlay, `GameView`, examples).

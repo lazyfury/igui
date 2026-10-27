@@ -5,7 +5,7 @@ description: Drive igui from C/C++ or another language over the C ABI. Use when 
 
 # igui C ABI
 
-Source of truth: `docs/cpp-ffi.md`; headers live next to their crates
+Source of truth: `docs/guide/cpp-ffi.md`; headers live next to their crates
 (`crates/ffi/igui_ffi/include/igui.h`, `examples/demoapp_ffi/include/demoapp.h`,
 `examples/wgpu_ffi/include/wgpu_ffi.h`).
 
@@ -36,7 +36,7 @@ Build them as `staticlib`/`cdylib`; the reference host is `examples/cpp_ffi`
 - Check `IGUI_ABI_VERSION` at startup; bumping a command field or a value layout
   is an ABI break.
 - Commands carry a tag + the fields for that tag (see the table in
-  `docs/cpp-ffi.md`); unknown/newer tags must be skipped, not misread.
+  `docs/guide/cpp-ffi.md`); unknown/newer tags must be skipped, not misread.
 - Text arrives pre-shaped as glyph runs; the host still owns fonts and textures.
 - `--dump` is the debugging tool: it prints the `DrawList` without a GPU, so
   layout bugs are diagnosable headlessly. Filter its output instead of printing

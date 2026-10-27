@@ -43,7 +43,7 @@ pub enum FocusDir {
 ///
 /// **Non-breaking addition to `igui_ui`** (`Control` gained `focus`, and the
 /// resolver functions in this module are new); recorded in
-/// `docs/design-system.md`.
+/// `docs/guide/design-system.md`.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct FocusNav {
     /// Logical name an explicit neighbor refers to (`"home"`).

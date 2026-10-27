@@ -534,7 +534,7 @@ mod tests {
         tree.set_process(node, move |tree, id, _dt| {
             // Tree access is the point: the callback builds a child and hides
             // its own node without any external `Rc<RefCell>`. See
-            // `docs/viewport-model.md` M1.
+            // `docs/internals/viewport-model.md` M1.
             tree.add_node(id, "child");
             tree.set_visible(id, false);
         });

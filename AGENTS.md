@@ -22,7 +22,7 @@ Input -> SceneTree -> Update -> Layout -> Paint -> DrawList -> RenderBackend -> 
 3. Scene/UI must be testable with native `cargo test`, no browser.
 4. Resources use handles (`NodeId`, `TextureId`), not backend objects.
 5. No ECS, shaders, render graph, particles, editor in MVP. Basic 2D
-   collision/physics IS allowed from Stage 25 (see `docs/godot-migration.md`);
+   collision/physics IS allowed from Stage 25 (see `docs/internals/godot-migration.md`);
    a general rigid-body solver / editor remains out of scope until a later
    explicit ask.
 6. Do not merge stages. Each stage ends with a report and waits for user approval.
@@ -38,7 +38,7 @@ Input -> SceneTree -> Update -> Layout -> Paint -> DrawList -> RenderBackend -> 
    `igui_ui`'s `Control` / `Container` / `ControlContent` / `Chrome`,
    `igui_scene` and `igui_render` — frozen unless a change is genuinely
    required and backward compatible; record any such change in
-   `docs/design-system.md`.
+   `docs/guide/design-system.md`.
    Exact token names/paths matter: use `theme.palette().*` and
    `theme.surface(level)` rather than hard-coding hex values in components. Dark
    is a token swap, not a second code path, and dark values must stay within the
@@ -48,14 +48,14 @@ Input -> SceneTree -> Update -> Layout -> Paint -> DrawList -> RenderBackend -> 
    `theme.spacing`/`control_height`/`row_height` rather than the `space`/`control`
    consts.
    **Migration exception (Stage 25+):** the Godot-style migration
-   (`docs/godot-migration.md`) may change `igui_scene` / `igui_ui` incompatible;
+   (`docs/internals/godot-migration.md`) may change `igui_scene` / `igui_ui` incompatible;
    keep the compatibility layer green per phase and update
-   `docs/design-system.md` when component-facing APIs move.
+   `docs/guide/design-system.md` when component-facing APIs move.
 9. **Ask when unclear.** If a request is ambiguous, or a change would alter the
    architecture, a public API or the roadmap, stop and ask before writing code;
    do not guess intent.
 10. **Roadmap changes need confirmation.** Do not add, remove, reorder or
-    re-scope stages/phases (including `docs/godot-migration.md`) without explicit
+    re-scope stages/phases (including `docs/internals/godot-migration.md`) without explicit
     approval, and record any approved change in the docs.
 11. **Do not start work on your own.** Implement only the agreed task; report
     unrelated findings instead of acting on them.
@@ -180,7 +180,7 @@ cpp_ffi (C++/CMake) -> igui_ffi + demoapp_ffi + wgpu_ffi (staticlibs), GLFW, Ope
                   lets its `--demoapp` mode load the real gallery, and
                   `wgpu_ffi` gives `--wgpu` the Rust backend as an alternative
                   to the C++ OpenGL one. The UI is C++ — see
-                  `examples/cpp_ffi` and `docs/cpp-ffi.md`.)
+                  `examples/cpp_ffi` and `docs/guide/cpp-ffi.md`.)
 ```
 
 `image_editor` (the Photoshop-style app) used to live in `examples/image_editor`:
@@ -188,7 +188,7 @@ it graduated to its own repo (a sibling checkout, `../image_editor`) and consume
 these crates through relative path deps, so it is no longer part of this
 checkout.
 
-Planned (future stages, see `docs/godot-migration.md`): no numbered stage is
+Planned (future stages, see `docs/internals/godot-migration.md`): no numbered stage is
 open. Phase 8 (observability) and the host migrations below remain.
 
 Crates are grouped by role under `crates/`: `core/` (backend-neutral engine:
@@ -237,12 +237,12 @@ None of the demos is a dependency of the core crates.
 | `examples/demo_app` | root member | single crate, backend-neutral (no backend) | `cargo test -p demo_app` | dependency block above |
 | `examples/multi_tree` | root member | single crate, headless (`igui_backend_recording`) | `cargo test -p multi_tree` | dependency block above |
 | `examples/web_demo` | root member | WASM / Canvas host | `cargo test -p web_demo`; build `./examples/web_demo/build.sh` | `examples/web_demo/README.md` |
-| `examples/wgpu_demo` | root member | native `wgpu` + `winit`; `igui_app` + `igui_winit` plugins | `cargo test -p wgpu_demo`; run `cargo run -p wgpu_demo --release`; `cargo run -p wgpu_demo -- --selfcheck` | `examples/wgpu_demo/README.md`, `docs/debug.md` |
+| `examples/wgpu_demo` | root member | native `wgpu` + `winit`; `igui_app` + `igui_winit` plugins | `cargo test -p wgpu_demo`; run `cargo run -p wgpu_demo --release`; `cargo run -p wgpu_demo -- --selfcheck` | `examples/wgpu_demo/README.md`, `docs/guide/debug.md` |
 | `examples/deepseek_balance` | **standalone** (own workspace) | own `util` sub-crate (member of that workspace); native `wgpu` + `winit` + `ureq` | `cargo test --manifest-path examples/deepseek_balance/Cargo.toml`; `cargo run --manifest-path examples/deepseek_balance/Cargo.toml -- --selfcheck` | dependency block above, crate module docs |
 | `examples/file_browser` | **standalone** (own workspace) | single crate; native `wgpu` + `winit` | `cargo test --manifest-path examples/file_browser/Cargo.toml`; `cargo run --manifest-path examples/file_browser/Cargo.toml -- --selfcheck` (`--dump` too) | dependency block above |
-| `examples/cpp_ffi` | **standalone** (C++/CMake; no Cargo workspace) | C++17 UI + OpenGL 3.3 backend; links `igui_ffi` + `demoapp_ffi` + `wgpu_ffi` | `./examples/cpp_ffi/build.sh`; `./examples/cpp_ffi/build/cpp_ffi --selfcheck` (`--dump`, `--gallery`, `--demoapp`, `--wgpu` too) | `examples/cpp_ffi/README.md`, `docs/cpp-ffi.md` |
-| `examples/demoapp_ffi` | root member | `staticlib`/`cdylib` C ABI over `demo_app`; loaded by `cpp_ffi --demoapp` | `cargo test -p demoapp_ffi` | `docs/cpp-ffi.md` |
-| `examples/wgpu_ffi` | root member | `staticlib`/`cdylib` C ABI over `igui_backend_wgpu`; `cpp_ffi --wgpu` (and `--selfcheck --wgpu`) | `cargo test -p wgpu_ffi` | `docs/cpp-ffi.md` |
+| `examples/cpp_ffi` | **standalone** (C++/CMake; no Cargo workspace) | C++17 UI + OpenGL 3.3 backend; links `igui_ffi` + `demoapp_ffi` + `wgpu_ffi` | `./examples/cpp_ffi/build.sh`; `./examples/cpp_ffi/build/cpp_ffi --selfcheck` (`--dump`, `--gallery`, `--demoapp`, `--wgpu` too) | `examples/cpp_ffi/README.md`, `docs/guide/cpp-ffi.md` |
+| `examples/demoapp_ffi` | root member | `staticlib`/`cdylib` C ABI over `demo_app`; loaded by `cpp_ffi --demoapp` | `cargo test -p demoapp_ffi` | `docs/guide/cpp-ffi.md` |
+| `examples/wgpu_ffi` | root member | `staticlib`/`cdylib` C ABI over `igui_backend_wgpu`; `cpp_ffi --wgpu` (and `--selfcheck --wgpu`) | `cargo test -p wgpu_ffi` | `docs/guide/cpp-ffi.md` |
 
 Headless self-check binaries (`--selfcheck`, and `--dump*` where noted) render
 the same UI into `igui_backend_recording` and print a report; they are the
@@ -278,9 +278,9 @@ crate/module instead of being embedded where it happens to be used.
 ## Stages
 
 All stages through **Stage 33 are complete and accepted.** The full ledger (one
-line per stage, with what each landed) is `docs/architecture.md` →
+line per stage, with what each landed) is `docs/internals/architecture.md` →
 "Implementation stages"; the Godot-style migration's phase plan and per-substage
-notes are `docs/godot-migration.md`. The bullets below describe the current
+notes are `docs/internals/godot-migration.md`. The bullets below describe the current
 state and the open follow-ups; the per-stage history lives in those two docs.
 
 - **Next (future stages):** **Phase 8 (observability)**, per-viewport UI layout
@@ -299,7 +299,7 @@ state and the open follow-ups; the per-stage history lives in those two docs.
   and a partial **M4** (`MouseFilter::Pass`, a no-op, removed) are done. **M3**
   (scene-level multi-instance `Viewport` + `SubViewport`: per-viewport cameras,
   `paint_viewport`, and a compositing container; per-viewport UI layout and input
-  routing deferred) is done. Full design and progress: `docs/viewport-model.md`.
+  routing deferred) is done. Full design and progress: `docs/internals/viewport-model.md`.
 - **Un-numbered enhancement (accepted): keyboard focus navigation + named group
   hover.** `igui_ui` gained a `focus` module (`FocusNav`/`FocusDir` +
   `set_focus`/`focus_move`/`focus_up..right`/`focus_next`/`focus_prev`/
@@ -312,7 +312,7 @@ state and the open follow-ups; the per-stage history lives in those two docs.
   `igui_components` exposes `Component::{focus_name, focus_neighbor_up/down/
   left/right, tab_index, group, group_hover}` and makes `Button` focusable by
   default. `examples/demo_app` gained Focus navigation / Group hover cards with
-  end-to-end tests. Recorded in `docs/design-system.md`; see `docs/components.md`.
+  end-to-end tests. Recorded in `docs/guide/design-system.md`; see `docs/guide/components.md`.
 - **Stage 32 — `igui` facade backend + observability features [accepted].** The
   facade gained `wgpu` / `canvas` / `wasm` / `profile` / `debug` / `recording` /
   `bench` feature-gated re-exports (`wasm` implies `canvas`; `debug` implies
@@ -328,7 +328,7 @@ state and the open follow-ups; the per-stage history lives in those two docs.
   layer-ordered pass (`SceneTree::paint_items`); `SceneTree::paint` stays the
   world-only entry for UI-less games. `ButtonState`/`ButtonData`/`button_state`
   are removed (`click_count` + `state_for` replace them). Recorded in
-  `docs/design-system.md` and `docs/godot-migration.md`. Previously: Stage 31
+  `docs/guide/design-system.md` and `docs/internals/godot-migration.md`. Previously: Stage 31
   (`igui_app` plugin runtime), Stage 30 (`examples/game_demo`), Stage 29
   (`GameView`/sub-viewport + fixed timestep), Stage 28 (`igui_game` 2D game
   layer), Stage 27 (refresh decoupling), Stage 26 (`igui_anim` + `igui` facade
@@ -354,6 +354,7 @@ cargo test --workspace
 cargo bench --workspace --no-run
 ```
 
+
 `--workspace` excludes the **standalone** demos (`examples/deepseek_balance`,
 `examples/file_browser`). When you touch one, also run its own gate with
 `--manifest-path` (fmt / clippy `-D warnings` / check / test) and its
@@ -374,7 +375,7 @@ Then emit the report and stop for approval.
   prefix again. The C ABI keeps the `igui_*` symbol prefix (`igui.h`).
 - Stage 8: the second backend is `igui_backend_recording`. A native macOS Core
   Graphics backend + `macos_demo` was implemented and **removed by request**; do
-  not reintroduce it without an explicit ask. (Background: `docs/architecture.md`.)
+  not reintroduce it without an explicit ask. (Background: `docs/internals/architecture.md`.)
 - `cargo bench` uses the `bench` profile (`opt-level = 3`); bench targets use
   `harness = false` and are run via `cargo bench -p <crate> --bench <name>`.
 - API priority: **API -> test -> implementation -> integration.**
@@ -420,27 +421,29 @@ The suite is a contract, not a diary. Before adding or keeping a test:
 - `--selfcheck` already frame-checks layouts; do not duplicate it with
   hand-rolled draw-list assertions unless the check is new.
 - If the count outgrows the behaviour it covers, delete before adding. See
-  `docs/testing.md` for the layers.
+  `docs/internals/testing.md` for the layers.
 
 ## Where to look
 
 | I need... | Look at |
 |---|---|
-| **Build an app UI: frame loop, widgets, hosting, conventions, cheat sheet** | **`docs/ui-guide.md`** (read this before scanning crates) |
-| Pipeline, coordinates, stage plan, backend replaceability | `docs/architecture.md` |
-| Backends (Canvas / wgpu / recording), adding a backend, browser boundary | `docs/backend.md` |
-| C ABI, C++ host, foreign-language backend | `docs/cpp-ffi.md` (`crates/ffi/igui_ffi`, `examples/cpp_ffi`) |
-| Fonts: discovery, family/weight resolution, fallback, shaping | `docs/font.md` (`crates/assets/igui_font`) |
-| SVG / vector icons, loading an icon pack (Lucide) | `docs/svg.md` (`crates/assets/igui_svg`) |
-| Controls, layout, components (API reference by name) | `docs/components.md` |
-| Design tokens, theme, component library | `docs/design-system.md` |
-| Roadmap / remaining primitives & components | `docs/plan.md` |
-| Godot-style unified scene migration (Stage 25+) | `docs/godot-migration.md` |
-| Single-tree viewport model + world-space `Control` (M0-M6) | `docs/viewport-model.md` |
+| **Start an app / hand the repo to an agent** | **`docs/guide/start.md`** (quick start → layout recipe → capability map → pitfalls) |
+| **Docs map (user-facing vs internals)** | **`docs/README.md`** |
+| Build an app UI: frame loop, widgets, hosting, conventions, cheat sheet | `docs/guide/ui-guide.md` |
+| Pipeline, coordinates, stage plan, backend replaceability | `docs/internals/architecture.md` |
+| Backends (Canvas / wgpu / recording), adding a backend, browser boundary | `docs/guide/backend.md` |
+| C ABI, C++ host, foreign-language backend | `docs/guide/cpp-ffi.md` (`crates/ffi/igui_ffi`, `examples/cpp_ffi`) |
+| Fonts: discovery, family/weight resolution, fallback, shaping | `docs/guide/font.md` (`crates/assets/igui_font`) |
+| SVG / vector icons, loading an icon pack (Lucide) | `docs/guide/svg.md` (`crates/assets/igui_svg`) |
+| Controls, layout, components (API reference by name) | `docs/guide/components.md` |
+| Design tokens, theme, component library | `docs/guide/design-system.md` |
+| Roadmap / remaining primitives & components | `docs/internals/plan.md` |
+| Godot-style unified scene migration (Stage 25+) | `docs/internals/godot-migration.md` |
+| Single-tree viewport model + world-space `Control` (M0-M6) | `docs/internals/viewport-model.md` |
 | Release notes: breaking changes, new capabilities, rename migration | `release.md` |
-| Profiler + debug overlays | `docs/debug.md` |
-| Benchmarks & regression baselines | `docs/benchmarking.md` |
-| Test layers, no-screenshot rule | `docs/testing.md` |
-| Getting started / build & run | `docs/getting-started.md` |
+| Profiler + debug overlays | `docs/guide/debug.md` |
+| Benchmarks & regression baselines | `docs/internals/benchmarking.md` |
+| Test layers, no-screenshot rule | `docs/internals/testing.md` |
+| Getting started / build & run | `docs/guide/getting-started.md` |
 | Skills for agents: create/maintain usage skills (Agent Skills) | `README.md` → "Skills (for agents)" (`.agents/skills/<name>/SKILL.md`) |
 | Core types & crate APIs | `crates/**/src/*.rs` (module docs at the top) |

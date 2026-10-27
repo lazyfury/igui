@@ -23,7 +23,7 @@
 //! - `tests` — the ABI contract (round-trip, null safety, version).
 //!
 //! `include/igui.h` is a hand-maintained mirror of the layout. Change one,
-//! change the other, and bump [`ABI_VERSION`]. Details: `docs/cpp-ffi.md`.
+//! change the other, and bump [`ABI_VERSION`]. Details: `docs/guide/cpp-ffi.md`.
 
 mod convert;
 mod list;

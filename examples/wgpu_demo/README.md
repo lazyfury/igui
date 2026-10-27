@@ -130,7 +130,7 @@ top-left corner. This is `igui_ui::Ui::paint_debug` wrapped by
 demo.paint -> debug.paint(demo.ui(), demo.tree(), ctx) -> `ui.paint_debug(tree, ...)`
 ```
 
-See `docs/debug.md` for the options (`show_names`, `show_ids`, colors, ...) and
+See `docs/guide/debug.md` for the options (`show_names`, `show_ids`, colors, ...) and
 for using it with your own `Ui`.
 
 ## Performance panel

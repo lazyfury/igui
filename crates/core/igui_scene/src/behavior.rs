@@ -7,7 +7,7 @@
 //! `&mut SceneTree` — so a callback may freely mutate the tree (spawn, remove,
 //! move nodes). `Box<dyn FnMut>` is used instead where the container is
 //! host-owned and never borrowed from the tree (`Timers` / `Areas` / `Signal`);
-//! the signature stays the same. See `docs/viewport-model.md` §5.
+//! the signature stays the same. See `docs/internals/viewport-model.md` §5.
 //!
 //! Dispatch snapshot rule: a node removed before its turn is skipped, a node
 //! added during a dispatch runs next frame, and a nested

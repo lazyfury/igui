@@ -85,7 +85,7 @@ Benchmarks live in `benches/` targets (`harness = false`) and are run with
 so they are **not** part of the correctness suite and make no assertions on
 measured time. What *is* tested is the harness itself (`igui_bench`) and the
 determinism of every scenario fixture (`igui_bench_suite`). The `bench` profile is
-pinned to `opt-level = 3`. See `docs/benchmarking.md`.
+pinned to `opt-level = 3`. See `docs/internals/benchmarking.md`.
 
 ## What needs a browser
 

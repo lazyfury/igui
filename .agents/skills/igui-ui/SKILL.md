@@ -5,8 +5,9 @@ description: Build, lay out, paint, test and host an igui UI. Use when creating 
 
 # igui UI
 
-Source of truth: `docs/ui-guide.md` (start here), then `docs/components.md` for
-the API by name and `docs/design-system.md` for tokens.
+Source of truth: `docs/guide/start.md` (quick start, layout recipe, pitfalls),
+then `docs/guide/ui-guide.md` (long-form), `docs/guide/components.md` (API by
+name) and `docs/guide/design-system.md` (tokens).
 
 ## Frame loop (the order matters)
 
@@ -42,7 +43,7 @@ Focus: `set_focus` / `focus_move` / `focus_next`; `Component::focus_name`,
 
 Never screenshot. Assert layout rects, paint into `igui_backend_recording` and
 check the `DrawList` command sequence, or run the app's `--selfcheck`. Every
-core behaviour must be testable with plain `cargo test` (see `docs/testing.md`).
+core behaviour must be testable with plain `cargo test` (see `docs/internals/testing.md`).
 
 ## Don't
 

@@ -7,7 +7,7 @@ primitives, and the demo. Keep this short and move finished items to the
 > **Stage 25+ is a planned architecture migration** to a Godot-style unified
 > scene (single `SceneTree` for world + UI, `Viewport`/`Camera2D`, `CanvasLayer`
 > UI in viewport coordinates). That change is specified separately in
-> [`docs/godot-migration.md`](godot-migration.md); this file keeps the
+> [`docs/internals/godot-migration.md`](godot-migration.md); this file keeps the
 > day-to-day item lists below. Where they conflict for Stages 25+,
 > `godot-migration.md` wins.
 
@@ -16,7 +16,7 @@ primitives, and the demo. Keep this short and move finished items to the
 > removed**), GameView / sub-viewport + fixed timestep (29),
 > `examples/game_demo` (30, **later removed**), `igui` facade (31). The game
 > layer and its demos were deleted (see `release.md`); `igui_anim` stays. See
-> `docs/godot-migration.md` → "Approved plan — Stages 26-31".
+> `docs/internals/godot-migration.md` → "Approved plan — Stages 26-31".
 
 ## Drawing primitives
 
@@ -47,23 +47,23 @@ audited by `igui_profile`'s inspector, or it is not "done".
 | `Checkbox`, `Switch` | done | shared `Rc<Cell<_>>` state |
 | `Radio` / `RadioGroup` | next | same interaction layer as `Checkbox` |
 | `Tabs` | next | active indicator, keyboard focus |
-| `Input` / `TextArea` | done | interactive editors: caret, selection (char/word/line), password masking, IME preedit; `TextEdit` state in `igui_ui::text_edit`; `docs/components.md` §Text fields |
+| `Input` / `TextArea` | done | interactive editors: caret, selection (char/word/line), password masking, IME preedit; `TextEdit` state in `igui_ui::text_edit`; `docs/guide/components.md` §Text fields |
 | `Select` / `Dropdown` | next | menu surface + selected state |
 | `Tooltip` | done | `Overlays::tips`, anchored and hover-tracked |
-| `List` | done | virtualized: mounts the viewport's rows (+1 buffer) and recycles them; rows come from a `RowSource`; wheel + click + selection; `docs/components.md` |
+| `List` | done | virtualized: mounts the viewport's rows (+1 buffer) and recycles them; rows come from a `RowSource`; wheel + click + selection; `docs/guide/components.md` |
 | `Table` | next | header row, column alignment over the `List` pool (sorting, multi-column, row actions) |
 | `Toolbar` | next | grouped icon buttons + separators |
 | `Modal` / `Toast` | done | `Overlays::confirm` (scrim) / `Overlays::message` (transient) |
 | `Popover` | done | `Overlays::popover`, anchored with edge flipping |
 | `Menu` / `MenuItem` | done | floating surface + rows (`shortcut`/`tone`/`disabled`); `Overlays::menu` anchors `BelowStart`; used by `image_editor` |
 | `Progress`, `Spinner`, `Skeleton` | later | uses `Arc`/rounded primitives |
-| `ScrollView` | done | clip + offset viewport for arbitrary content, with a draggable scrollbar; `ScrollView::state().sync` after layout, like `List`; `docs/components.md` |
+| `ScrollView` | done | clip + offset viewport for arbitrary content, with a draggable scrollbar; `ScrollView::state().sync` after layout, like `List`; `docs/guide/components.md` |
 
 ## Theme
 
 Tokens, palette, density and the `Theme` trait API are documented in
-[`docs/design-system.md`](design-system.md); font resolution and shaping in
-[`docs/font.md`](font.md). Remaining roadmap:
+[`docs/guide/design-system.md`](../guide/design-system.md); font resolution and shaping in
+[`docs/guide/font.md`](../guide/font.md). Remaining roadmap:
 
 - **Font weight (done).** `igui_core::FontWeight` (numeric 100–900) rides the
   IR, `igui_ui::TextOptions::weight` and `Theme::font_weight(TextSize)`;
@@ -107,7 +107,7 @@ themed library. Remaining polish, in priority order:
 ## UI runtime — `Ui` boundary & lifecycle (folded into Stage 25)
 
 > This section is now part of the Godot-style migration; see
-> [`docs/godot-migration.md`](godot-migration.md) Phase 4 (single tree) and
+> [`docs/internals/godot-migration.md`](godot-migration.md) Phase 4 (single tree) and
 > Phase 5 (lifecycle/input). The items below are the constraints that phase
 > must satisfy.
 
@@ -121,7 +121,7 @@ free functions over the tree, and every per-control runtime value
 (`ControlData`/`Container`/`ControlContent`/chrome/callback) lives on the
 node's extension slot (`Widget` was later removed in Stage 33).
 The layout cache, GUI interaction state and text measurer live on the root; the
-**theme is not stored on the tree**. See `docs/godot-migration.md` Phase 4.
+**theme is not stored on the tree**. See `docs/internals/godot-migration.md` Phase 4.
 
 ## Core hardening (design-review follow-ups)
 
@@ -200,7 +200,7 @@ Cross-cutting: Phases 9 and 11 both need "a popover full of commands", so the
 
 ## Done
 
-Stage history is the ledger in [`docs/architecture.md`](architecture.md); this
+Stage history is the ledger in [`docs/internals/architecture.md`](architecture.md); this
 section keeps non-stage work items.
 
 - **Wheel pump in every host.** `examples/file_browser` already translated
@@ -217,7 +217,7 @@ into flattened polylines and strokes them with the existing `Line` +
 `FillCircle` IR, so it works with any backend. `IconPack` indexes a directory of
 `.svg` files by name. Validated against the whole Lucide pack: 2 112 icons parse
 into 8 605 shapes / ~224 K commands with none empty (run
-`every_icon` with the pack directory; see `docs/svg.md`). See `docs/svg.md`. Fills are not rendered yet (stroke-only), which is exactly the
+`every_icon` with the pack directory; see `docs/guide/svg.md`). See `docs/guide/svg.md`. Fills are not rendered yet (stroke-only), which is exactly the
 Lucide case.
 - `List` + the core increments it needed: `ControlData.clip` (the first and only
   source of `DrawCommand::ClipRect`, resolved in the layout pass, emitted as one
@@ -229,7 +229,7 @@ Lucide case.
   the row count. Measured: 107 controls and 72 commands per scrolling frame at
   1 K, 10 K and 100 K rows (73 µs) against a naive mounted-everything list's
   3 000 / 30 000 / 300 000 controls (1.75 ms → 261 ms). See
-  `docs/components.md` and `docs/benchmarking.md`.
+  `docs/guide/components.md` and `docs/internals/benchmarking.md`.
 - `examples/file_browser`: the first real consumer of `List` — a directory
   browser with the scan on a worker thread, keyboard + wheel navigation, and a
   headless `--selfcheck` that asserts the frame does not grow when the listing

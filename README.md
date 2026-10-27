@@ -4,9 +4,10 @@ A backend-neutral 2D/UI drawing core in Rust — Godot's
 `SceneTree -> Node -> CanvasItem -> Node2D / Control` model with a
 Rust-friendly API.
 
-- **Users (app authors):** [Quick start](#quick-start) ·
-  [UI guide](docs/ui-guide.md) · [Examples](#examples)
-- **Agents / contributors:** [AGENTS.md](AGENTS.md) (hard rules + task map) ·
+- **Users (app authors):** [Start here](docs/guide/start.md) ·
+  [UI guide](docs/guide/ui-guide.md) · [Examples](#examples)
+- **Agents / contributors:** [docs/README.md](docs/README.md) (the doc map) ·
+  [AGENTS.md](AGENTS.md) (hard rules + task map) ·
   [For agents](#for-agents) · [Skills](#skills-for-agents)
 
 ## Architecture
@@ -62,7 +63,8 @@ igui_backend_wgpu = { path = "crates/platform/wgpu/igui_backend_wgpu" }  # pick 
 Every frame is the same four steps; the tree is persistent and the frame is
 immediate-mode over it:
 
-```rust
+```rust,ignore
+// fragment: `app` is your application
 // 1. state -> view: advance state, then rebuild/refresh the tree
 app.update(viewport, dt);
 // 2. resolve geometry (and flush deferred tree changes)
@@ -75,9 +77,9 @@ let list = ctx.into_draw_list();
 // 4. hand `list` to a backend (wgpu / canvas / recording)
 ```
 
-Read [`docs/ui-guide.md`](docs/ui-guide.md) for the full walkthrough (building
+Read [`docs/guide/ui-guide.md`](docs/guide/ui-guide.md) for the full walkthrough (building
 views, input, hosting, conventions) and
-[`docs/getting-started.md`](docs/getting-started.md) for the first scene and
+[`docs/guide/getting-started.md`](docs/guide/getting-started.md) for the first scene and
 control.
 
 ## Status
@@ -86,8 +88,8 @@ Stage 31 (`igui_app` plugin runtime) is accepted: a non-core `igui_app`
 runtime (`App`/`AppBuilder`/`Plugin`/`AppLogic`/`Runner` + a neutral
 `Presenter`) with the `igui_winit` platform plugins and a winit-free
 `igui_headless` recording presenter. Next up is Stage 32 (remaining `igui`
-facade backend features). See [`docs/architecture.md`](docs/architecture.md)
-for the stage ledger and [`docs/godot-migration.md`](docs/godot-migration.md)
+facade backend features). See [`docs/internals/architecture.md`](docs/internals/architecture.md)
+for the stage ledger and [`docs/internals/godot-migration.md`](docs/internals/godot-migration.md)
 for the migration plan.
 
 ## Examples
@@ -125,7 +127,7 @@ cargo bench -p igui_bench_suite --bench pipeline -- --save-baseline benches/cpu.
 cargo bench -p igui_bench_suite --bench pipeline -- --baseline benches/cpu.baseline.txt
 ```
 
-See `docs/benchmarking.md`.
+See `docs/internals/benchmarking.md`.
 
 ## Run the web demo
 
@@ -150,7 +152,7 @@ cargo run -p wgpu_demo --release
 
 See `examples/wgpu_demo/README.md` for details. Press **F3** / `` ` `` / **d** to
 toggle component debug bounds and **F4** / **p** for the performance panel; see
-`docs/debug.md` for wiring them into your own app.
+`docs/guide/debug.md` for wiring them into your own app.
 
 ## For agents
 
@@ -159,7 +161,7 @@ Two documents are the entry point; read them before scanning crates:
 - [`AGENTS.md`](AGENTS.md) — the working agreement: the pipeline contract, hard
   rules (backend-neutral core, no screenshots, ask when unclear), dependency
   direction, the per-stage gate, and the **"Where to look"** map.
-- [`docs/ui-guide.md`](docs/ui-guide.md) — the practical "build an app UI" guide:
+- [`docs/guide/ui-guide.md`](docs/guide/ui-guide.md) — the practical "build an app UI" guide:
   frame loop, widgets, hosting, conventions, and an agent cheat sheet.
 
 When upgrading across releases, read [`release.md`](release.md): the breaking
@@ -203,9 +205,9 @@ down as a skill; when an API moves, update the skill in the same change.
   use it** — that is what routes the model to the skill.
 - **One skill per usage area**, kept short and pointing at the source of truth
   rather than copying it. Three exist today:
-  - `.agents/skills/igui-ui` — build / route / paint a UI (`docs/ui-guide.md`, `docs/components.md`)
-  - `.agents/skills/igui-backend` — choose or add a backend (`docs/backend.md`)
-  - `.agents/skills/igui-ffi` — the C ABI and foreign hosts (`docs/cpp-ffi.md`)
+  - `.agents/skills/igui-ui` — build / route / paint a UI (`docs/guide/ui-guide.md`, `docs/guide/components.md`)
+  - `.agents/skills/igui-backend` — choose or add a backend (`docs/guide/backend.md`)
+  - `.agents/skills/igui-ffi` — the C ABI and foreign hosts (`docs/guide/cpp-ffi.md`)
 - **Validate** by running Pi with the repository as the working directory and
   checking the startup diagnostics and the `/skill:<name>` command.
 
@@ -219,7 +221,7 @@ description: Build, route and paint an igui UI. Use when building a view, wiring
 
 # igui UI
 
-Read `docs/ui-guide.md` first. Import from the `igui_*` crates (the `igui`
+Read `docs/guide/ui-guide.md` first. Import from the `igui_*` crates (the `igui`
 facade does not flatten names). Keep views headless-testable.
 ```
 

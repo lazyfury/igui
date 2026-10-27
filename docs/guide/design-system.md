@@ -109,7 +109,8 @@ builders**. Components implement `igui_components::Component`, receive a
 `&'static dyn Theme`, and attach their chrome to their own node. Hosts build one
 tree and use a single paint/input pass:
 
-```rust
+```rust,ignore
+// fragment: `viewport` comes from your host
 use igui_components::{Component, Flex};
 use igui_components::{Card, Checkbox, Text};
 use igui_scene::SceneTree;
@@ -170,7 +171,7 @@ Beyond the node itself, a control can drive a named **group**
 reacting control's `InteractState::group_hovered` is true while a control carrying
 that group (or a descendant) is hovered, so a card can light up with its button.
 Keyboard focus moves with the arrow keys and `Tab` (`igui_ui::focus_move`), with
-explicit per-control named neighbors; see `docs/components.md`.
+explicit per-control named neighbors; see `docs/guide/components.md`.
 
 ### Demo
 
@@ -201,7 +202,8 @@ set, so the demo is itself the token-swap proof.
 
 `igui_components` containers take children, so a screen is one expression:
 
-```rust
+```rust,ignore
+// fragment: `tree` comes from your app
 tree.add_child(tree.root(), Card::new(theme).gap(12.0)
     .child(Text::heading("Settings", theme))
     .child(Button::primary("Save", theme).on_click(save).grow(1.0)));
@@ -212,7 +214,7 @@ Every `Component` supports the same modifiers as a method: `grow`, `min_size`,
 `on_click`, `mouse_filter`, `child`, `ref_` and `with_ref`.
 
 Extend the library by implementing `igui_components::Component` (see
-`docs/components.md` for the full `spec`/`widget` walkthrough).
+`docs/guide/components.md` for the full `spec`/`widget` walkthrough).
 
 ## Overlays
 
@@ -220,7 +222,8 @@ Extend the library by implementing `igui_components::Component` (see
 `SceneTree`. It keeps the host pipeline explicit — the host lays out its UI,
 then the layer, and paints the layer last:
 
-```rust
+```rust,ignore
+// fragment: `tree` comes from your app
 igui_ui::layout(&mut tree, viewport);
 overlays.layout(&tree, viewport); // resolve targets after layout
 // ... paint main UI ...
@@ -259,7 +262,7 @@ public APIs:
   (`PanelContent`/`TextContent`/`ButtonContent`) and the layout setters.
 - A control is a `Container` plus an optional `ControlContent`; it is **not** a
   closed widget enum, so any crate can add a self-drawing control without a
-  core change (`docs/godot-migration.md`, Stage 33). Surface/foreground chrome
+  core change (`docs/internals/godot-migration.md`, Stage 33). Surface/foreground chrome
   is the `Chrome` wrapper around that content, so a control still stores one
   self-draw value.
 - Themed surfaces are painted by `igui_components` into the backend-neutral
@@ -397,7 +400,7 @@ backward-compatible addition and record it here.
   weight into the CSS font shorthand, and `igui_font::FontServer` resolves it to
   the nearest face (shared atlas). Additive and backward compatible: `draw_text`
   still draws `Normal`, and all existing `TextOptions` constructors default to
-  `Normal`. See [`docs/font.md`](font.md).
+  `Normal`. See [`docs/guide/font.md`](font.md).
 - **Theme-driven font sizes** (Stage 25.x): the `Theme::font_size(TextSize)` token
   existed but no component read it — `Text` used `TextSize::px()` directly and
   `Button` / `Menu` / controls / surfaces / overlays hardcoded `TextSize::X.px()`.
@@ -612,7 +615,7 @@ size-0 rect) and `Ui::paint` applies `canvas_transform * world_transform` —
 `Control` and `Node2D` share one draw path (`PaintItem::transform`). So a health
 bar / name tag under an actor follows the actor and the camera; a `Control` under
 a transformed `CanvasLayer` now composites under that transform. Recorded here
-per AGENTS rule 8; the full design is `docs/viewport-model.md`.
+per AGENTS rule 8; the full design is `docs/internals/viewport-model.md`.
 
 ## Deferred
 
@@ -620,6 +623,6 @@ Rounded rectangles are now first-class `DrawCommand`s (`FillRoundedRect` /
 `StrokeRoundedRect`) with per-corner radii (`CornerRadii`, so one shape can mix
 square and rounded corners), implemented by the canvas, wgpu and recording
 backends, so surfaces no longer compose circles + rects by hand. Inputs, selects,
-tabs and tables are staged next; see `docs/plan.md` for the full roadmap.
+tabs and tables are staged next; see `docs/internals/plan.md` for the full roadmap.
 The overlay layer covers confirm dialogs, popovers, menus, tooltips and toasts,
-and `List` covers scrolling rows (`docs/components.md`).
+and `List` covers scrolling rows (`docs/guide/components.md`).

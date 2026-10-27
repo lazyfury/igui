@@ -40,11 +40,13 @@ target size, not resampled from a bitmap).
 
 ## API
 
-```rust
+```rust,ignore
+// fragment: needs context from the surrounding code
 use igui_core::{Color, Rect, Size, Vec2};
 use igui_render::PaintContext;
 
-let svg = igui_svg::SvgDocument::parse(source)?;
+let source = std::fs::read_to_string("lucide/check.svg")?;
+let svg = igui_svg::SvgDocument::parse(&source)?;
 let mut ctx = PaintContext::new();
 svg.draw(&mut ctx, Rect::from_min_size(Vec2::ZERO, Size::splat(24.0)), Color::BLACK);
 ```
@@ -57,7 +59,8 @@ foreground layer (via `igui_ui::add_foreground`) without a texture or a raster c
 
 `igui_svg::IconPack` indexes a directory tree of `.svg` files by file stem:
 
-```rust
+```rust,ignore
+// fragment: needs context from the surrounding code
 let pack = igui_svg::IconPack::open("assets/lucide/icons")?;
 let brush = pack.load("brush").unwrap()?;
 ```

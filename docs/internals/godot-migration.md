@@ -18,7 +18,7 @@ Goal: turn igui from "a UI toolkit that also has a scene tree" into a
 world (`Node2D`) and UI (`Control`), the camera drives the world only, and UI
 lives under a `CanvasLayer` in viewport coordinates.
 
-This document is the authoritative plan for the migration. `docs/plan.md` tracks
+This document is the authoritative plan for the migration. `docs/internals/plan.md` tracks
 day-to-day work items; this file tracks the architecture change. When they
 disagree, this file wins for Stages 25+.
 
@@ -135,7 +135,8 @@ world SetTransforms but leaves the UI group's transforms identical.
 This is the largest refactor; split it.
 
 - **4a** — `igui_ui` stops owning a `SceneTree`; it borrows one. **(DONE, Stage 25.4a)**
-  ```rust
+  ```rust,ignore
+  // fragment: needs context from the surrounding code
   impl Ui {
       pub fn mount(&mut self, tree: &mut SceneTree, parent: NodeId, view: impl View);
       pub fn layout(&mut self, tree: &SceneTree, layer_rect: Rect); // viewport coords
@@ -363,7 +364,7 @@ defaulted contract (wgpu + recording), 28.3 `igui_assets` (PNG -> RGBA8), 28.4
 `igui_game` (`Sprite2D` + texture upload), 28.5 sprite-frame animation + timers +
 typed signals, 28.6 AABB/circle collision + `Area` triggers, 28.7 `igui` `game`
 feature. No rigid bodies, no audio; `game` does not imply `ui`. Core additions
-recorded in `docs/design-system.md`.
+recorded in `docs/guide/design-system.md`.
 
 ## Stage 29 plan — GameView / sub-viewport + fixed timestep (approved)
 
@@ -478,7 +479,7 @@ Sub-stages:
   gallery frame through `igui_headless`. No other demo is migrated here.
 - **31.5 facade + docs.** `igui` gains an `app` feature re-exporting
   `igui_app` (and `igui_headless` behind the same/`headless` feature). Update
-  `docs/ui-guide.md` §Hosting, `docs/design-system.md`, `docs/architecture.md`,
+  `docs/guide/ui-guide.md` §Hosting, `docs/guide/design-system.md`, `docs/internals/architecture.md`,
   `AGENTS.md`.
 
 ### Dependency direction added
@@ -558,7 +559,7 @@ follow-up; controls still draw in viewport coordinates (ignoring the camera),
 as before. The `igui_components::base` split into
 `base/{mod,primitives,containers,setters}.rs` is a first pass at the file-size
 rule; the remaining oversized files are a follow-up. Recorded in
-`docs/design-system.md`.
+`docs/guide/design-system.md`.
 
 ## Dependency order
 
@@ -718,7 +719,8 @@ Original executable plan below (kept for reference).
 ### Deliverables
 
 1. **Generic node data slot** (the Phase 1 reason-to-exist).
-   ```rust
+   ```rust,ignore
+   // fragment: needs context from the surrounding code
    // igui_scene::Node
    impl Node {
        pub fn set_data<T: 'static>(&mut self, value: T);
@@ -736,7 +738,8 @@ Original executable plan below (kept for reference).
    `CanvasLayer` has no `CanvasItem`.
 
 3. **Dedicated engine data** (not the generic slot), owned by `Node`:
-   ```rust
+   ```rust,ignore
+   // pseudo-code for an API shape, not a compilable snippet
    pub struct CanvasLayerData {
        pub layer: i32,
        pub transform: Transform2D,
@@ -824,7 +827,7 @@ save/clip/restore per clipped region + clip-aware hit testing;
 `Component::on_scroll`); and `igui_components::{List, ListState, ListColumn,
 RowSource}` — a virtualized list whose frame cost is flat in the row count (107
 controls / 72 commands per frame at 1 K, 10 K and 100 K rows;
-`docs/benchmarking.md`). Additive to the frozen core. Demo:
+`docs/internals/benchmarking.md`). Additive to the frozen core. Demo:
 `examples/file_browser` (own workspace), the first real consumer of `List` and
 the first host that turns a platform wheel into `InputEvent::Wheel`
 (`host::wheel_pixels`).
@@ -848,4 +851,4 @@ once; the mode only changes how a row is computed. The two modes are two `List`s
 list has zero height so `ListState::sync` returns early and it owns no pool.
 Tabs are `Flex::row().on_click(..).dynamic_background(..)` writing a shared cell
 that `Browser::update` drains. Known gap: word-based wrapping collapses leading
-whitespace, so text mode cannot show indentation (`docs/plan.md` tracks it).
+whitespace, so text mode cannot show indentation (`docs/internals/plan.md` tracks it).

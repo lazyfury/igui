@@ -81,7 +81,7 @@ the GPU pass is a single textured-triangle pipeline (`src/shader.wgsl`):
 - The render pass is **4x multisampled**: geometry is drawn into an MSAA texture
   and resolved into the frame's texture each frame (offscreen and surface alike).
   Combined with 64-segment circles, 8-segment rounded-rect corners and the SVG
-  vector resolution (`docs/svg.md`), edges are anti-aliased instead of hard.
+  vector resolution (`docs/guide/svg.md`), edges are anti-aliased instead of hard.
 - `DrawImage` samples a texture registered with `WgpuBackend::register_texture`
   (destination and optional source sub-rect map to UVs). A host that changes an
   image repeatedly (a painting canvas, a live preview) should call
@@ -158,7 +158,7 @@ fail) when no GPU adapter is available.
 A backend does not have to be Rust. `examples/cpp_ffi` implements an OpenGL 3.3
 backend in C++ over the `igui_ffi` C ABI: it consumes the same `DrawList`
 command stream, resolves transform/opacity/clip on the CPU and tessellates into
-triangles. See `docs/cpp-ffi.md`.
+triangles. See `docs/guide/cpp-ffi.md`.
 
 ## Where browser-specific code lives
 

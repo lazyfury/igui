@@ -131,12 +131,12 @@ logical size plus the world -> screen `canvas_transform`.)
   paint free functions plus per-node runtime (`ControlData`/`Container`/
   `ControlContent`/`Chrome`/GUI state/layout cache; the `Widget` enum was
   removed in Stage 33). Phases 1-5 and sub-stages 25.1-25.16 landed; Phases
-  6-9 are future stages. Details: `docs/godot-migration.md`.
+  6-9 are future stages. Details: `docs/internals/godot-migration.md`.
 - Post-Stage-25 (un-numbered): `igui_font` (system-font service + numeric
   `FontWeight`), `Theme` as a trait + `DefaultTheme`, and `igui_ffi` (a C ABI
   over the core so a non-Rust host can build a `DrawList` and bring its own
   backend — `examples/cpp_ffi` is a C++ UI + OpenGL 3.3 renderer on top of it,
-  see `docs/cpp-ffi.md`).
+  see `docs/guide/cpp-ffi.md`).
 - Stage 26 — animation core + facade skeleton [done]: `igui_anim` is a
   backend-neutral, time-driven tween manager (`Easing` curves, `Animator`,
   `TweenSpec` / `Repeat`, node-property and external-value targets); its
@@ -152,7 +152,7 @@ logical size plus the world -> screen `canvas_transform`.)
   `paint_generation` queries and `UiPaintCache` / `paint_cached` (reuses the
   last UI `DrawList`); `igui_scene::SceneTree::needs_update` reports stale
   derived state; `igui_render::PaintContext::extend` splices a cached list.
-  Recorded in `docs/design-system.md`; `Widget` / `ControlData` unchanged.
+  Recorded in `docs/guide/design-system.md`; `Widget` / `ControlData` unchanged.
 - Stage 28 — 2D game layer (`igui_game`) [done]: `igui_scene` gained a
   type-keyed node extension store (core-hardening #1) and `Visual::Sprite`
   (region/atlas, flip, nine-slice); `igui_render` gained a defaulted
@@ -161,8 +161,8 @@ logical size plus the world -> screen `canvas_transform`.)
   animation, lightweight timers and typed signals, and AABB/circle collision
   queries with `Area` enter/exit triggers; the `igui` facade gained the `game`
   feature. Backend-neutral, no UI dependency (`game` does not imply `ui`), no
-  rigid bodies or audio. Core additions recorded in `docs/design-system.md`;
-  plan/status in `docs/godot-migration.md`.
+  rigid bodies or audio. Core additions recorded in `docs/guide/design-system.md`;
+  plan/status in `docs/internals/godot-migration.md`.
 - Stage 29 — GameView / sub-viewport + fixed timestep [done]: `igui_scene` gained
   a fixed-step `physics_process` lifecycle; `igui_render` gained a render-target
   contract (`RenderTargetId` + `create_render_target` / `destroy_render_target` /
@@ -182,7 +182,7 @@ logical size plus the world -> screen `canvas_transform`.)
   textures (the wgpu backend rejects a collision). **Later (M5, single-tree
   migration) `GameView` was removed** and `examples/game_demo` became game-first
   on one `SceneTree`; it was then replaced by **`examples/civ_demo`** (a square-
-  grid civilization simulation), see `docs/plan.md`. See `docs/viewport-model.md`.
+  grid civilization simulation), see `docs/internals/plan.md`. See `docs/internals/viewport-model.md`.
 - Editable text input + shared host [done]: `igui_core` gained `Modifiers`
   (`InputEvent::ModifiersChanged`) and `InputEvent::Ime(ImeEvent)`; `igui_ui`
   gained the dependency-free `TextEdit` state machine, focused key/text/IME
@@ -196,8 +196,8 @@ logical size plus the world -> screen `canvas_transform`.)
   tree-aware `PointerPhase` pointer callback, host-detected
   `InputEvent::DoubleClick` for word selection, and a host `Clipboard` for copy /
   cut / paste (`igui_winit` wraps arboard with an in-process fallback). Backends
-  needed no new `DrawCommand`. See `docs/components.md` §Text fields and
-  `docs/design-system.md` §Recorded core additions.
+  needed no new `DrawCommand`. See `docs/guide/components.md` §Text fields and
+  `docs/guide/design-system.md` §Recorded core additions.
 
 - Stage 31 — `igui_app` plugin runtime [done]: a new **non-core** crate
   (`App` / `AppBuilder` / `Plugin` / `AppLogic` / `ServiceMap` / `Runner` and a
@@ -209,14 +209,14 @@ logical size plus the world -> screen `canvas_transform`.)
   (removed, not kept as a façade) and adds `app` / `headless` to the `igui`
   facade (`app`/`headless` landed Stage 31; the backend/observability features
   landed Stage 32). `examples/wgpu_demo` is
-  migrated and gains `--selfcheck`. See `docs/godot-migration.md` → "Stage 31
+  migrated and gains `--selfcheck`. See `docs/internals/godot-migration.md` → "Stage 31
   plan".
 - Stage 32 — `igui` facade backend + observability features [done]: the facade
   re-exports the backends and observability crates behind `wgpu`, `canvas`,
   `wasm`, `profile`, `debug`, `recording` and `bench` (`wasm` implies `canvas`;
   `debug` implies `ui` + `profile`; each also enables the `igui_core` /
   `igui_render` it needs). Still no logic and no forced backend. See
-  `docs/godot-migration.md` → "Stage 32 done".
+  `docs/internals/godot-migration.md` → "Stage 32 done".
 
 - Stage 33 — unified canvas-item paint + `Widget` removal [done]: the closed
   `igui_ui::Widget` enum is gone — a `Control` is a rectangle with a `Container`
@@ -226,8 +226,8 @@ logical size plus the world -> screen `canvas_transform`.)
   (`SceneTree::paint_items` paints world `Visual`s and `Control`s in one
   layer-ordered pass); `SceneTree::paint` stays the world-only entry.
   `ButtonState` / `ButtonData` / `button_state` are replaced by `click_count` +
-  `state_for`. Recorded in `docs/design-system.md` and
-  `docs/godot-migration.md`.
+  `state_for`. Recorded in `docs/guide/design-system.md` and
+  `docs/internals/godot-migration.md`.
 
 - Game layer removed [breaking]: `crates/core/igui_game` and
   `examples/civ_demo` were deleted and the `igui` facade's `game` feature is
@@ -246,7 +246,7 @@ numbers in), and `igui_debug_ui` draws its overlays with ordinary
 `DrawCommand`s. `Profiler` keeps a bounded frame history; `inspect` ranks
 `Finding`s by severity; `DebugOverlay` draws component bounds via
 `igui_ui::paint_debug` and `PerformanceOverlay` renders the summary as a
-`igui_ui` panel painted after the app UI. See `docs/debug.md`.
+`igui_ui` panel painted after the app UI. See `docs/guide/debug.md`.
 
 ## Benchmarking
 
@@ -255,7 +255,7 @@ against regression. `igui_bench` measures and compares only and never builds a
 scene or touches a backend; `igui_bench_suite` owns the deterministic fixtures
 and contains no timing code; `igui_backend_wgpu` adds a GPU benchmark for the
 offscreen render + readback path. Both bench crates sit beside the pipeline
-(like the demos): core crates never depend on them. See `docs/benchmarking.md`.
+(like the demos): core crates never depend on them. See `docs/internals/benchmarking.md`.
 
 ## Backend replaceability
 

@@ -1,13 +1,16 @@
 # Using the UI stack
 
+> New here? [`start.md`](start.md) is the short path. This guide is the long-form
+> reference for the same stack.
+
 A practical guide to building an app view with the workspace's UI layers, with
 the conventions the demos follow. It is derived from `examples/demo_app`,
 `examples/wgpu_demo`, `examples/deepseek_balance` and `examples/file_browser`.
 
 - **In a hurry?** read [§1 the frame loop](#1-the-frame-loop) and the
   [agent cheat sheet](#10-agent-cheat-sheet--where-to-look).
-- **Reference by API name?** `docs/components.md` (widgets, layout, input,
-  extension) and `docs/design-system.md` (tokens, themed components).
+- **Reference by API name?** `docs/guide/components.md` (widgets, layout, input,
+  extension) and `docs/guide/design-system.md` (tokens, themed components).
 - The **`igui` facade** (`igui/`) re-exports the individual `igui_*` crates
   behind opt-in features (names are not flattened: import from `igui_*`).
 
@@ -16,7 +19,8 @@ the conventions the demos follow. It is derived from `examples/demo_app`,
 Every app is the same four steps per frame. The tree is persistent; the frame is
 immediate-mode over it.
 
-```rust
+```rust,ignore
+// fragment: `app`, `tree` and the view states live in your host
 // 1. state -> view: advance app state, then rebuild/refresh the tree
 app.update(viewport, dt);
 // 2. resolve geometry (and flush deferred tree changes)
@@ -42,8 +46,9 @@ A **component** is a value that builds exactly one control node. Compose with
 `.child(..)` / `.children([..])`, then mount once with `.into_tree()`.
 
 ```rust
-use igui_components::{Button, Card, Column, Divider, Row, Text};
-use igui_theme::{default_theme, space, Mode};
+use igui_components::{Button, Card, Column, Component, Divider, Row, Text};
+use igui_scene::SceneChild;
+use igui_theme::{default_theme, space, Mode, Tone};
 
 let theme = default_theme(Mode::Dark);
 let tree = Column::new()
@@ -54,7 +59,7 @@ let tree = Column::new()
             .gap(space::SM)
             .child(Row::new().child(Text::small("Theme", theme)))
             .child(Divider::horizontal(theme))
-            .child(Button::primary("Save", theme).on_click(|| { /* write a cell */ })),
+            .child(Button::primary("Save", theme).on_click(|_tree, _id| { /* write a cell */ })),
     )
     .into_tree();
 ```
@@ -73,7 +78,7 @@ Choices that trip people up:
   `.tone(Tone::Muted)` (or `.color(..)`), `.weight(FontWeight::BOLD)` / `.bold()`,
   `.wrap(bool)`, `.max_lines(n)`, `.ellipsis(bool)`, `.size(TextSize)`.
 
-Layout details (flex/grid/text wrapping): `docs/components.md` §Layout.
+Layout details (flex/grid/text wrapping): `docs/guide/components.md` §Layout.
 
 ## 3. State, events and reaching nodes
 
@@ -82,10 +87,17 @@ is never the state store. Callbacks write cells, and the view drains them in
 `update`.
 
 ```rust
+use std::cell::Cell;
+use std::rc::Rc;
+
+use igui_components::{Button, Component};
+use igui_theme::{default_theme, Mode};
+
+let theme = default_theme(Mode::Dark);
 let requested = Rc::new(Cell::new(false));
 let button = Button::primary("Refresh", theme).on_click({
     let requested = requested.clone();
-    move || requested.set(true)
+    move |_tree, _id| requested.set(true)
 });
 // ... in `update`: if requested.replace(false) { /* do the work */ }
 ```
@@ -101,7 +113,7 @@ Input and interaction:
   an input-method composition, `DoubleClick` is a host-detected second click
   (word selection), and `ModifiersChanged(Modifiers)` carries the held
   Shift/Ctrl/Alt/Cmd state that a later key or click consults. For an editable
-  field, `docs/components.md` §Text fields describes the `on_key`/`on_text`/
+  field, `docs/guide/components.md` §Text fields describes the `on_key`/`on_text`/
   `on_ime` callbacks and `igui_ui::focused_caret`; install a
   `igui_ui::set_clipboard` handle for copy / cut / paste (`igui_winit`'s
   `ClipboardPlugin` wraps the system clipboard).
@@ -109,7 +121,7 @@ Input and interaction:
   (`deepseek_balance/src/host.rs`). Per-control provider: `.dynamic_cursor(..)`.
 - Drag/resize: `.on_drag(..)` with `DragPhase::{Start, Move, End}` plus delta.
 - Scroll: `.on_scroll(..)`; wheel routes to the nearest control with a scroll
-  callback. Virtualized lists own this (`docs/components.md` §Scroll).
+  callback. Virtualized lists own this (`docs/guide/components.md` §Scroll).
 - Keyboard focus: arrow keys / `Tab` move focus (`igui_ui::focus_move`). Wire a
   menu with `.focus_name("play")` plus `.focus_neighbor_up/down/left/right` —
   explicit names beat the layout — and order `Tab` with `.tab_index(i32)`.
@@ -120,8 +132,15 @@ Reach a mounted node with `NodeRef` + `.ref_(&slot)` / `.with_ref(..)`, then
 `igui_components::{set_text, set_on_click, set_on_drag, set_on_scroll}`:
 
 ```rust
+use igui_components::{Column, Component, NodeRef, Text};
+use igui_scene::SceneChild;
+use igui_theme::{default_theme, Mode};
+
+let theme = default_theme(Mode::Dark);
 let title = NodeRef::new();
-let tree = Column::new().child(Text::heading("…", theme).ref_(&title)).into_tree();
+let mut tree = Column::new()
+    .child(Text::heading("…", theme).ref_(&title))
+    .into_tree();
 if let Some(id) = title.get() {
     igui_components::set_text(&mut tree, id, "Inbox");
 }
@@ -238,14 +257,14 @@ reading its own data instead:
 
 | Need | File |
 |---|---|
-| Control / component reference, layout, input, custom components | `docs/components.md` |
-| Theme tokens & themed components | `docs/design-system.md` |
+| Control / component reference, layout, input, custom components | `docs/guide/components.md` |
+| Theme tokens & themed components | `docs/guide/design-system.md` |
 | Full UI app pattern | `examples/demo_app/src/lib.rs` |
 | Minimal winit + wgpu host | `examples/wgpu_demo/src/app.rs` |
 | Virtualized list, resize gutter, tabs, worker results | `examples/file_browser` |
 | Photoshop-style editor using igui instead of egui (all tools + PNG import/export) | `image_editor` |
 | Menu-bar panel, two tabs, content-sized window, self-check | `examples/deepseek_balance` |
-| Backends, adding one, browser boundary | `docs/backend.md` |
+| Backends, adding one, browser boundary | `docs/guide/backend.md` |
 
 ## 10. Agent cheat sheet — where to look
 

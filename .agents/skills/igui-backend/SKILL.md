@@ -5,7 +5,7 @@ description: Choose, implement or debug an igui render backend. Use when picking
 
 # igui backend
 
-Source of truth: `docs/backend.md`. IR: `igui_render::{DrawCommand, DrawList,
+Source of truth: `docs/guide/backend.md`. IR: `igui_render::{DrawCommand, DrawList,
 PaintContext, RenderBackend}`.
 
 ## The contract
@@ -32,7 +32,7 @@ GPU type crosses the boundary.
 3. Teach `igui_profile`'s inspector so the overlay and findings stay accurate.
 4. Test the CPU-side resolution (tessellation, clip, opacity) natively, and the
    result via recording assertions or wgpu offscreen pixel readback — never a
-   screenshot (`docs/testing.md`).
+   screenshot (`docs/internals/testing.md`).
 
 ## Pitfalls
 
