@@ -526,7 +526,15 @@ if state.sync(&mut tree) {                   // mounts/moves/re-binds the pool
   same count.
 - `.selected(Rc<Cell<Option<usize>>>)` / `.on_activate(fn(usize))` — clicking a
   row selects it (the selection follows the *data* index, not the pool slot) and
-  calls back.
+  calls back. `.on_context(fn(row, position))` fires on a right click.
+- `.on_cell(fn(row, cell))` — a click that lands on a cell reports `(row, cell)`
+  instead of activating the row: cell indices are the leads in order
+  (`0..leads`), then the text columns. Icons become clickable only when this is
+  set (spacers and checkboxes keep their own behaviour); the callback runs
+  instead of `.on_activate`, so an app wires only the cells it cares about and
+  selects the row from its fallback arm. `spacer` / `icon` add the leading cells
+  (`icon(width, |ctx, rect, row| …)` is caller-drawn — a disclosure triangle or a
+  mask thumbnail).
 - `ListState` — `sync`, `rows`, `visible_range`, `pool_size`, `offset`,
   `scroll_by(delta)`, `scroll_to(index)` (smallest scroll that brings `index`
   into view), `invalidate`, `selected`.

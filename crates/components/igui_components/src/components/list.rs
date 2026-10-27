@@ -101,16 +101,25 @@ struct LeadIcon {
     first: Rc<std::cell::Cell<usize>>,
     slot: usize,
     draw: LeadDraw,
+    /// Clickable icons own the click (reported through `List::on_cell`).
+    clickable: bool,
 }
 
 impl LeadIcon {
-    fn new(width: f32, first: Rc<std::cell::Cell<usize>>, slot: usize, draw: LeadDraw) -> Self {
+    fn new(
+        width: f32,
+        first: Rc<std::cell::Cell<usize>>,
+        slot: usize,
+        draw: LeadDraw,
+        clickable: bool,
+    ) -> Self {
         Self {
             spec: Spec::leaf(),
             width,
             first,
             slot,
             draw,
+            clickable,
         }
     }
 }
@@ -135,7 +144,11 @@ impl Component for LeadIcon {
         // A non-zero height avoids a degenerate background fill; the icon is
         // centred in the cell regardless.
         self.spec.data.min_size = Size::new(self.width, self.width);
-        self.spec.data.mouse_filter = MouseFilter::Ignore;
+        self.spec.data.mouse_filter = if self.clickable {
+            MouseFilter::Stop
+        } else {
+            MouseFilter::Ignore
+        };
         let first = self.first.clone();
         let slot = self.slot;
         let draw = self.draw.clone();
@@ -163,6 +176,9 @@ struct ListInner {
     on_activate: Option<Rc<dyn Fn(usize)>>,
     /// Called with the data index and the pointer position on a right click.
     on_context: Option<Rc<dyn Fn(usize, Vec2)>>,
+    /// Called with the data index and the cell index on a click that landed on
+    /// a cell (leads first, then text columns).
+    on_cell: Option<Rc<dyn Fn(usize, usize)>>,
     count: Rc<Cell<usize>>,
     /// Recycled row slots, in viewport order.
     slots: Vec<Slot>,
@@ -203,6 +219,7 @@ impl ListState {
                 source: Rc::new(|_| Vec::new()),
                 on_activate: None,
                 on_context: None,
+                on_cell: None,
                 count: Rc::new(Cell::new(0)),
                 slots: Vec::new(),
                 first: Rc::new(Cell::new(0)),
@@ -407,6 +424,7 @@ impl ListInner {
         let selected = self.selected.clone();
         let activate = self.on_activate.clone();
         let context = self.on_context.clone();
+        let on_cell = self.on_cell.clone();
         let slot_index = self.slots.len();
         // Both callbacks read the slot's current data row through the shared
         // `first`, so a recycled row always answers for what it is showing.
@@ -427,6 +445,9 @@ impl ListInner {
 
         // Leading cells first, so they sit left of the text columns.
         let mut leads = Vec::new();
+        // Icon leads are clickable when `on_cell` is set; keep their slots so the
+        // callback can be wired once the row is mounted.
+        let mut lead_nodes: Vec<NodeRef> = Vec::new();
         for lead in &self.leads {
             match lead {
                 ListLead::Checkbox { state, on_toggle } => {
@@ -453,13 +474,19 @@ impl ListInner {
                     leads.push(LeadSlot::Spacer(node));
                 }
                 ListLead::Icon { width, draw } => {
-                    row = row.child(LeadIcon::new(
-                        *width,
-                        first.clone(),
-                        slot_index,
-                        draw.clone(),
-                    ));
+                    let node = NodeRef::new();
+                    row = row.child(
+                        LeadIcon::new(
+                            *width,
+                            first.clone(),
+                            slot_index,
+                            draw.clone(),
+                            on_cell.is_some(),
+                        )
+                        .ref_(&node),
+                    );
                     leads.push(LeadSlot::Icon);
+                    lead_nodes.push(node);
                 }
             }
         }
@@ -515,6 +542,27 @@ impl ListInner {
                 },
             );
         }
+        if let Some(callback) = on_cell {
+            // Icon leads first (cell index = lead index), then text columns.
+            for (cell, node) in lead_nodes.iter().enumerate() {
+                if let Some(id) = node.get() {
+                    wire_cell(tree, id, callback.clone(), cell, first.clone(), slot_index);
+                }
+            }
+            let lead_count = self.leads.len();
+            for (column, ids) in cells.iter().enumerate() {
+                if let Some(id) = ids.first().copied() {
+                    wire_cell(
+                        tree,
+                        id,
+                        callback.clone(),
+                        lead_count + column,
+                        first.clone(),
+                        slot_index,
+                    );
+                }
+            }
+        }
 
         Slot {
             root,
@@ -554,6 +602,24 @@ impl ListInner {
         }
         slot.bound = index;
     }
+}
+
+/// Wires a cell's click: it reports `(row, cell)` and stops the event so the
+/// row's own activate does not also fire.
+fn wire_cell(
+    tree: &mut SceneTree,
+    node: NodeId,
+    callback: Rc<dyn Fn(usize, usize)>,
+    cell: usize,
+    first: Rc<std::cell::Cell<usize>>,
+    slot_index: usize,
+) {
+    if update_control(tree, node, |data| data.mouse_filter = MouseFilter::Stop) {
+        igui_ui::mark_dirty(tree, node);
+    }
+    set_on_click(tree, node, move |_tree: &mut SceneTree, _id: NodeId| {
+        callback(first.get() + slot_index, cell);
+    });
 }
 
 /// A list that mounts only the rows its viewport can show.
@@ -608,6 +674,7 @@ pub struct List {
     selected: Rc<Cell<Option<usize>>>,
     on_activate: Option<Rc<dyn Fn(usize)>>,
     on_context: Option<Rc<dyn Fn(usize, Vec2)>>,
+    on_cell: Option<Rc<dyn Fn(usize, usize)>>,
 }
 
 impl List {
@@ -631,6 +698,7 @@ impl List {
             selected: Rc::new(Cell::new(None)),
             on_activate: None,
             on_context: None,
+            on_cell: None,
         }
     }
 
@@ -710,6 +778,19 @@ impl List {
         self
     }
 
+    /// Called when a click lands on a **cell** rather than the row itself.
+    ///
+    /// Cell indices are the leads in order (0..leads), then the text columns
+    /// (leads..leads+columns). A cell click does **not** activate the row, so an
+    /// app that only cares about one cell (an eye icon, a disclosure triangle)
+    /// decides what the rest do — typically select the row from its fallback
+    /// arm. Icons become clickable only when this callback is set; spacers and
+    /// checkboxes keep their own behaviour (checkboxes toggle themselves).
+    pub fn on_cell(mut self, callback: impl Fn(usize, usize) + 'static) -> Self {
+        self.on_cell = Some(Rc::new(callback));
+        self
+    }
+
     /// Inset of a row's first and last cell, in logical pixels.
     pub fn padding(mut self, padding: f32) -> Self {
         self.padding = padding;
@@ -770,6 +851,7 @@ impl Component for List {
             inner.source = self.source;
             inner.on_activate = self.on_activate.take();
             inner.on_context = self.on_context.take();
+            inner.on_cell = self.on_cell.take();
             inner.count = self.count;
             inner.selected = self.selected;
             inner.row_height = self.row_height;
@@ -926,6 +1008,106 @@ mod tests {
 
     /// The claim the component exists for: the pool is sized by the viewport,
     /// so a directory with 10 000 entries mounts exactly as much as one with 8.
+    /// A fixture whose list reports cell clicks and row activations.
+    fn list_with_callbacks(
+        count: usize,
+        cells: usize,
+        icons: usize,
+        on_cell: impl Fn(usize, usize) + 'static,
+        on_activate: impl Fn(usize) + 'static,
+    ) -> Fixture {
+        let mut tree = SceneTree::new();
+        let root = tree.add_child(
+            tree.root(),
+            Flex::column()
+                .gap(0.0)
+                .padding(Edges::ZERO)
+                .mouse_filter(MouseFilter::Ignore),
+        );
+        let data: Rc<RefCell<Vec<Vec<String>>>> = Rc::new(RefCell::new(
+            (0..count)
+                .map(|index| (0..cells).map(|c| format!("r{index}c{c}")).collect())
+                .collect(),
+        ));
+        let count_cell = Rc::new(Cell::new(count));
+        let selected = Rc::new(Cell::new(None));
+        let source = data.clone();
+        let mut list = List::new(default_theme(Mode::Light), ROW, move |index| {
+            source.borrow().get(index).cloned().unwrap_or_default()
+        })
+        .count(count_cell.clone())
+        .selected(selected.clone())
+        .columns((0..cells).map(|_| ListColumn::flexible()).collect())
+        .on_cell(on_cell)
+        .on_activate(on_activate);
+        for _ in 0..icons {
+            list = list.icon(12.0, |_ctx, _rect, _index| {});
+        }
+        let state = list.state();
+        let list = tree.add_child(root, list.grow(1.0));
+        let mut fixture = Fixture {
+            tree,
+            state,
+            data,
+            count: count_cell,
+            selected,
+            list,
+        };
+        fixture.frame();
+        fixture
+    }
+
+    fn center(tree: &SceneTree, node: NodeId) -> Vec2 {
+        igui_ui::control(tree, node).expect("control").rect.center()
+    }
+
+    #[test]
+    fn a_cell_click_reports_the_row_and_cell_and_does_not_activate() {
+        let hits = Rc::new(RefCell::new(Vec::new()));
+        let activated = Rc::new(RefCell::new(Vec::new()));
+        let hits_cell = hits.clone();
+        let activated_cell = activated.clone();
+        let mut fixture = list_with_callbacks(
+            4,
+            2,
+            0,
+            move |row, cell| hits_cell.borrow_mut().push((row, cell)),
+            move |row| activated_cell.borrow_mut().push(row),
+        );
+
+        let row = fixture.state.rows()[0];
+        let cell = fixture.tree.children(row).unwrap()[1];
+        let position = center(&fixture.tree, cell);
+        fixture.click(position);
+
+        assert_eq!(*hits.borrow(), vec![(0, 1)], "列下标从 leads 之后开始");
+        assert!(activated.borrow().is_empty(), "点格子不该再激活整行");
+    }
+
+    #[test]
+    fn a_click_on_an_icon_lead_reports_the_lead_index() {
+        let hits = Rc::new(RefCell::new(Vec::new()));
+        let hits_cell = hits.clone();
+        let mut fixture = list_with_callbacks(
+            3,
+            2,
+            2,
+            move |row, cell| hits_cell.borrow_mut().push((row, cell)),
+            |_row| {},
+        );
+
+        let row = fixture.state.rows()[1];
+        let second_icon = fixture.tree.children(row).unwrap()[1];
+        let position = center(&fixture.tree, second_icon);
+        fixture.click(position);
+
+        assert_eq!(
+            *hits.borrow(),
+            vec![(1, 1)],
+            "icon 的 cell 下标就是 lead 序号"
+        );
+    }
+
     #[test]
     fn the_pool_is_sized_by_the_viewport_not_by_the_data() {
         let many = Fixture::new(10_000, 1);

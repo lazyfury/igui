@@ -1,3 +1,45 @@
+# Release v0.5.0 — 2026-10-27
+
+Minor release: `List` can report **which cell** was clicked, so an app can put an
+eye / disclosure triangle / mask thumbnail in a row without losing row selection.
+Scope: `git log v0.4.0..v0.5.0`.
+
+## Additions
+
+### `List::on_cell(fn(row, cell))`
+
+`List` already mounted per-row leading cells (`spacer`, `icon`, `checkboxes`) and
+text columns, but every click activated the whole row. `on_cell` reports the
+clicked cell instead of activating: cell indices are the leads in order
+(`0..leads`) followed by the text columns (`leads..`). It only fires when the
+click actually lands on a cell; gaps / padding still activate the row.
+
+Icons become clickable only when `on_cell` is set (they are `MouseFilter::Ignore`
+otherwise, so existing lists keep bubbling clicks to the row). Spacers stay
+non-interactive and checkboxes keep toggling themselves. A cell click stops at
+the cell, so `.on_activate` does not also run — the app selects the row from the
+callback's fallback arm if it wants that.
+
+```rust
+List::new(theme, 28.0, source)
+    .spacer(|row| depth(row) * 12.0)
+    .icon(14.0, draw_triangle)          // cell 0
+    .columns(vec![ListColumn::fixed(22.0), ListColumn::flexible()])
+    .on_cell(|row, cell| match cell {
+        0 => toggle_expanded(row),       // triangle
+        1 => toggle_visible(row),        // eye column
+        _ => select(row),                // name falls back to selection
+    })
+```
+
+## Verification
+
+Gate for the tag: `cargo fmt --all -- --check`, `cargo check --workspace
+--all-targets`, `cargo test --workspace`, `cargo bench --workspace --no-run`.
+
+Downstream: `image_editor` consumes v0.5.0 (clicking the eye / triangle / mask
+glyph in the layer panel without losing row selection) in the same batch.
+
 # Release v0.4.0 — 2026-10-27
 
 Breaking release: input events learned which **device** produced a wheel and
