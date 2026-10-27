@@ -445,9 +445,10 @@ impl ListInner {
 
         // Leading cells first, so they sit left of the text columns.
         let mut leads = Vec::new();
-        // Icon leads are clickable when `on_cell` is set; keep their slots so the
-        // callback can be wired once the row is mounted.
-        let mut lead_nodes: Vec<NodeRef> = Vec::new();
+        // Icon leads are clickable when `on_cell` is set; keep their slot *and*
+        // the lead index, so the callback reports the same index the app sees in
+        // the lead order (spacer / checkbox / icon included).
+        let mut lead_nodes: Vec<(usize, NodeRef)> = Vec::new();
         for lead in &self.leads {
             match lead {
                 ListLead::Checkbox { state, on_toggle } => {
@@ -475,6 +476,7 @@ impl ListInner {
                 }
                 ListLead::Icon { width, draw } => {
                     let node = NodeRef::new();
+                    let lead_index = leads.len();
                     row = row.child(
                         LeadIcon::new(
                             *width,
@@ -486,7 +488,7 @@ impl ListInner {
                         .ref_(&node),
                     );
                     leads.push(LeadSlot::Icon);
-                    lead_nodes.push(node);
+                    lead_nodes.push((lead_index, node));
                 }
             }
         }
@@ -544,9 +546,9 @@ impl ListInner {
         }
         if let Some(callback) = on_cell {
             // Icon leads first (cell index = lead index), then text columns.
-            for (cell, node) in lead_nodes.iter().enumerate() {
+            for (cell, node) in &lead_nodes {
                 if let Some(id) = node.get() {
-                    wire_cell(tree, id, callback.clone(), cell, first.clone(), slot_index);
+                    wire_cell(tree, id, callback.clone(), *cell, first.clone(), slot_index);
                 }
             }
             let lead_count = self.leads.len();

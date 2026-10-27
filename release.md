@@ -1,3 +1,20 @@
+# Release v0.5.1 — 2026-10-27
+
+Patch release: fixes `List::on_cell` cell indices for **icon leads**. Scope:
+`git log v0.5.0..v0.5.1`.
+
+`on_cell` documented the lead order (spacer / checkbox / icon all count), but the
+implementation numbered only the icon slots — so a list with a `spacer` before
+its icons reported the first icon as cell `0` instead of `1`, and every lead
+after it shifted by one. Cell indices now match the lead order in all cases;
+regression test `a_spacer_before_the_icons_shifts_the_lead_indices`.
+
+Migration: none for lists without a spacer/checkbox before an icon; lists that
+worked around the off-by-one should drop the adjustment.
+
+Verification: `cargo fmt --all -- --check`, `cargo check --workspace
+--all-targets`, `cargo test --workspace`.
+
 # Release v0.5.0 — 2026-10-27
 
 Minor release: `List` can report **which cell** was clicked, so an app can put an
