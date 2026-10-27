@@ -2,9 +2,8 @@
 name = "igui_winit"
 version.workspace = true
 edition.workspace = true
-# `winit` / `wgpu` (pulled in by `igui_backend_wgpu`) need a newer Rust than
-# the workspace default, exactly like `examples/wgpu_demo`.
-rust-version = "1.76"
+# Pulls `igui_backend_wgpu`, which needs 1.85 for its dependency graph.
+rust-version = "1.85"
 license.workspace = true
 description = "Shared winit + wgpu window hosting for igui apps."
 publish = false
@@ -18,4 +17,6 @@ igui_app.workspace = true
 winit = "0.30"
 # System clipboard for text-field copy / cut / paste; falls back to an
 # in-process clipboard when the platform has none (headless / sandboxed).
-arboard = "3"
+# Default features drag in `image` (for image-clipboard support this crate never
+# uses), which alone would raise the required Rust far above the workspace MSRV.
+arboard = { version = "3", default-features = false }

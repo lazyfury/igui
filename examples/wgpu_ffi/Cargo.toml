@@ -3,8 +3,8 @@ name = "wgpu_ffi"
 description = "C ABI over igui_backend_wgpu: a foreign host hands over a window and a DrawList, and the Rust wgpu backend renders it."
 version.workspace = true
 edition.workspace = true
-# `wgpu` 24 requires Rust 1.76, like `igui_backend_wgpu`.
-rust-version = "1.76"
+# Renders through `igui_backend_wgpu`, which needs 1.85.
+rust-version = "1.85"
 license.workspace = true
 repository.workspace = true
 publish = false

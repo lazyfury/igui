@@ -2,8 +2,8 @@
 name = "wgpu_demo"
 version.workspace = true
 edition.workspace = true
-# `winit`/`wgpu` 24 require newer Rust than the workspace default.
-rust-version = "1.76"
+# The wgpu / winit stack this demo hosts needs 1.85 (`igui_backend_wgpu`).
+rust-version = "1.85"
 license.workspace = true
 publish = false
 

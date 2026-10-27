@@ -2,9 +2,8 @@
 name = "deepseek_balance"
 version = "0.1.0"
 edition = "2021"
-# `winit` / `wgpu` (pulled in by `igui_backend_wgpu`) need newer Rust than the
-# workspace default, exactly like `examples/wgpu_demo`.
-rust-version = "1.76"
+# Hosts `igui_backend_wgpu`, whose dependency graph needs Rust 1.85.
+rust-version = "1.85"
 publish = false
 
 [[bin]]

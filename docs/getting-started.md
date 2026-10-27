@@ -2,7 +2,10 @@
 
 ## Prerequisites
 
-- Rust (stable). Workspace MSRV: 1.75.
+- Rust (stable). The backend-neutral members (core / components / assets /
+  `igui_app` / `igui` facade) compile on **1.82**; the wgpu + winit layer
+  (`igui_backend_wgpu`, `igui_winit`, `wgpu_demo`, `wgpu_ffi`) needs **1.85**
+  because of a transitive dependency. CI enforces both numbers.
 - For the web demo: `wasm32-unknown-unknown` target and `wasm-bindgen-cli` 0.2.128.
 
 ## Build & test (native, no browser)

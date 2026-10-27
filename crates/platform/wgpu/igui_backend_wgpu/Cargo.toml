@@ -2,8 +2,9 @@
 name = "igui_backend_wgpu"
 version.workspace = true
 edition.workspace = true
-# `wgpu` 24 requires Rust 1.76, so this crate opts out of the workspace's 1.75.
-rust-version = "1.76"
+# `wgpu` 24 pulls a transitive `hashbrown` whose manifest needs Cargo's
+# `edition2024` support (1.85), so this layer declares more than the workspace.
+rust-version = "1.85"
 license.workspace = true
 
 [dependencies]

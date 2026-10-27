@@ -368,6 +368,11 @@ cargo bench --workspace --no-run
 modes & how to test" above. `image_editor` now lives in its own repo
 (`../image_editor`); changes there have their own gate.
 
+`.github/workflows/ci.yml` runs the same gate on every push / PR, plus clippy
+(report-only until its backlog is cleared), the backend-neutral MSRV check
+(1.82, from `rust-version`), the `wasm32` check and both standalone demos. Keep
+it green; the manual run stays the pre-report step.
+
 Then emit the report and stop for approval.
 
 ## Recurring decisions (do not undo)

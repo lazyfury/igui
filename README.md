@@ -164,6 +164,10 @@ cargo test --workspace
 cargo bench --workspace --no-run
 ```
 
+CI runs exactly this gate (plus clippy, the MSRV and `wasm32` checks, and both
+standalone demos) — see `.github/workflows/ci.yml`, so the same commands work
+locally and on a pull request.
+
 Standalone demos (`examples/file_browser`, `examples/deepseek_balance`) are not
 workspace members; run their gate with `--manifest-path` and their `--selfcheck`
 when you touch one. Verify rendering programmatically (draw-list assertions,
@@ -207,3 +211,14 @@ description: Build, route and paint an igui UI. Use when building a view, wiring
 Read `docs/ui-guide.md` first. Import from the `igui_*` crates (the `igui`
 facade does not flatten names). Keep views headless-testable.
 ```
+
+## License
+
+Dual-licensed under either of
+
+- Apache License, Version 2.0 ([`LICENSE-APACHE`](LICENSE-APACHE))
+- MIT license ([`LICENSE-MIT`](LICENSE-MIT))
+
+at your option. Unless you explicitly state otherwise, any contribution
+intentionally submitted for inclusion in this project shall be dual-licensed as
+above, without any additional terms or conditions.

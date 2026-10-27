@@ -1,0 +1,112 @@
+name: CI
+
+# The per-stage gate from AGENTS.md, run on every push / PR instead of by hand.
+#
+# Verification notes (all of these were run locally before being wired up):
+# - the `gate` job runs on macOS because `igui_backend_wgpu`'s readback tests
+#   need a real graphics API (Metal); a stock Linux runner has no Vulkan driver.
+# - `wasm` needs the `wasm32-unknown-unknown` target.
+# - the standalone demos are not workspace members, so they get their own job.
+# - `examples/cpp_ffi` is not covered: it is a CMake project that fetches GLFW,
+#   and it is verified manually (see examples/cpp_ffi/README.md).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: gate — fmt / check / test / bench
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - name: fmt
+        run: cargo fmt --all -- --check
+      - name: check
+        run: cargo check --workspace
+      - name: test
+        run: cargo test --workspace
+      - name: bench --no-run
+        run: cargo bench --workspace --no-run
+
+  # Report-only until the existing backlog is cleared; then drop
+  # `continue-on-error` and add `-- -D warnings`.
+  clippy:
+    name: clippy (report-only)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo clippy --workspace --all-targets
+
+  # The backend-neutral members must keep building on the declared floor
+  # (`rust-version` in the workspace manifest is 1.82).
+  msrv:
+    name: msrv 1.82 — backend-neutral members
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.82"
+      - uses: Swatinem/rust-cache@v2
+      - run: >
+          cargo check
+          -p igui_core -p igui_render -p igui_scene -p igui_ui
+          -p igui_theme -p igui_components
+          -p igui_font -p igui_svg -p igui_assets
+          -p igui_anim -p igui_app -p igui_headless
+          -p igui_profile -p igui_debug_ui
+          -p igui_bench -p igui_bench_suite
+          -p igui_ffi -p igui
+          -p demo_app -p multi_tree
+
+  wasm:
+    name: wasm32 — canvas backend + web demo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - run: >
+          cargo check --target wasm32-unknown-unknown
+          -p igui_backend_canvas -p igui_wasm -p web_demo
+
+  standalone:
+    name: standalone demos — ${{ matrix.demo }}
+    runs-on: macos-14
+    strategy:
+      fail-fast: false
+      matrix:
+        demo: [file_browser, deepseek_balance]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - name: fmt
+        run: cargo fmt --manifest-path examples/${{ matrix.demo }}/Cargo.toml --all -- --check
+      - name: test
+        run: cargo test --manifest-path examples/${{ matrix.demo }}/Cargo.toml
+      - name: selfcheck
+        run: cargo run --manifest-path examples/${{ matrix.demo }}/Cargo.toml -- --selfcheck
