@@ -13,18 +13,24 @@
 //!   their chrome with the `igui_ui` styling primitives. There is no runtime
 //!   object, no theme on the tree and no second paint pass.
 //!
-//! ```ignore
-//! use igui_components::{Card, Checkbox, Text};
+//! ```no_run
+//! use igui_components::{Card, Checkbox, Component, Text};
+//! use igui_core::{InputEvent, Size, Vec2, ViewportSize};
+//! use igui_render::PaintContext;
 //! use igui_scene::SceneTree;
-//! use igui_theme::{space, Theme};
+//! use igui_theme::{default_theme, space, Mode};
 //!
-//! let theme = Theme::dark();
+//! let theme = default_theme(Mode::Dark);
 //! let mut tree = SceneTree::new();
 //! let root = tree.root();
 //!
 //! let panel = tree.add_child(root, Card::new(theme).gap(space::MD)
-//!     .child(Text::heading("Settings", theme))
-//!     .child(Checkbox::new("Verbose output", theme)));
+//!    .child(Text::heading("Settings", theme))
+//!    .child(Checkbox::new("Verbose output", theme)));
+//!
+//! let viewport = ViewportSize::new(Size::new(800.0, 600.0));
+//! let mut ctx = PaintContext::new();
+//! let event = InputEvent::PointerMove { position: Vec2::ZERO };
 //!
 //! igui_ui::layout(&mut tree, viewport);
 //! igui_ui::paint(&tree, &mut ctx);      // surfaces + content + marks, in tree order

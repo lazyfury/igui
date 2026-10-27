@@ -13,10 +13,16 @@ use crate::Text;
 /// The card is a column flex container, so children flow vertically. Its
 /// surface is attached when it builds.
 ///
-/// ```ignore
+/// ```no_run
+/// # use igui_components::{Card, Checkbox, Component, Text};
+/// # use igui_scene::SceneTree;
+/// # use igui_theme::{default_theme, Mode};
+/// # let theme = default_theme(Mode::Dark);
+/// # let mut tree = SceneTree::new();
+/// # let root = tree.root();
 /// tree.add_child(root, Card::new(theme).gap(12.0)
-///     .child(Text::heading("Settings", theme))
-///     .child(Checkbox::new("Verbose", theme)));
+///    .child(Text::heading("Settings", theme))
+///    .child(Checkbox::new("Verbose", theme)));
 /// ```
 pub struct Card {
     spec: Spec,

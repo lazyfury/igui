@@ -6,24 +6,30 @@
 //! views stay mounted, their state (scroll position, focus, text bindings)
 //! survives a switch.
 //!
-//! ```ignore
+//! ```no_run
 //! use std::cell::Cell;
 //! use std::rc::Rc;
 //!
+//! # use igui_components::{Button, Panel, Router};
+//! # use igui_core::Color;
+//! # use igui_scene::SceneTree;
+//! # let mut tree = SceneTree::new();
+//! # let root = tree.root();
 //! let route = Rc::new(Cell::new(0));
 //! let detail = tree.add_child(root, Panel::new().color(Color::TRANSPARENT).flat());
-//! let notes = build_notes_view(&mut tree, detail);      // a child of `detail`
-//! let settings = build_settings_view(&mut tree, detail);
+//! let notes = tree.add_child(detail, Panel::new());      // a child of `detail`
+//! let settings = tree.add_child(detail, Panel::new());
 //!
 //! let mut router = Router::with_route(detail, route.clone());
 //! router.add_node(notes);
 //! router.add_node(settings);
 //! router.sync(&mut tree);                                // apply route 0
 //!
-//! // Click callbacks switch by writing to the shared cell:
-//! // Button::new("Settings").on_click({ let r = route.clone(); move || r.set(1) });
+//!// Click callbacks switch by writing to the shared cell:
+//!// Button::new("Settings", theme)
+//!//     .on_click({ let r = route.clone(); move |_tree, _id| r.set(1) });
 //!
-//! // In the frame update, after events, apply the route:
+//!// In the frame update, after events, apply the route:
 //! router.sync(&mut tree);
 //! ```
 

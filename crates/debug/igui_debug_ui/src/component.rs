@@ -13,7 +13,12 @@ use igui_ui::DebugDrawOptions;
 /// Debug drawing of every visible component: a border (yellow by default) and a
 /// `Name #id` label in each control's top-left corner.
 ///
-/// ```ignore
+/// ```no_run
+/// # use igui_debug_ui::DebugOverlay;
+/// # use igui_render::PaintContext;
+/// # use igui_scene::SceneTree;
+/// # let app_ui = SceneTree::new();
+/// # let mut ctx = PaintContext::new();
 /// let mut debug = DebugOverlay::new();
 ///
 /// // per frame, after painting the app UI into `ctx`:

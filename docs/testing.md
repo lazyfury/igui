@@ -59,6 +59,13 @@ recording, or any OS/window capture. Verify programmatically instead:
 If a claim cannot be verified without a screenshot, say so explicitly rather than
 capturing one.
 
+## Doc examples
+
+Every Rust doc example compiles. Fences are `no_run` (never `ignore`) with hidden
+`# ` setup lines, so `cargo test --doc --workspace` — part of the normal gate —
+fails when an API moves and a snippet stops matching it. Prefer fixing a snippet
+to match the API over hiding it again.
+
 ## Golden / snapshot tests
 
 `DrawList` is deterministic. `igui_scene`'s `scene_to_draw_list_is_deterministic`

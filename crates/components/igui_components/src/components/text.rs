@@ -10,10 +10,16 @@ use igui_ui::{ContentRef, TextContent, TextOptions, WordBreak};
 /// The theme is a value passed to the constructor; the component resolves its
 /// tone with it and never reads a theme from the tree.
 ///
-/// ```ignore
+/// ```no_run
+/// # use igui_components::Text;
+/// # use igui_scene::SceneTree;
+/// # use igui_theme::{default_theme, Mode, Tone};
+/// # let theme = default_theme(Mode::Dark);
+/// # let mut tree = SceneTree::new();
+/// # let root = tree.root();
 /// tree.add_child(root, Text::heading("Settings", theme));
-/// tree.add_child(root, Text::body("Saved automatically.", theme).tone(Tone::Muted));
-/// tree.add_child(root, Text::body("Important", theme).bold());
+/// tree.add_child(root, Text::new("Saved automatically.", theme).tone(Tone::Muted));
+/// tree.add_child(root, Text::new("Important", theme).bold());
 /// ```
 pub struct Text {
     spec: Spec,

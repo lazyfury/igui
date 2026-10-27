@@ -9,10 +9,14 @@
 //! `png` decoder; it never touches a browser, GPU or window. Hosts read the
 //! bytes (file / network) and pass them to [`decode_png`].
 //!
-//! ```ignore
+//! ```no_run
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let png = std::fs::read("player.png")?;
 //! let image = igui_assets::decode_png(&png)?;
-//! backend.register_texture(texture, image.width(), image.height(), image.rgba8())?;
+//! // Upload through the backend-neutral contract (`RenderBackend`):
+//! // backend.register_texture(texture, image.width(), image.height(), image.rgba8());
+//! # Ok(())
+//! # }
 //! ```
 
 /// Crate name, kept for lightweight smoke checks.

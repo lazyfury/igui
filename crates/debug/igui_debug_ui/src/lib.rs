@@ -11,8 +11,18 @@
 //! - [`PerformanceOverlay`] — the frame-timing / inspection panel fed by
 //!   [`igui_profile`]; it owns its own `Ui` tree and is painted after the app UI.
 //!
-//! ```ignore
-//! let mut debug = DebugOverlay::new();          // component bounds
+//! ```no_run
+//! # use igui_core::{Size, ViewportSize};
+//! # use igui_debug_ui::{DebugOverlay, PerformanceOverlay};
+//! # use igui_profile::{inspect, FrameStats, Profiler};
+//! # use igui_render::{DrawList, PaintContext};
+//! # use igui_scene::SceneTree;
+//! # let app_ui = SceneTree::new();
+//! # let mut ctx = PaintContext::new();
+//! # let profiler = Profiler::new();
+//! # let report = inspect(&DrawList::default(), &FrameStats::default());
+//! # let viewport = ViewportSize::new(Size::new(800.0, 600.0));
+//! let mut debug = DebugOverlay::new();           // component bounds
 //! let mut perf = PerformanceOverlay::new();      // profiler panel
 //!
 //! // per frame, after painting the app UI into `ctx`:

@@ -197,7 +197,13 @@ impl NodeBinding {
 
 /// Owns and advances active tweens.
 ///
-/// ```ignore
+/// ```no_run
+/// # use igui_anim::{Animator, TweenSpec};
+/// # use igui_core::Vec2;
+/// # use igui_scene::SceneTree;
+/// # let mut tree = SceneTree::new();
+/// # let node = tree.add_node2d(tree.root(), "actor");
+/// # let dt = 1.0 / 60.0;
 /// let mut anim = Animator::new();
 /// anim.tween_position(node, Vec2::new(120.0, 0.0), TweenSpec::new(0.3));
 ///

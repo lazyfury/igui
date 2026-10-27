@@ -4,7 +4,17 @@
 //! [`Overlays`] owns its own private `SceneTree`, so the host lays out and
 //! paints its main UI as usual and then layers this on top:
 //!
-//! ```ignore
+//! ```no_run
+//! # use igui_components::Overlays;
+//! # use igui_core::{Size, ViewportSize};
+//! # use igui_render::PaintContext;
+//! # use igui_scene::SceneTree;
+//! # use igui_theme::{default_theme, Mode};
+//! # let theme = default_theme(Mode::Dark);
+//! # let mut tree = SceneTree::new();
+//! # let viewport = ViewportSize::new(Size::new(800.0, 600.0));
+//! # let mut ctx = PaintContext::new();
+//! # let mut overlays = Overlays::new(theme);
 //! igui_ui::layout(&mut tree, viewport);
 //! overlays.layout(&tree, viewport);   // anchor to laid-out targets
 //!
@@ -15,11 +25,27 @@
 //! Input goes to the overlays first; a modal overlay consumes everything so the
 //! UI underneath cannot react:
 //!
-//! ```ignore
-//! if overlays.handle_input(event).is_handled() {
-//!     return EventResult::Handled;
+//! ```no_run
+//! # use igui_components::Overlays;
+//! # use igui_core::{Size, ViewportSize};
+//! # use igui_render::PaintContext;
+//! # use igui_scene::SceneTree;
+//! # use igui_theme::{default_theme, Mode};
+//! # let theme = default_theme(Mode::Dark);
+//! # let mut tree = SceneTree::new();
+//! # let viewport = ViewportSize::new(Size::new(800.0, 600.0));
+//! # let mut ctx = PaintContext::new();
+//! # let mut overlays = Overlays::new(theme);
+//! # use igui_core::{InputEvent, PointerButton, Vec2};
+//! # let event = InputEvent::PointerDown {
+//! #     position: Vec2::ZERO,
+//! #     button: PointerButton::Left,
+//! # };
+//! if overlays.handle_input(&event).is_handled() {
+//!    // the overlay consumed it; the UI underneath must not react
+//! } else {
+//!    igui_ui::route_input(&mut tree, &event);
 //! }
-//! app.event(event);
 //! ```
 //!
 //! Entries are declarative and rebuilt only when the set changes, so per-frame

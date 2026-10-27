@@ -565,20 +565,33 @@ impl ListInner {
 /// rows the data has. The container clips (`igui_ui::set_clip`), so the partial
 /// rows at the edges are cut off instead of bleeding over the pane.
 ///
-/// ```ignore
+/// ```no_run
+/// # use std::cell::Cell;
+/// # use std::rc::Rc;
+/// # use igui_components::{Component, List, ListColumn};
+/// # use igui_core::{Size, ViewportSize};
+/// # use igui_scene::SceneTree;
+/// # use igui_theme::{default_theme, Mode};
+/// # #[derive(Clone)]
+/// # struct Entry { name: String, size: String }
+/// # let theme = default_theme(Mode::Dark);
+/// # let mut tree = SceneTree::new();
+/// # let pane = tree.add_control(tree.root(), "pane");
+/// # let viewport = ViewportSize::new(Size::new(800.0, 600.0));
+/// # let entries = vec![Entry { name: "notes.txt".into(), size: "1 KB".into() }];
 /// let count = Rc::new(Cell::new(entries.len()));
 /// let list = List::new(theme, 28.0, {
-///     let entries = entries.clone();
-///     move |index| vec![entries[index].name.clone(), entries[index].size.clone()]
+///    let entries = entries.clone();
+///    move |index| vec![entries[index].name.clone(), entries[index].size.clone()]
 /// })
 /// .columns(vec![ListColumn::flexible(), ListColumn::fixed(96.0)])
 /// .count(count.clone());
-/// let state = list.state();
+/// let mut state = list.state();
 /// tree.add_child(pane, list.grow(1.0));
 ///
 /// igui_ui::layout(&mut tree, viewport);
 /// if state.sync(&mut tree) {
-///     igui_ui::layout(&mut tree, viewport);
+///    igui_ui::layout(&mut tree, viewport);
 /// }
 /// ```
 pub struct List {

@@ -6,11 +6,17 @@
 //! state with [`TextInput::shared`] to read the value, or sets the initial
 //! value with [`TextInput::value`].
 //!
-//! ```ignore
+//! ```no_run
+//! # use igui_components::TextInput;
+//! # use igui_scene::SceneTree;
+//! # use igui_theme::{default_theme, Mode};
+//! # let theme = default_theme(Mode::Dark);
+//! # let mut tree = SceneTree::new();
+//! # let root = tree.root();
 //! let field = TextInput::new(theme).placeholder("Search");
 //! let value = field.shared();
 //! tree.add_child(root, field);
-//! // after routing input: value.borrow().text()
+//!// after routing input: value.borrow().text()
 //! ```
 
 use std::cell::RefCell;

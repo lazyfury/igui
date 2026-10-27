@@ -15,8 +15,14 @@
 //! component constructors. Building components lives in `igui_components`;
 //! submitting the resulting `DrawList` to a backend is the host's job.
 //!
-//! ```ignore
+//! ```no_run
 //! use igui_ui as ui;
+//! # use igui_core::{Size, ViewportSize};
+//! # use igui_render::PaintContext;
+//! # use igui_scene::SceneTree;
+//! # let mut tree = SceneTree::new();
+//! # let viewport = ViewportSize::new(Size::new(800.0, 600.0));
+//! # let mut ctx = PaintContext::new();
 //!
 //! ui::layout(&mut tree, viewport);
 //! ui::paint(&tree, &mut ctx);
@@ -271,7 +277,13 @@ pub fn paint_debug(tree: &SceneTree, ctx: &mut PaintContext, options: &DebugDraw
 /// [`SceneTree::paint_viewport`](igui_scene::SceneTree::paint_viewport): the host
 /// renders that `DrawList` into `target` and this control samples it.
 ///
-/// ```ignore
+/// ```no_run
+/// # use igui_core::{Size, ViewportSize};
+/// # use igui_render::RenderTargetId;
+/// # use igui_scene::SceneTree;
+/// # let mut tree = SceneTree::new();
+/// # let some_panel = tree.add_control(tree.root(), "panel");
+/// # let sub_target = RenderTargetId::from_raw(1);
 /// let sub = tree.add_sub_viewport(tree.root(), "minimap");
 /// tree.set_viewport_size_of(sub, Size::new(160.0, 160.0));
 /// // ... world under `sub` ...

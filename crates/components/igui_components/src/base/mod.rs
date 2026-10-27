@@ -4,11 +4,16 @@
 //! chaining [`Component::child`] or by attaching the component to the scene
 //! with [`SceneTree::add_child`](igui_scene::SceneTree::add_child):
 //!
-//! ```ignore
+//! ```no_run
+//! # use igui_components::{Button, Component, Flex, Label};
+//! # use igui_scene::SceneTree;
+//! # use igui_theme::{default_theme, Mode};
+//! # let theme = default_theme(Mode::Dark);
+//! # let mut tree = SceneTree::new();
 //! let root = tree.add_child(tree.root(), Flex::column()
-//!     .gap(12.0)
-//!     .child(Label::new("Hello"))
-//!     .child(Button::new("Save").on_click(|| { /* ... */ })));
+//!    .gap(12.0)
+//!    .child(Label::new("Hello"))
+//!    .child(Button::new("Save", theme).on_click(|_tree, _id| { /* ... */ })));
 //! ```
 //!
 //! Every component carries a [`Spec`] with the layout inputs, background,

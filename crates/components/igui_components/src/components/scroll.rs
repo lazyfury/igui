@@ -7,14 +7,23 @@
 //! offset with [`ScrollViewState::sync`] after layout, exactly like
 //! [`ListState::sync`](crate::ListState::sync):
 //!
-//! ```ignore
+//! ```no_run
+//! # use igui_components::{Component, Flex, ScrollView};
+//! # use igui_core::{Size, ViewportSize};
+//! # use igui_scene::SceneTree;
+//! # use igui_theme::{default_theme, Mode};
+//! # let theme = default_theme(Mode::Dark);
+//! # let mut tree = SceneTree::new();
+//! # let pane = tree.add_control(tree.root(), "pane");
+//! # let viewport = ViewportSize::new(Size::new(800.0, 600.0));
+//! # let long_column = Flex::column().gap(8.0);
 //! let view = ScrollView::new(theme).child(long_column);
-//! let state = view.state();
+//! let mut state = view.state();
 //! tree.add_child(pane, view);
 //!
 //! igui_ui::layout(&mut tree, viewport);
 //! if state.sync(&mut tree) {
-//!     igui_ui::layout(&mut tree, viewport);   // the offset moved the content
+//!    igui_ui::layout(&mut tree, viewport);   // the offset moved the content
 //! }
 //! ```
 //!

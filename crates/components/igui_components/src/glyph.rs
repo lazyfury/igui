@@ -7,11 +7,16 @@
 //! mark, a menu chevron, a warning triangle and friends are all geometry in
 //! code.
 //!
-//! ```ignore
+//! ```no_run
 //! use igui_components::{paint_glyph, Glyph};
+//! # use igui_core::{Color, Rect};
+//! # use igui_render::PaintContext;
+//! # let mut ctx = PaintContext::new();
+//! # let rect = Rect::from_min_size(igui_core::Vec2::ZERO, igui_core::Size::new(16.0, 16.0));
+//! # let color = Color::WHITE;
 //!
-//! // Inside a foreground decorator:
-//! paint_glyph(Glyph::Check, ctx, rect, color, 1.8);
+//!// Inside a foreground decorator:
+//! paint_glyph(Glyph::Check, &mut ctx, rect, color, 1.8);
 //! ```
 
 use igui_core::{Color, Rect, Vec2};

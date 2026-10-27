@@ -19,12 +19,19 @@ use igui_ui::{Container, DragPhase, MouseFilter, SizeBasis};
 /// The target is a [`NodeRef`] so siblings can reference each other before
 /// mount:
 ///
-/// ```ignore
+/// ```no_run
+/// # use std::cell::Cell;
+/// # use std::rc::Rc;
+/// # use igui_components::{Component, Flex, NodeRef, Panel, ResizeHandle};
+/// # use igui_scene::SceneChild;
+/// # use igui_theme::{default_theme, Mode};
+/// # let theme = default_theme(Mode::Dark);
+/// # let width = Rc::new(Cell::new(220.0));
 /// let sidebar = NodeRef::new();
 /// let tree = Flex::row()
-///     .child(Sidebar::new(...).ref_(&sidebar))
-///     .child(ResizeHandle::vertical(theme).target(sidebar).width(width).min(140.0))
-///     .into_tree();
+///    .child(Panel::new().ref_(&sidebar))
+///    .child(ResizeHandle::vertical(theme).target(sidebar).width(width).min(140.0))
+///    .into_tree();
 /// ```
 pub struct ResizeHandle {
     spec: Spec,

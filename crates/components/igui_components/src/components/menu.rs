@@ -4,14 +4,24 @@
 //! overlay layer ([`Overlays::menu`](crate::Overlays::menu)) so it paints on top
 //! of the UI and closes on Escape / a click outside:
 //!
-//! ```ignore
+//! ```no_run
 //! use igui_components::{Menu, MenuItem};
+//! # use igui_components::{Component, Overlays};
+//! # use igui_core::NodeId;
+//! # use igui_scene::SceneTree;
+//! # use igui_theme::{default_theme, Mode};
+//! # let theme = default_theme(Mode::Dark);
+//! # let mut tree = SceneTree::new();
+//! # let button = tree.add_control(tree.root(), "button");
+//! # let undo = |_tree: &mut SceneTree, _id: NodeId| {};
+//! # let about = |_tree: &mut SceneTree, _id: NodeId| {};
+//! # let mut overlays = Overlays::new(theme);
 //!
 //! overlays.menu(button, move |tree, node| {
-//!     tree.add_child(node, Menu::new(theme)
-//!         .item(MenuItem::new("Undo", theme).shortcut("Ctrl+Z").on_click(undo))
-//!         .separator()
-//!         .item(MenuItem::new("About", theme).on_click(about)));
+//!    tree.add_child(node, Menu::new(theme)
+//!        .item(MenuItem::new("Undo", theme).shortcut("Ctrl+Z").on_click(undo))
+//!        .separator()
+//!        .item(MenuItem::new("About", theme).on_click(about)));
 //! });
 //! ```
 //!

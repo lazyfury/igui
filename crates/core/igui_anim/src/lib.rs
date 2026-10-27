@@ -7,16 +7,23 @@
 //! lets a host sleep (`ControlFlow::Wait`) while nothing moves and wake while a
 //! tween is in flight.
 //!
-//! ```ignore
+//! ```no_run
 //! use igui_anim::{Animator, TweenSpec};
 //! use igui_core::Vec2;
+//! # use igui_scene::SceneTree;
+//! # let mut tree = SceneTree::new();
+//! # let actor = tree.add_node2d(tree.root(), "actor");
+//! # let dt = 1.0 / 60.0;
 //!
 //! let mut anim = Animator::new();
 //! anim.tween_position(actor, Vec2::new(120.0, 0.0), TweenSpec::new(0.3));
 //!
 //! // each frame
 //! anim.update(dt, &mut tree);
-//! if anim.is_animating() { window.request_redraw(); }
+//! // `true` while a tween is in flight: this is the "needs another frame" signal
+//! if anim.is_animating() {
+//!     // window.request_redraw();
+//! }
 //! ```
 //!
 //! # Scope
