@@ -149,8 +149,9 @@ demo_app      -> igui_core, igui_render, igui_scene, igui_ui, igui_components,
                  igui_theme, igui_anim   (no backend; the Animation gallery page
                  drives an igui_anim tween and reports `needs_frame`)
 web_demo      -> igui_core, igui_scene, demo_app, igui_wasm
-multi_tree    -> igui_core, igui_render, igui_scene, igui_ui, igui_components,
-                 igui_theme, igui_backend_recording  (headless, no window host)
+multi_tree    -> igui (facade, features `ui` + `recording`)
+                 (headless, no window host; the only facade consumer, so the
+                  feature-gated re-exports stay covered by the test gate)
 wgpu_demo     -> igui_app, igui_winit, igui_headless, igui_core, igui_render,
                  igui_scene, igui_ui, demo_app, igui_backend_wgpu, igui_profile,
                  igui_debug_ui, winit

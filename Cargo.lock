@@ -1160,13 +1160,7 @@ dependencies = [
 name = "multi_tree"
 version = "0.1.0"
 dependencies = [
- "igui_backend_recording",
- "igui_components",
- "igui_core",
- "igui_render",
- "igui_scene",
- "igui_theme",
- "igui_ui",
+ "igui",
 ]
 
 [[package]]

@@ -91,6 +91,26 @@ jobs:
           cargo check --target wasm32-unknown-unknown
           -p igui_backend_canvas -p igui_wasm -p web_demo
 
+  # Every facade feature must compile on its own and in combination: the facade
+  # contains no logic, so a missing `dep:` in a feature is only visible here.
+  facade:
+    name: facade feature matrix
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: check each feature combination
+        run: |
+          set -e
+          for features in ui anim app headless wgpu canvas wasm profile debug \
+                          recording bench ui,anim app,headless ui,wgpu,debug,profile \
+                          app,wgpu,recording; do
+            echo "::group::igui --no-default-features --features $features"
+            cargo check -p igui --all-targets --no-default-features --features "$features"
+            echo "::endgroup::"
+          done
+
   standalone:
     name: standalone demos — ${{ matrix.demo }}
     runs-on: macos-14

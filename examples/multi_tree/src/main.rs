@@ -4,12 +4,16 @@
 //! shape, lays each out, paints each headlessly through the recording backend,
 //! and asserts the trees share neither node ids nor state.
 
-use igui_backend_recording::RecordingBackend;
-use igui_components::{set_text, Column, Component, NodeRef, Text};
-use igui_core::{Size, ViewportSize};
-use igui_render::RenderBackend;
-use igui_scene::{SceneChild, SceneTree};
-use igui_theme::{default_theme, Mode, Theme, Tone};
+// Imports go through the `igui` facade: it re-exports the fine-grained crates
+// instead of flattening their names, so the path is the crate path with an
+// `igui::` prefix.
+use igui::igui_backend_recording::RecordingBackend;
+use igui::igui_components::{set_text, Column, Component, NodeRef, Text};
+use igui::igui_core::{Size, ViewportSize};
+use igui::igui_render::{PaintContext, RenderBackend};
+use igui::igui_scene::{SceneChild, SceneTree};
+use igui::igui_theme::{default_theme, Mode, Theme, Tone};
+use igui::igui_ui;
 
 fn build(theme: &'static dyn Theme, label: &str) -> (SceneTree, NodeRef) {
     let title = NodeRef::new();
@@ -34,7 +38,7 @@ fn main() {
         igui_ui::layout(tree, viewport);
         tree.update();
 
-        let mut ctx = igui_render::PaintContext::new();
+        let mut ctx = PaintContext::new();
         igui_ui::paint(tree, &mut ctx);
         let list = ctx.into_draw_list();
         assert!(!list.commands().is_empty(), "each tree must paint commands");

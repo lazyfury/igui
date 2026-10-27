@@ -4,11 +4,8 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 
+# The only workspace member that consumes the `igui` facade, so the facade's
+# feature-gated re-exports are exercised by the normal test gate (a facade with
+# no consumers is an untested API).
 [dependencies]
-igui_backend_recording = { workspace = true }
-igui_components = { workspace = true }
-igui_core = { workspace = true }
-igui_render = { workspace = true }
-igui_scene = { workspace = true }
-igui_theme = { workspace = true }
-igui_ui = { workspace = true }
+igui = { workspace = true, features = ["ui", "recording"] }
