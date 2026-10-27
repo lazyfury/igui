@@ -23,6 +23,10 @@ Input -> SceneTree -> Update -> Layout -> Paint -> DrawList -> RenderBackend -> 
 | `igui_ui` | `Control` runtime, layout, paint and input routing |
 | `igui_theme` | design tokens (palette, spacing, radius, type, motion) |
 | `igui_components` | component library: base builders (`Component`/`Spec`) + themed components |
+| `igui_font` | font service: system discovery, family/weight + per-character fallback, shaping, atlas rasterization |
+| `igui_svg` | SVG subset -> stroked polylines (icon packs such as Lucide) |
+| `igui_assets` | PNG bytes -> packed RGBA8 + size (no backend, no GPU) |
+| `igui_anim` | time-driven tweens/easing over node properties or external values |
 | `igui_profile` | frame timing/counters, `Profiler`, `inspect` / `InspectionReport` |
 | `igui_debug_ui` | component debug bounds (`DebugOverlay`) + performance panel (`PerformanceOverlay`) |
 | `igui_bench` | dependency-free benchmark harness (`BenchRunner`, `Baseline`, regression verdicts) |
@@ -31,12 +35,18 @@ Input -> SceneTree -> Update -> Layout -> Paint -> DrawList -> RenderBackend -> 
 | `igui_backend_recording` | headless recording backend for tests |
 | `igui_backend_wgpu` | native `wgpu` backend (offscreen, pixel readback) |
 | `igui_wasm` | browser glue (events, RAF, canvas wiring) |
+| `igui_ffi` | C ABI over the core types + a `DrawList` builder (foreign-language hosts) |
+| `igui_app` | plugin runtime: `App`/`AppBuilder`/`Plugin`/`ServiceMap` + a neutral `Presenter` |
+| `igui_winit` | `igui_app` platform plugins: winit window, wgpu presenter, pointer/keyboard/IME input, clipboard |
+| `igui_headless` | recording presenter, so an app logic runs a `--selfcheck` without `winit` |
 
 `igui` is the **facade** over the crates above: it re-exports them behind
-opt-in features (`ui`, `anim`, `app`, `headless`) without flattening
-names, so imports still read `igui_components::…`. Dependency direction is
-enforced by crate boundaries: the pure core crates never depend on browser APIs
-or a concrete backend. See [`AGENTS.md`](AGENTS.md).
+opt-in features (`ui` -> scene + ui + theme + components; `anim`; `app`;
+`headless`; and the backends / observability crates via `wgpu`, `canvas`,
+`wasm`, `profile`, `debug`, `recording`, `bench`) without flattening names, so
+imports still read `igui_components::…`. Dependency direction is enforced by
+crate boundaries: the pure core crates never depend on browser APIs or a
+concrete backend. See [`AGENTS.md`](AGENTS.md).
 
 ## Quick start
 
@@ -191,10 +201,10 @@ down as a skill; when an API moves, update the skill in the same change.
   `description`. The description must say **what** the skill does **and when to
   use it** — that is what routes the model to the skill.
 - **One skill per usage area**, kept short and pointing at the source of truth
-  rather than copying it. Suggested areas:
-  - `igui-ui` — build / route / paint a UI (`docs/ui-guide.md`, `docs/components.md`)
-  - `igui-backend` — choose or add a backend (`docs/backend.md`)
-  - `igui-ffi` — the C ABI and foreign hosts (`docs/cpp-ffi.md`)
+  rather than copying it. Three exist today:
+  - `.agents/skills/igui-ui` — build / route / paint a UI (`docs/ui-guide.md`, `docs/components.md`)
+  - `.agents/skills/igui-backend` — choose or add a backend (`docs/backend.md`)
+  - `.agents/skills/igui-ffi` — the C ABI and foreign hosts (`docs/cpp-ffi.md`)
 - **Validate** by running Pi with the repository as the working directory and
   checking the startup diagnostics and the `/skill:<name>` command.
 

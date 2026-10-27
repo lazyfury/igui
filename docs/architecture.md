@@ -211,6 +211,24 @@ logical size plus the world -> screen `canvas_transform`.)
   landed Stage 32). `examples/wgpu_demo` is
   migrated and gains `--selfcheck`. See `docs/godot-migration.md` → "Stage 31
   plan".
+- Stage 32 — `igui` facade backend + observability features [done]: the facade
+  re-exports the backends and observability crates behind `wgpu`, `canvas`,
+  `wasm`, `profile`, `debug`, `recording` and `bench` (`wasm` implies `canvas`;
+  `debug` implies `ui` + `profile`; each also enables the `igui_core` /
+  `igui_render` it needs). Still no logic and no forced backend. See
+  `docs/godot-migration.md` → "Stage 32 done".
+
+- Stage 33 — unified canvas-item paint + `Widget` removal [done]: the closed
+  `igui_ui::Widget` enum is gone — a `Control` is a rectangle with a `Container`
+  (`Leaf`/`Flex`/`Grid`) plus an optional `ControlContent` (Godot
+  `_get_minimum_size` + `_draw`), so any crate can ship a self-drawing control
+  without touching the core. `igui_ui::paint` is the single canvas-item walker
+  (`SceneTree::paint_items` paints world `Visual`s and `Control`s in one
+  layer-ordered pass); `SceneTree::paint` stays the world-only entry.
+  `ButtonState` / `ButtonData` / `button_state` are replaced by `click_count` +
+  `state_for`. Recorded in `docs/design-system.md` and
+  `docs/godot-migration.md`.
+
 - Game layer removed [breaking]: `crates/core/igui_game` and
   `examples/civ_demo` were deleted and the `igui` facade's `game` feature is
   gone (only `civ_demo` consumed `igui_game`). Stages 28-30 above describe the

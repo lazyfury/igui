@@ -276,22 +276,12 @@ crate/module instead of being embedded where it happens to be used.
 
 ## Stages
 
-All stages through **Stage 31 are complete and accepted.** The full ledger (one
+All stages through **Stage 33 are complete and accepted.** The full ledger (one
 line per stage, with what each landed) is `docs/architecture.md` →
 "Implementation stages"; the Godot-style migration's phase plan and per-substage
-notes are `docs/godot-migration.md`.
+notes are `docs/godot-migration.md`. The bullets below describe the current
+state and the open follow-ups; the per-stage history lives in those two docs.
 
-- **Current status:** Stage 31 (`igui_app` plugin runtime) accepted: a new
-  non-core `igui_app` crate (`App`/`AppBuilder`/`Plugin`/`AppLogic`/
-  `ServiceMap`/`Runner` + neutral `Presenter`) and `igui_winit` split into
-  `WinitPlugin`/`WgpuPlugin`/`PointerPlugin`/`KeyboardPlugin`/`ImePlugin`/
-  `TextMeasurePlugin`/`ClipboardPlugin` (old `Host` removed); `igui_headless`
-  for winit-free self-checks; `examples/wgpu_demo` migrated with `--selfcheck`;
-  `igui` gained `app`/`headless`. Previously: editable text input + shared host;
-  Stage 30 (`examples/game_demo`), Stage 29 (`GameView`/sub-viewport + fixed
-  timestep), Stage 28 (`igui_game` 2D game layer), Stage 27 (refresh decoupling),
-  Stage 26 (`igui_anim` + `igui` facade skeleton), Stage 25 (Godot-style
-  unified scene), `igui_font`, `Theme` trait.
 - **Next (future stages):** **Phase 8 (observability)**, per-viewport UI layout
   / input for `SubViewport` (the deferred part of M3), and the remaining host
   migrations to the `igui_app` runtime (`file_browser`, `deepseek_balance`,
@@ -328,7 +318,7 @@ notes are `docs/godot-migration.md`.
   `ui` + `profile`; each backend/observability feature also enables the
   `igui_core` / `igui_render` it needs). The facade still contains no logic, and
   no backend is forced.
-- **Current stage:** Stage 33 — unified canvas-item paint + `Widget` removal
+- **Latest stage:** Stage 33 — unified canvas-item paint + `Widget` removal
   [accepted]. The closed `igui_ui::Widget` enum is gone: a `Control` is now a
   rectangle with a `Container` (`Leaf`/`Flex`/`Grid`) and an optional
   `ControlContent` (Godot `_get_minimum_size` + `_draw`), so any crate can add a
@@ -351,7 +341,7 @@ notes are `docs/godot-migration.md`.
   the UI and the benchmark suite. Recorded in `release.md`.
 
 On acceptance of a whole user task, the agent writes the durable summary into
-this file (the "Current stage" bullet under "Stages" plus any doc updates).
+this file (the "Latest stage" bullet under "Stages" plus any doc updates).
 
 ## Per-stage gate (must run)
 

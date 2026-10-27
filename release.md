@@ -1,3 +1,30 @@
+# Release v0.3.1 — 2026-10-02
+
+Patch release: no API, ABI or behaviour change for consumers. Scope:
+`git log v0.3.0..v0.3.1` (the release notes for the breaking `v0.3.0` follow
+below).
+
+## Fixes
+
+### wgpu backend: release the surface texture view at `end_frame`
+
+`WgpuBackend::end_frame` kept the finished frame — and with it the surface
+`TextureView` — alive, so a reference to the swap-chain back buffer outlived
+`present`. On DX12 that makes `ResizeBuffers` fail with
+`DXGI_ERROR_INVALID_CALL`, which surfaced as `Surface::configure: Invalid
+surface` on every window resize.
+
+The frame is now dropped in `end_frame`, and the offscreen flag moved to a
+`last_frame_offscreen` field so `is_offscreen_frame` — documented to be read
+*after* `end_frame` — keeps reporting the frame that just finished.
+
+Migration: none. `wgpu_demo` resizing now works on DX12.
+
+## Verification
+
+Gate for the tag: `cargo fmt --all -- --check`, `cargo check --workspace`,
+`cargo test --workspace`, `cargo bench --workspace --no-run`.
+
 # Release v0.3.0 — 2026-09-29
 
 Breaking release. Lands the single-tree / game-first model and the multi-viewport
