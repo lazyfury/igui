@@ -16,7 +16,9 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use igui_backend_wgpu::{wgpu, FontConfig, FontMetrics, FontMode, WgpuBackend};
-use igui_core::{FontWeight, InputEvent, Key, PointerButton, Size, Vec2, ViewportSize};
+use igui_core::{
+    FontWeight, InputEvent, Key, PointerButton, ScrollDevice, Size, TouchPhase, Vec2, ViewportSize,
+};
 use igui_render::{PaintContext, RenderBackend};
 use igui_theme::{default_theme, Mode, SurfaceLevel, Theme};
 use igui_ui::TextMeasurer;
@@ -386,12 +388,14 @@ impl ApplicationHandler<UserEvent> for App {
             }
             // 平台滚轮 -> `InputEvent::Wheel`。核心只负责路由（把滚轮交给最近
             // 的滚动回调），**事件本身得由宿主造出来** —— 这一段就是那个泵。
-            WindowEvent::MouseWheel { delta, .. } => {
-                let delta = wheel_pixels(delta, self.scale_factor as f32);
+            WindowEvent::MouseWheel { delta, phase, .. } => {
+                let (delta, device) = wheel(delta, self.scale_factor as f32);
                 let position = self.cursor;
                 self.feed(&InputEvent::Wheel {
                     position,
-                    delta: Vec2::new(0.0, delta),
+                    delta,
+                    phase: touch_phase(phase),
+                    device,
                 });
             }
             WindowEvent::KeyboardInput { event, .. } => {
@@ -423,17 +427,33 @@ impl App {
     }
 }
 
-/// 平台滚轮 -> 逻辑像素（`y > 0` 表示向下滚，跟 `InputEvent::Wheel` 一致）。
+/// 平台滚轮 -> 逻辑像素（`y > 0` 表示向下滚，跟 `InputEvent::Wheel` 一致）
+/// 以及产生它的设备（`PixelDelta` = 触控板 / 精确滚动面）。
 ///
 /// 符号约定：滚轮向上（远离自己）是"往上翻"，对应偏移变小。这是鼠标滚轮的
 /// 通例；某个平台（或触控板的"自然滚动"）如果方向相反，改这一个函数就够，
 /// 不用动核心。
-fn wheel_pixels(delta: MouseScrollDelta, scale: f32) -> f32 {
+fn wheel(delta: MouseScrollDelta, scale: f32) -> (Vec2, ScrollDevice) {
+    let scale = if scale > 0.0 { scale } else { 1.0 };
     match delta {
-        MouseScrollDelta::LineDelta(_, lines) => -lines * WHEEL_LINE_HEIGHT,
-        MouseScrollDelta::PixelDelta(position) => {
-            -(position.y as f32) / if scale > 0.0 { scale } else { 1.0 }
-        }
+        MouseScrollDelta::LineDelta(x, y) => (
+            Vec2::new(-x * WHEEL_LINE_HEIGHT, -y * WHEEL_LINE_HEIGHT),
+            ScrollDevice::Wheel,
+        ),
+        MouseScrollDelta::PixelDelta(position) => (
+            Vec2::new(-(position.x as f32) / scale, -(position.y as f32) / scale),
+            ScrollDevice::Trackpad,
+        ),
+    }
+}
+
+/// winit 的手势相位 -> 核心相位。
+fn touch_phase(phase: winit::event::TouchPhase) -> TouchPhase {
+    match phase {
+        winit::event::TouchPhase::Started => TouchPhase::Started,
+        winit::event::TouchPhase::Moved => TouchPhase::Moved,
+        winit::event::TouchPhase::Ended => TouchPhase::Ended,
+        winit::event::TouchPhase::Cancelled => TouchPhase::Cancelled,
     }
 }
 
@@ -506,26 +526,30 @@ mod tests {
     use super::*;
 
     #[test]
-    fn a_wheel_up_scrolls_up() {
+    fn a_wheel_up_scrolls_up_and_reports_a_wheel() {
         // 滚轮向上（远离自己）-> 偏移变小 -> 看到更早的内容。
-        assert!(wheel_pixels(MouseScrollDelta::LineDelta(0.0, 1.0), 1.0) < 0.0);
-        assert!(wheel_pixels(MouseScrollDelta::LineDelta(0.0, -1.0), 1.0) > 0.0);
+        let (up, device) = wheel(MouseScrollDelta::LineDelta(0.0, 1.0), 1.0);
+        assert!(up.y < 0.0);
+        assert_eq!(device, ScrollDevice::Wheel);
+        let (down, _) = wheel(MouseScrollDelta::LineDelta(0.0, -1.0), 1.0);
+        assert!(down.y > 0.0);
     }
 
     #[test]
-    fn pixel_deltas_are_converted_to_logical() {
+    fn pixel_deltas_are_logical_and_mean_a_trackpad() {
         // 2x 缩放下 40 物理像素 = 20 逻辑像素。
-        let pixels = wheel_pixels(
+        let (delta, device) = wheel(
             MouseScrollDelta::PixelDelta(PhysicalPosition::new(0.0, -40.0)),
             2.0,
         );
-        assert_eq!(pixels, 20.0);
+        assert_eq!(delta, Vec2::new(0.0, 20.0));
+        assert_eq!(device, ScrollDevice::Trackpad);
     }
 
     #[test]
     fn one_notch_covers_about_three_rows() {
-        let pixels = wheel_pixels(MouseScrollDelta::LineDelta(0.0, -1.0), 1.0);
-        assert!((pixels - 3.0 * ROW_HEIGHT).abs() < 0.001);
+        let (pixels, _) = wheel(MouseScrollDelta::LineDelta(0.0, -1.0), 1.0);
+        assert!((pixels.y - 3.0 * ROW_HEIGHT).abs() < 0.001);
     }
 
     #[test]

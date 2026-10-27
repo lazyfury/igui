@@ -198,6 +198,8 @@ fn attach_wheel_listener<A: App + 'static>(canvas: &HtmlCanvasElement, app: &Rc<
             let event = InputEvent::Wheel {
                 position: wheel_position(&canvas, &event),
                 delta: Vec2::new(0.0, wheel_pixels(event.delta_y(), event.delta_mode())),
+                phase: TouchPhase::Moved,
+                device: ScrollDevice::Wheel,
             };
             app.borrow_mut().event(&event);
         })

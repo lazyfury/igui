@@ -237,7 +237,9 @@ pub fn handle_input(tree: &mut SceneTree, event: &InputEvent) -> EventResult {
                 EventResult::Ignored
             }
         }
-        InputEvent::Wheel { position, delta } => {
+        InputEvent::Wheel {
+            position, delta, ..
+        } => {
             // Scrolling is owned, not global: the nearest ancestor of the
             // control under the pointer that registered a scroll callback gets
             // the delta (a list scrolls itself), and anything else stays
@@ -700,6 +702,8 @@ mod tests {
             &InputEvent::Wheel {
                 position: Vec2::new(50.0, 10.0),
                 delta: Vec2::new(0.0, 12.0),
+                phase: igui_core::TouchPhase::Moved,
+                device: igui_core::ScrollDevice::Wheel,
             },
         );
         assert_eq!(handled, EventResult::Handled);
@@ -713,6 +717,8 @@ mod tests {
             &InputEvent::Wheel {
                 position: Vec2::new(300.0, 300.0),
                 delta: Vec2::new(0.0, 12.0),
+                phase: igui_core::TouchPhase::Moved,
+                device: igui_core::ScrollDevice::Wheel,
             },
         );
         assert_eq!(handled, EventResult::Ignored);
@@ -824,6 +830,8 @@ mod tests {
                 &InputEvent::Wheel {
                     position: Vec2::new(10.0, 10.0),
                     delta: Vec2::new(0.0, 12.0),
+                    phase: igui_core::TouchPhase::Moved,
+                    device: igui_core::ScrollDevice::Wheel,
                 },
             ),
             EventResult::Ignored

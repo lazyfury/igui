@@ -1,3 +1,64 @@
+# Release v0.4.0 — 2026-10-27
+
+Breaking release: input events learned which **device** produced a wheel and
+what **phase** a continuous gesture is in, and macOS / iOS pinch + rotate are
+forwarded instead of dropped. Scope: `git log v0.3.1..v0.4.0`.
+
+## Breaking changes
+
+### `InputEvent::Wheel` gained `phase` and `device`
+
+```rust
+Wheel { position: Vec2, delta: Vec2, phase: TouchPhase, device: ScrollDevice },
+```
+
+- `ScrollDevice::{Wheel, Trackpad}` — a detented wheel vs a precise scrolling
+  surface. `igui_winit` maps `MouseScrollDelta::PixelDelta` (NSEvent's
+  `hasPreciseScrollingDeltas`) to `Trackpad`, `LineDelta` to `Wheel`.
+- `TouchPhase::{Started, Moved, Ended, Cancelled}` — a trackpad gesture has a
+  lifecycle (and its momentum tail is a second `Started..Ended`); a wheel step
+  is always `Moved`.
+- `delta.x` is no longer dropped: `igui_winit` now reports horizontal scrolls
+  (`x > 0` scrolls right, same convention as `y`).
+
+An app that pans on a trackpad and zooms on a wheel now matches on `device`
+instead of guessing from delta magnitude; nothing in the core changed its
+routing (`handle_input` still hands `Wheel` to the nearest scroll owner and
+leaves it unclaimed otherwise).
+
+Migration: add `phase: TouchPhase::Moved, device: ScrollDevice::Wheel` to
+existing `InputEvent::Wheel` literals (hosts without device information keep
+today's behaviour), or match with `..`.
+
+## Additions
+
+### `InputEvent::Pinch` / `InputEvent::Rotate`
+
+```rust
+Pinch  { position: Vec2, factor: f32, phase: TouchPhase },  // factor = 1 + magnification
+Rotate { position: Vec2, delta: f32, phase: TouchPhase },   // degrees, positive = clockwise
+```
+
+`igui_winit`'s `PointerPlugin` forwards winit's macOS/iOS-only
+`WindowEvent::PinchGesture` / `RotationGesture` (non-finite / zero deltas are
+dropped). Platforms without those gestures simply never emit the variants.
+`igui_ui::handle_input` ignores them (`Ignored`), so they fall through to the
+app exactly like an unclaimed wheel.
+
+### `igui_winit::input::wheel` / `touch_phase`
+
+`wheel_pixels` (f32, y only) is replaced by `wheel(MouseScrollDelta, scale) ->
+(Vec2, ScrollDevice)`, and `touch_phase(winit::TouchPhase) -> TouchPhase`
+exposes the phase mapping. Hosts that keep their own loop can reuse both.
+
+## Verification
+
+Gate for the tag: `cargo fmt --all -- --check`, `cargo check --workspace
+--all-targets`, `cargo test --workspace`, `cargo bench --workspace --no-run`.
+
+Downstream: `image_editor` consumes v0.4.0 (trackpad pan / pinch zoom / rotate
+view) in the same batch.
+
 # Release v0.3.1 — 2026-10-02
 
 Patch release: no API, ABI or behaviour change for consumers. Scope:

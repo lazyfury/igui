@@ -209,7 +209,9 @@ igui_app::App::new(AppConfig::default())
   `app`).
 
 `igui_winit::input` keeps the raw mappings (`map_key`, `pointer_button`,
-`wheel_pixels`, `modifiers`, `cursor_icon`) for a host that keeps its own loop.
+`wheel`, `touch_phase`, `modifiers`, `cursor_icon`) for a host that keeps its own
+loop. `wheel` returns both the logical delta and the `ScrollDevice` that
+produced it, so a host can pan on a trackpad and zoom on a wheel.
 `examples/wgpu_demo` is the reference (`src/app.rs`), including a winit-free
 `--selfcheck`.
 

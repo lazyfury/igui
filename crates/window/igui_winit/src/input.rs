@@ -9,9 +9,9 @@
 
 use std::time::{Duration, Instant};
 
-use igui_core::{Cursor, Key, Modifiers, PointerButton, Vec2};
+use igui_core::{Cursor, Key, Modifiers, PointerButton, ScrollDevice, TouchPhase, Vec2};
 use winit::dpi::PhysicalPosition;
-use winit::event::{MouseButton, MouseScrollDelta};
+use winit::event::{MouseButton, MouseScrollDelta, TouchPhase as WinitTouchPhase};
 use winit::keyboard::{Key as WinitKey, ModifiersState, NamedKey};
 use winit::window::CursorIcon;
 
@@ -61,17 +61,38 @@ pub fn pointer_button(button: MouseButton) -> PointerButton {
     }
 }
 
-/// Platform wheel → logical pixels (`y > 0` scrolls down, matching
-/// [`InputEvent::Wheel`](igui_core::InputEvent::Wheel)).
+/// Platform wheel → logical pixel delta plus the device that produced it.
 ///
-/// Wheel-up (`LineDelta` `y > 0`) scrolls up, so the offset decreases; the sign
-/// convention lives here, not in the core.
-pub fn wheel_pixels(delta: MouseScrollDelta, scale: f32) -> f32 {
+/// The delta follows [`InputEvent::Wheel`](igui_core::InputEvent::Wheel):
+/// `y > 0` scrolls down, `x > 0` scrolls right. Wheel-up (`LineDelta` `y > 0`)
+/// scrolls up, so the offset decreases; the sign convention lives here, not in
+/// the core. x is negated the same way so `(x, y)` stay one convention.
+///
+/// The `MouseScrollDelta` variant *is* the device: winit reports
+/// `PixelDelta` only when the platform says the deltas are precise
+/// (`hasPreciseScrollingDeltas`, i.e. a trackpad / Magic Mouse surface), and
+/// `LineDelta` for a detented wheel.
+pub fn wheel(delta: MouseScrollDelta, scale: f32) -> (Vec2, ScrollDevice) {
+    let scale = if scale > 0.0 { scale } else { 1.0 };
     match delta {
-        MouseScrollDelta::LineDelta(_, lines) => -lines * WHEEL_LINE_HEIGHT,
-        MouseScrollDelta::PixelDelta(PhysicalPosition { y, .. }) => {
-            -(y as f32) / if scale > 0.0 { scale } else { 1.0 }
-        }
+        MouseScrollDelta::LineDelta(x, y) => (
+            Vec2::new(-x * WHEEL_LINE_HEIGHT, -y * WHEEL_LINE_HEIGHT),
+            ScrollDevice::Wheel,
+        ),
+        MouseScrollDelta::PixelDelta(PhysicalPosition { x, y }) => (
+            Vec2::new(-(x as f32) / scale, -(y as f32) / scale),
+            ScrollDevice::Trackpad,
+        ),
+    }
+}
+
+/// Platform gesture phase → core [`TouchPhase`].
+pub fn touch_phase(phase: WinitTouchPhase) -> TouchPhase {
+    match phase {
+        WinitTouchPhase::Started => TouchPhase::Started,
+        WinitTouchPhase::Moved => TouchPhase::Moved,
+        WinitTouchPhase::Ended => TouchPhase::Ended,
+        WinitTouchPhase::Cancelled => TouchPhase::Cancelled,
     }
 }
 
@@ -164,18 +185,33 @@ mod tests {
     use super::*;
 
     #[test]
-    fn a_wheel_up_scrolls_up() {
-        assert!(wheel_pixels(MouseScrollDelta::LineDelta(0.0, 1.0), 1.0) < 0.0);
-        assert!(wheel_pixels(MouseScrollDelta::LineDelta(0.0, -1.0), 1.0) > 0.0);
+    fn a_wheel_up_scrolls_up_on_a_detented_wheel() {
+        let (up, device) = wheel(MouseScrollDelta::LineDelta(0.0, 1.0), 1.0);
+        assert!(up.y < 0.0);
+        assert_eq!(device, ScrollDevice::Wheel);
+        let (down, _) = wheel(MouseScrollDelta::LineDelta(0.0, -1.0), 1.0);
+        assert!(down.y > 0.0);
     }
 
     #[test]
-    fn pixel_deltas_are_converted_to_logical() {
-        let pixels = wheel_pixels(
-            MouseScrollDelta::PixelDelta(PhysicalPosition::new(0.0, -40.0)),
+    fn pixel_deltas_are_logical_and_mean_a_trackpad() {
+        let (delta, device) = wheel(
+            MouseScrollDelta::PixelDelta(PhysicalPosition::new(-40.0, -40.0)),
             2.0,
         );
-        assert_eq!(pixels, 20.0);
+        assert_eq!(delta, Vec2::new(20.0, 20.0));
+        assert_eq!(device, ScrollDevice::Trackpad);
+    }
+
+    #[test]
+    fn gesture_phases_map_one_to_one() {
+        assert_eq!(touch_phase(WinitTouchPhase::Started), TouchPhase::Started);
+        assert_eq!(touch_phase(WinitTouchPhase::Moved), TouchPhase::Moved);
+        assert_eq!(touch_phase(WinitTouchPhase::Ended), TouchPhase::Ended);
+        assert_eq!(
+            touch_phase(WinitTouchPhase::Cancelled),
+            TouchPhase::Cancelled
+        );
     }
 
     #[test]

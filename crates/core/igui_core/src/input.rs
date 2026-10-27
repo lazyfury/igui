@@ -45,6 +45,42 @@ impl Modifiers {
     }
 }
 
+/// What kind of device produced a [`InputEvent::Wheel`].
+///
+/// Hosts that cannot tell (or have no gesture hardware) report [`Wheel`].
+/// Platforms with precise scrolling surfaces report [`Trackpad`] for those:
+/// winit maps `MouseScrollDelta::PixelDelta` (NSEvent's
+/// `hasPreciseScrollingDeltas`) to it, `LineDelta` to [`Wheel`].
+///
+/// [`Wheel`]: ScrollDevice::Wheel
+/// [`Trackpad`]: ScrollDevice::Trackpad
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum ScrollDevice {
+    /// A detented wheel: discrete steps (`LineDelta` on winit).
+    #[default]
+    Wheel,
+    /// A precise scrolling surface: trackpad / Magic Mouse (`PixelDelta`).
+    Trackpad,
+}
+
+/// Lifecycle of a continuous gesture ([`InputEvent::Wheel`],
+/// [`InputEvent::Pinch`], [`InputEvent::Rotate`]).
+///
+/// A trackpad reports `Started` when fingers land, `Moved` while they move,
+/// and `Ended` when they lift; the momentum tail of a scroll arrives as its own
+/// `Started`..`Ended` sequence. A detented wheel only ever reports [`Moved`].
+///
+/// [`Moved`]: TouchPhase::Moved
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum TouchPhase {
+    Started,
+    /// The default: a wheel step, or a host without phase information.
+    #[default]
+    Moved,
+    Ended,
+    Cancelled,
+}
+
 /// An input-method editor (IME) event.
 ///
 /// These are the backend-neutral form of the platform composition events: a
@@ -128,9 +164,31 @@ pub enum InputEvent {
     PointerLeave,
     /// Mouse wheel / trackpad scroll. `delta` is in logical pixels; `y > 0`
     /// scrolls down, `x > 0` scrolls right.
+    ///
+    /// `device` distinguishes a detented wheel from a precise surface, and
+    /// `phase` reports the gesture lifecycle, so a host can treat one
+    /// continuous trackpad gesture (including its momentum tail) as one
+    /// interaction instead of scaling every event as a separate step.
     Wheel {
         position: Vec2,
         delta: Vec2,
+        phase: TouchPhase,
+        device: ScrollDevice,
+    },
+    /// A two-finger pinch (trackpad / touch). `factor` multiplies the zoom the
+    /// host is showing: `1.0` is no change, `> 1.0` zooms in. Hosts without
+    /// the gesture never send it.
+    Pinch {
+        position: Vec2,
+        factor: f32,
+        phase: TouchPhase,
+    },
+    /// A two-finger rotation. `delta` is in **degrees, positive = clockwise**
+    /// (screen space, y down). Hosts without the gesture never send it.
+    Rotate {
+        position: Vec2,
+        delta: f32,
+        phase: TouchPhase,
     },
     KeyDown {
         key: Key,
@@ -158,7 +216,9 @@ impl InputEvent {
             | Self::PointerUp { position, .. }
             | Self::PointerMove { position }
             | Self::DoubleClick { position }
-            | Self::Wheel { position, .. } => Some(*position),
+            | Self::Wheel { position, .. }
+            | Self::Pinch { position, .. }
+            | Self::Rotate { position, .. } => Some(*position),
             _ => None,
         }
     }
@@ -236,7 +296,9 @@ impl InputState {
             }
             InputEvent::PointerMove { position }
             | InputEvent::DoubleClick { position }
-            | InputEvent::Wheel { position, .. } => {
+            | InputEvent::Wheel { position, .. }
+            | InputEvent::Pinch { position, .. }
+            | InputEvent::Rotate { position, .. } => {
                 self.pointer = *position;
             }
             InputEvent::KeyDown { key } => {
@@ -269,6 +331,8 @@ mod tests {
             InputEvent::Wheel {
                 position: Vec2::new(1.0, 2.0),
                 delta: Vec2::ZERO,
+                phase: TouchPhase::Moved,
+                device: ScrollDevice::Wheel,
             }
             .position(),
             Some(Vec2::new(1.0, 2.0))

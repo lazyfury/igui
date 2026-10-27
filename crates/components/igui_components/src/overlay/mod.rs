@@ -1095,6 +1095,8 @@ mod tests {
         overlays.handle_input(&InputEvent::Wheel {
             position: rect.center(),
             delta: igui_core::Vec2::new(0.0, 40.0),
+            phase: igui_core::TouchPhase::Moved,
+            device: igui_core::ScrollDevice::Wheel,
         });
         overlays.layout(&host, viewport());
         assert!(scroll.offset() > 0.0, "the wheel scrolled the menu");

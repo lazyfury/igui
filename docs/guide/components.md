@@ -463,19 +463,28 @@ clipped region and pops it with `restore`. A tree where nothing clips emits no
 clip commands and pays nothing.
 
 **Wheel routing**: `handle_input` hit-tests `InputEvent::Wheel { position,
-delta }` and hands it to the nearest ancestor with a scroll callback
+delta, .. }` and hands it to the nearest ancestor with a scroll callback
 (`igui_components::set_on_scroll`, or `Component::on_scroll` — the wheel counterpart of
 `on_click`/`on_drag`). It returns `Handled` only when a callback took it, so an
 unclaimed wheel still reaches the host.
 
-The *core* routes the wheel; a host still has to produce it. `examples/file_browser`
-is the reference pump: `host::wheel_pixels` turns winit's `MouseScrollDelta` into
-logical pixels (`y > 0` scrolls down) and feeds `InputEvent::Wheel`. The event's
-sign convention is the one knob to flip if a platform reports the opposite, and
-the function is a pure one-liner with tests. Neither `wgpu_demo` (winit
-`WindowEvent::MouseWheel`) nor the Canvas runner (DOM `wheel`) has that
-translation yet, so a list inside those demos does not scroll until it is added —
-`handle_input` is the contract, the pump is the host's job.
+The event carries two extra pieces so a host can tell devices apart:
+`device: ScrollDevice` (`Wheel` for a detented wheel, `Trackpad` for a precise
+surface) and `phase: TouchPhase` (`Started` / `Moved` / `Ended` / `Cancelled`;
+a wheel step is always `Moved`). The core only *routes* them: an app that pans
+on a trackpad and zooms on a wheel matches on `device`, and one that wants
+momentum scroll to extend a gesture watches `phase`.
+
+The *core* routes the wheel; a host still has to produce it. `igui_winit`'s
+`PointerPlugin` is the reference pump: `input::wheel` turns winit's
+`MouseScrollDelta` into a logical-pixel delta **and** the device
+(`PixelDelta` → `Trackpad`, `LineDelta` → `Wheel`), `input::touch_phase` maps
+the gesture phase, and both are put on `InputEvent::Wheel`. On macOS / iOS the
+same observer forwards `PinchGesture` / `RotationGesture` as
+`InputEvent::Pinch` / `InputEvent::Rotate`, so pinch-zoom and rotate gestures
+reach the app with no platform code. The DOM runner reports
+`ScrollDevice::Wheel` (the DOM has no device information). `handle_input` is the
+contract, the pump is the host's job.
 
 `igui_components::List` mounts only the rows its viewport can show and recycles
 them as it scrolls, so the node count, the layout work and the emitted commands

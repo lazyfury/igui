@@ -36,7 +36,10 @@ pub use color::Color;
 pub use cursor::Cursor;
 pub use edges::Edges;
 pub use id::{NodeId, NodeIdAllocator};
-pub use input::{EventResult, ImeEvent, InputEvent, InputState, Key, Modifiers, PointerButton};
+pub use input::{
+    EventResult, ImeEvent, InputEvent, InputState, Key, Modifiers, PointerButton, ScrollDevice,
+    TouchPhase,
+};
 pub use rect::Rect;
 pub use size::Size;
 pub use text::FontWeight;

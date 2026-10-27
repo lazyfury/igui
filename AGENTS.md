@@ -173,7 +173,8 @@ file_browser  -> igui_core, igui_render, igui_scene, igui_theme, igui_ui,
                  (standalone demo: own workspace, NOT a workspace member;
                   the first real consumer of `igui_components::List`, and the
                   first host to translate a platform wheel into
-                  `InputEvent::Wheel`)
+                  `InputEvent::Wheel`; the winit plugin now reports the
+                  device and gesture phase too)
 cpp_ffi (C++/CMake) -> igui_ffi + demoapp_ffi + wgpu_ffi (staticlibs), GLFW, OpenGL 3.3
                  (standalone C++ host: NOT a Cargo workspace and not a member;
                   `igui_ffi` is the workspace member it links, `demoapp_ffi`

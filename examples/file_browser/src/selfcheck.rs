@@ -306,6 +306,8 @@ pub fn check() -> (usize, String) {
     scrolled.event(&igui_core::InputEvent::Wheel {
         position: over_list,
         delta: Vec2::new(0.0, 10.0 * ROW_HEIGHT),
+        phase: igui_core::TouchPhase::Moved,
+        device: igui_core::ScrollDevice::Wheel,
     });
     scrolled.layout(viewport);
     let after = scrolled.offset();
@@ -708,6 +710,8 @@ mod tests {
         app.event(&igui_core::InputEvent::Wheel {
             position: Vec2::new(MAIN_WIDTH / 2.0, HEIGHT / 2.0),
             delta: Vec2::new(0.0, 10.0 * ROW_HEIGHT),
+            phase: igui_core::TouchPhase::Moved,
+            device: igui_core::ScrollDevice::Wheel,
         });
         app.layout(viewport);
         assert!(app.offset() > 0.0, "滚轮应该滚下去");

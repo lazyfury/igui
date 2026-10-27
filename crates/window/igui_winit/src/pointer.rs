@@ -1,7 +1,15 @@
-//! Pointer input: mouse move / button / wheel → core [`InputEvent`]s.
+//! Pointer input: mouse move / button / wheel / pinch / rotate → core
+//! [`InputEvent`]s.
+//!
+//! Wheel events carry both the device ([`ScrollDevice`](igui_core::ScrollDevice):
+//! a detented wheel vs a precise trackpad surface) and the gesture
+//! [`TouchPhase`](igui_core::TouchPhase), so a host can tell the two apart
+//! without re-reading native events. macOS / iOS pinch and rotate gestures are
+//! forwarded as [`InputEvent::Pinch`] / [`InputEvent::Rotate`]; platforms
+//! without them simply never send those variants.
 
 use igui_app::{AppBuilder, PlatformEvent, PlatformObserver, Plugin};
-use igui_core::{InputEvent, PointerButton, Vec2};
+use igui_core::{InputEvent, PointerButton};
 use winit::event::{ElementState, WindowEvent};
 
 use crate::input;
@@ -63,11 +71,38 @@ impl PlatformObserver for PointerObserver {
                     ElementState::Released => out.push(InputEvent::PointerUp { position, button }),
                 }
             }
-            WindowEvent::MouseWheel { delta, .. } => {
-                let delta = input::wheel_pixels(*delta, state.scale_factor as f32);
+            WindowEvent::MouseWheel {
+                delta,
+                phase: wheel_phase,
+                ..
+            } => {
+                let (delta, device) = input::wheel(*delta, state.scale_factor as f32);
                 out.push(InputEvent::Wheel {
                     position: state.cursor,
-                    delta: Vec2::new(0.0, delta),
+                    delta,
+                    phase: input::touch_phase(*wheel_phase),
+                    device,
+                });
+            }
+            // macOS / iOS only; a magnification of 0 or NaN carries no zoom.
+            WindowEvent::PinchGesture { delta, phase, .. }
+                if delta.is_finite() && *delta != 0.0 =>
+            {
+                out.push(InputEvent::Pinch {
+                    position: state.cursor,
+                    factor: 1.0 + *delta as f32,
+                    phase: input::touch_phase(*phase),
+                });
+            }
+            // winit reports degrees counter-clockwise; the core uses degrees
+            // clockwise (screen space, y down), so the sign flips here.
+            WindowEvent::RotationGesture { delta, phase, .. }
+                if delta.is_finite() && *delta != 0.0 =>
+            {
+                out.push(InputEvent::Rotate {
+                    position: state.cursor,
+                    delta: -*delta,
+                    phase: input::touch_phase(*phase),
                 });
             }
             _ => {}
@@ -107,6 +142,58 @@ mod tests {
     }
 
     #[test]
+    fn a_precise_wheel_means_trackpad_and_keeps_the_phase() {
+        let (mut observer, _) = setup(2.0);
+        let wheel = translate(
+            &mut observer,
+            &WindowEvent::MouseWheel {
+                device_id: DeviceId::dummy(),
+                delta: MouseScrollDelta::PixelDelta(PhysicalPosition::new(-40.0, 60.0)),
+                phase: TouchPhase::Started,
+            },
+        );
+        assert!(
+            matches!(wheel.as_slice(), [InputEvent::Wheel { delta, phase, device, .. }]
+                if *device == igui_core::ScrollDevice::Trackpad
+                    && *phase == igui_core::TouchPhase::Started
+                    && delta.x > 0.0
+                    && delta.y < 0.0),
+            "{wheel:?}"
+        );
+    }
+
+    #[test]
+    fn pinch_and_rotate_forward_as_gestures() {
+        let (mut observer, _) = setup(1.0);
+        let pinch = translate(
+            &mut observer,
+            &WindowEvent::PinchGesture {
+                device_id: DeviceId::dummy(),
+                delta: 0.25,
+                phase: TouchPhase::Moved,
+            },
+        );
+        assert!(
+            matches!(pinch.as_slice(), [InputEvent::Pinch { factor, .. }]
+                if (*factor - 1.25).abs() < 1e-6),
+            "{pinch:?}"
+        );
+        // winit rotation is counter-clockwise; the core is clockwise (y down).
+        let rotate = translate(
+            &mut observer,
+            &WindowEvent::RotationGesture {
+                device_id: DeviceId::dummy(),
+                delta: 15.0,
+                phase: TouchPhase::Moved,
+            },
+        );
+        assert!(
+            matches!(rotate.as_slice(), [InputEvent::Rotate { delta, .. }] if *delta == -15.0),
+            "{rotate:?}"
+        );
+    }
+
+    #[test]
     fn pointer_move_wheel_and_button_translate() {
         let (mut observer, _) = setup(2.0);
 
@@ -134,7 +221,8 @@ mod tests {
             },
         );
         assert!(
-            matches!(wheel.as_slice(), [InputEvent::Wheel { delta, .. }] if delta.y < 0.0),
+            matches!(wheel.as_slice(), [InputEvent::Wheel { delta, device, .. }]
+                if delta.y < 0.0 && *device == igui_core::ScrollDevice::Wheel),
             "{wheel:?}"
         );
 

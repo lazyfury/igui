@@ -486,6 +486,8 @@ mod tests {
             &InputEvent::Wheel {
                 position: Vec2::new(WIDTH / 2.0, HEIGHT / 2.0),
                 delta: Vec2::new(0.0, delta_y),
+                phase: igui_core::TouchPhase::Moved,
+                device: igui_core::ScrollDevice::Wheel,
             },
         );
         relayout(fixture);

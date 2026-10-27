@@ -910,7 +910,15 @@ mod tests {
         }
 
         fn wheel(&mut self, position: Vec2, delta: Vec2) -> EventResult {
-            let result = handle_input(&mut self.tree, &InputEvent::Wheel { position, delta });
+            let result = handle_input(
+                &mut self.tree,
+                &InputEvent::Wheel {
+                    position,
+                    delta,
+                    phase: igui_core::TouchPhase::Moved,
+                    device: igui_core::ScrollDevice::Wheel,
+                },
+            );
             self.frame();
             result
         }

@@ -5,7 +5,7 @@ use std::rc::Rc;
 
 use crate::*;
 use igui_backend_recording::RecordingBackend;
-use igui_core::{Color, Key, NodeId, PointerButton};
+use igui_core::{Color, Key, NodeId, PointerButton, ScrollDevice, TouchPhase};
 use igui_render::{DrawCommand, PaintContext, RenderBackend};
 
 fn laid_out() -> DemoApp {
@@ -148,6 +148,8 @@ fn a_short_window_scrolls_the_preview() {
     app.event(&InputEvent::Wheel {
         position: Vec2::new(700.0, 200.0),
         delta: Vec2::new(0.0, 200.0),
+        phase: TouchPhase::Moved,
+        device: ScrollDevice::Wheel,
     });
     app.update(viewport, 0.016);
     app.layout(viewport);
