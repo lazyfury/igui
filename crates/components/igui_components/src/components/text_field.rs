@@ -143,7 +143,7 @@ pub(crate) fn wrap(
     multiline: bool,
 ) -> Vec<Range<usize>> {
     if !multiline || width <= 0.0 {
-        return vec![0..text.len()];
+        return std::iter::once(0..text.len()).collect();
     }
     let mut lines = Vec::new();
     let mut line_start = 0usize;
@@ -207,18 +207,32 @@ fn content_origin(rect: Rect, metrics: Metrics, multiline: bool, scroll: f32) ->
 }
 
 /// Paints the field: selection, text, preedit underline and caret.
-pub(crate) fn paint(
-    ctx: &mut PaintContext,
-    rect: Rect,
-    state: InteractState,
-    theme: &dyn Theme,
-    measurer: &dyn TextMeasurer,
-    field: &FieldState,
-    size: ControlSize,
-    masked: bool,
-    placeholder: &str,
-    multiline: bool,
-) {
+/// Everything [`paint`] needs about the field it draws (the inputs come from
+/// the control spec, the interaction state and the host's text measurer).
+pub(crate) struct FieldPaint<'a> {
+    pub rect: Rect,
+    pub state: InteractState,
+    pub theme: &'a dyn Theme,
+    pub measurer: &'a dyn TextMeasurer,
+    pub field: &'a FieldState,
+    pub size: ControlSize,
+    pub masked: bool,
+    pub placeholder: &'a str,
+    pub multiline: bool,
+}
+
+pub(crate) fn paint(ctx: &mut PaintContext, p: &FieldPaint<'_>) {
+    let FieldPaint {
+        rect,
+        state,
+        theme,
+        measurer,
+        field,
+        size,
+        masked,
+        placeholder,
+        multiline,
+    } = *p;
     let _ = size;
     field.last_rect.set(rect);
     let edit = field.edit.borrow();
@@ -435,7 +449,6 @@ pub(crate) fn wire(
     spec.cursor_provider = Some(Box::new(|| Cursor::Text));
 
     {
-        let theme = theme;
         let measurer = measurer.clone();
         let field = field.clone();
         spec.foreground = Some(Box::new(move |ctx, rect, state| {
@@ -444,21 +457,22 @@ pub(crate) fn wire(
             let measurer = measurer.borrow().clone();
             paint(
                 ctx,
-                rect,
-                state,
-                theme,
-                measurer.as_ref(),
-                &field,
-                ControlSize::Regular,
-                masked,
-                &placeholder,
-                multiline,
+                &FieldPaint {
+                    rect,
+                    state,
+                    theme,
+                    measurer: measurer.as_ref(),
+                    field: &field,
+                    size: ControlSize::Regular,
+                    masked,
+                    placeholder: &placeholder,
+                    multiline,
+                },
             );
         }));
     }
 
     {
-        let theme = theme;
         let measurer = measurer.clone();
         let field = field.clone();
         spec.on_key = Some(Box::new(move |tree, _id, key, pressed, modifiers| {
@@ -561,7 +575,6 @@ pub(crate) fn wire(
     }
 
     {
-        let theme = theme;
         let measurer = measurer.clone();
         let field = field.clone();
         spec.on_text = Some(Box::new(move |tree, _id, text| {
@@ -573,7 +586,6 @@ pub(crate) fn wire(
     }
 
     {
-        let theme = theme;
         let measurer = measurer.clone();
         let field = field.clone();
         spec.on_ime = Some(Box::new(move |tree, _id, ime| {
@@ -592,7 +604,6 @@ pub(crate) fn wire(
     }
 
     {
-        let theme = theme;
         let measurer = measurer.clone();
         let field = field.clone();
         spec.on_pointer = Some(Box::new(move |tree, _id, phase, rect, point| {
@@ -651,7 +662,6 @@ pub(crate) fn wire(
     }
 
     {
-        let theme = theme;
         let measurer = measurer.clone();
         let field = field.clone();
         spec.caret_provider = Some(Box::new(move || {

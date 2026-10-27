@@ -39,59 +39,8 @@ pub fn group_view(
         .child(Text::heading(meta.name, theme))
         .child(Text::caption(meta.blurb, theme).tone(Tone::Muted));
 
-    let mut grid = Grid::new(vec![Track::Fr(1.0), Track::Fr(1.0)])
-        .align_content(AlignContent::Start)
-        .gap(space::MD)
-        .padding(Edges::ZERO);
-    for (index, item) in catalog::ITEMS[group].iter().enumerate() {
-        grid = grid.child(card_for(
-            group, index, item, theme, state, lists, routers, scrolls,
-        ));
-    }
-
-    let page = Column::new()
-        .gap(space::LG)
-        .padding(Edges::all(space::LG))
-        .child(header)
-        .child(grid);
-
-    let view = ScrollView::new(theme).child(page);
-    scrolls.push(view.state());
-    view
-}
-
-fn card_for(
-    group: usize,
-    index: usize,
-    item: &Item,
-    theme: &'static dyn Theme,
-    state: &GalleryState,
-    lists: &mut Vec<ListState>,
-    routers: &Rc<RefCell<Vec<Router>>>,
-    scrolls: &mut Vec<ScrollViewState>,
-) -> Card {
-    let card = Card::new(theme)
-        .gap(space::SM)
-        .padding(Edges::all(space::LG))
-        .child(Text::subheading(item.name, theme))
-        .child(Text::caption(item.blurb, theme).tone(Tone::Muted));
-    example(card, group, index, theme, state, lists, routers, scrolls)
-        .child(Text::small(item.snippet, theme).tone(Tone::Subtle))
-}
-
-/// Appends the item's live example to its card.
-fn example(
-    card: Card,
-    group: usize,
-    index: usize,
-    theme: &'static dyn Theme,
-    state: &GalleryState,
-    lists: &mut Vec<ListState>,
-    routers: &Rc<RefCell<Vec<Router>>>,
-    scrolls: &mut Vec<ScrollViewState>,
-) -> Card {
-    let table = examples::EXAMPLES;
-    debug_assert!(group < table.len() && index < table[group].len());
+    // One borrowed context instead of five parameters, so the card builders and
+    // `example` share exactly what the preview table needs.
     let mut ctx = examples::Ctx {
         theme,
         state,
@@ -99,5 +48,38 @@ fn example(
         routers,
         scrolls,
     };
-    (table[group][index])(card, &mut ctx)
+
+    let mut grid = Grid::new(vec![Track::Fr(1.0), Track::Fr(1.0)])
+        .align_content(AlignContent::Start)
+        .gap(space::MD)
+        .padding(Edges::ZERO);
+    for (index, item) in catalog::ITEMS[group].iter().enumerate() {
+        grid = grid.child(card_for(group, index, item, &mut ctx));
+    }
+
+    let page = Column::new()
+        .gap(space::LG)
+        .padding(Edges::all(space::LG))
+        .child(header)
+        .child(grid);
+    let view = ScrollView::new(theme).child(page);
+    ctx.scrolls.push(view.state());
+    view
+}
+
+fn card_for(group: usize, index: usize, item: &Item, ctx: &mut examples::Ctx<'_>) -> Card {
+    let theme = ctx.theme;
+    let card = Card::new(theme)
+        .gap(space::SM)
+        .padding(Edges::all(space::LG))
+        .child(Text::subheading(item.name, theme))
+        .child(Text::caption(item.blurb, theme).tone(Tone::Muted));
+    example(card, group, index, ctx).child(Text::small(item.snippet, theme).tone(Tone::Subtle))
+}
+
+/// Appends the item's live example to its card.
+fn example(card: Card, group: usize, index: usize, ctx: &mut examples::Ctx<'_>) -> Card {
+    let table = examples::EXAMPLES;
+    debug_assert!(group < table.len() && index < table[group].len());
+    (table[group][index])(card, ctx)
 }

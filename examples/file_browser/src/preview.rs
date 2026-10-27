@@ -188,7 +188,7 @@ impl Preview {
 
     /// hex dump 有多少行（[`PreviewMode::Binary`] 的行数）。
     pub fn rows(&self) -> usize {
-        (self.bytes.len() + BYTES_PER_ROW - 1) / BYTES_PER_ROW
+        self.bytes.len().div_ceil(BYTES_PER_ROW)
     }
 
     /// 文本模式有多少行（[`PreviewMode::Text`] 的行数）。
@@ -269,7 +269,7 @@ impl Preview {
     ///
     /// 文本模式看这种文件只会是乱码，副标题里说一句，别让人以为是预览坏了。
     pub fn looks_binary(&self) -> bool {
-        self.bytes.iter().any(|byte| *byte == 0)
+        self.bytes.contains(&0)
     }
 
     /// 右栏标题：文件名 + 磁盘上的大小。

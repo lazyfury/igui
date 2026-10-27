@@ -103,7 +103,10 @@ pub fn comparison_report(comparisons: &[Comparison], threshold: f64) -> String {
         "\nbaseline comparison (threshold {:.1}%)",
         threshold * 100.0
     );
-    let _ = writeln!(
+    // Column headers: every cell is a literal that the format spec pads, so it
+    // cannot be inlined into the format string.
+    #[allow(clippy::write_literal)]
+    let header = writeln!(
         out,
         "{:<width$}  {:>10}  {:>10}  {:>8}  {}",
         "benchmark",
@@ -113,6 +116,7 @@ pub fn comparison_report(comparisons: &[Comparison], threshold: f64) -> String {
         "verdict",
         width = width
     );
+    let _ = header;
     for c in comparisons {
         let _ = writeln!(
             out,

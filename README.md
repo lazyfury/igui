@@ -169,14 +169,15 @@ Keep the workspace gate green:
 
 ```bash
 cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
 cargo check --workspace
 cargo test --workspace
 cargo bench --workspace --no-run
 ```
 
-CI runs exactly this gate (plus clippy, the MSRV and `wasm32` checks, and both
-standalone demos) — see `.github/workflows/ci.yml`, so the same commands work
-locally and on a pull request.
+CI runs exactly this gate (plus the MSRV and `wasm32` checks, the facade feature
+matrix, and both standalone demos) — see `.github/workflows/ci.yml`, so the same
+commands work locally and on a pull request.
 
 Standalone demos (`examples/file_browser`, `examples/deepseek_balance`) are not
 workspace members; run their gate with `--manifest-path` and their `--selfcheck`

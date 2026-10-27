@@ -157,8 +157,7 @@ mod tests {
         let dir = std::env::args()
             .skip(1)
             .filter(|arg| !arg.starts_with('-'))
-            .filter(|arg| Path::new(arg).is_dir())
-            .last();
+            .rfind(|arg| Path::new(arg).is_dir());
         let Some(dir) = dir else {
             return;
         };

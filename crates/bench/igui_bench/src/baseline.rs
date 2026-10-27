@@ -44,8 +44,12 @@ pub struct Comparison {
 ///
 /// ```text
 /// # igui_bench baseline v1
-/// scene/update_clean/1000	1203.4
+/// scene/update_clean/1000<TAB>1203.4
 /// ```
+///
+/// The separator is a literal tab (`const SEP`), which is what the writer and
+/// parser use.
+#[allow(clippy::tabs_in_doc_comments)]
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Baseline {
     entries: BTreeMap<String, f64>,

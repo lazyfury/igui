@@ -42,19 +42,16 @@ jobs:
       - name: bench --no-run
         run: cargo bench --workspace --no-run
 
-  # Report-only until the existing backlog is cleared; then drop
-  # `continue-on-error` and add `-- -D warnings`.
   clippy:
-    name: clippy (report-only)
+    name: clippy -D warnings
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
       - uses: Swatinem/rust-cache@v2
-      - run: cargo clippy --workspace --all-targets
+      - run: cargo clippy --workspace --all-targets -- -D warnings
 
   # The backend-neutral members must keep building on the declared floor
   # (`rust-version` in the workspace manifest is 1.82).
@@ -126,6 +123,10 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: fmt
         run: cargo fmt --manifest-path examples/${{ matrix.demo }}/Cargo.toml --all -- --check
+      - name: clippy
+        run: >
+          cargo clippy --manifest-path examples/${{ matrix.demo }}/Cargo.toml
+          --all-targets -- -D warnings
       - name: test
         run: cargo test --manifest-path examples/${{ matrix.demo }}/Cargo.toml
       - name: selfcheck

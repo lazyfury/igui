@@ -713,7 +713,7 @@ fn pixel_font_maps_glyph_texels_one_to_one() {
     for ch in ['L', '_', '|', 'A', 'W'] {
         let mut ctx = PaintContext::new();
         ctx.draw_text(
-            &ch.to_string(),
+            ch.to_string(),
             Vec2::new(0.0, 8.0),
             font_size,
             TextAlign::Left,

@@ -529,6 +529,9 @@ fn wrap_hard_line(
     out.push(current);
 }
 
+// The wrapping state (`current`, `current_w`, `out`) is threaded through the
+// break helpers; a struct for it belongs to the planned split of this module.
+#[allow(clippy::too_many_arguments)]
 fn hard_break(
     measurer: &dyn TextMeasurer,
     unit: &str,
@@ -573,14 +576,9 @@ fn tokens(line: &str, word_break: WordBreak) -> Vec<(String, bool)> {
                 word_space = false;
             }
             pending_space = true;
-        } else if word_break == WordBreak::BreakAll {
-            if !word.is_empty() {
-                tokens.push((std::mem::take(&mut word), word_space));
-                word_space = false;
-            }
-            tokens.push((ch.to_string(), pending_space));
-            pending_space = false;
-        } else if word_break != WordBreak::KeepAll && is_wide(ch) {
+        } else if word_break == WordBreak::BreakAll
+            || (word_break != WordBreak::KeepAll && is_wide(ch))
+        {
             if !word.is_empty() {
                 tokens.push((std::mem::take(&mut word), word_space));
                 word_space = false;

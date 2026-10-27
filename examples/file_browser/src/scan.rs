@@ -237,7 +237,7 @@ mod tests {
 
     #[test]
     fn directories_sort_before_files() {
-        let mut entries = vec![file("zeta", 1), dir("alpha"), file("beta", 1)];
+        let mut entries = [file("zeta", 1), dir("alpha"), file("beta", 1)];
         entries.sort_by(order);
         assert_eq!(entries[0].name, "alpha");
         assert_eq!(entries[1].name, "beta");
@@ -248,18 +248,18 @@ mod tests {
     /// 更接近人找文件的直觉。
     #[test]
     fn names_sort_case_insensitively() {
-        let mut entries = vec![file("Zebra", 1), file("apple", 1), file("Banana", 1)];
+        let mut entries = [file("Zebra", 1), file("apple", 1), file("Banana", 1)];
         entries.sort_by(order);
         let names: Vec<&str> = entries.iter().map(|entry| entry.name.as_str()).collect();
-        assert_eq!(names, vec!["apple", "Banana", "Zebra"]);
+        assert_eq!(names, ["apple", "Banana", "Zebra"]);
     }
 
     #[test]
     fn ties_break_deterministically() {
-        let mut entries = vec![file("abc", 1), file("ABC", 1)];
+        let mut entries = [file("abc", 1), file("ABC", 1)];
         entries.sort_by(order);
         let names: Vec<&str> = entries.iter().map(|entry| entry.name.as_str()).collect();
-        assert_eq!(names, vec!["ABC", "abc"]);
+        assert_eq!(names, ["ABC", "abc"]);
     }
 
     #[test]

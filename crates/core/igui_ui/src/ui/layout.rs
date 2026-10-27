@@ -59,7 +59,7 @@ impl Ui {
                         && control_visible(tree, *id)
                         && tree
                             .parent(*id)
-                            .map_or(true, |parent| control_of(tree, parent).is_none())
+                            .is_none_or(|parent| control_of(tree, parent).is_none())
                 })
                 .collect();
             for root in roots {
@@ -233,7 +233,7 @@ impl Ui {
                     && control_visible(tree, *id)
                     && tree
                         .parent(*id)
-                        .map_or(true, |parent| control_of(tree, parent).is_none())
+                        .is_none_or(|parent| control_of(tree, parent).is_none())
             })
             .collect();
         let mut cache = state.layout.borrow_mut();
@@ -498,6 +498,11 @@ impl Ui {
 
     // -- flex --------------------------------------------------------------
 
+    // The layout context (tree, cache, geometry, style, children, the two
+    // output maps) is passed explicitly: the borrows are disjoint and a struct
+    // would only move the same fields around. Bundling it belongs to the
+    // planned split of this module.
+    #[allow(clippy::too_many_arguments)]
     fn arrange_flex(
         &self,
         tree: &SceneTree,
@@ -614,6 +619,7 @@ impl Ui {
 
     // -- grid --------------------------------------------------------------
 
+    #[allow(clippy::too_many_arguments)]
     fn arrange_grid(
         &self,
         tree: &SceneTree,
@@ -1010,8 +1016,8 @@ fn distribute_span_demands(
                 .count();
             if deficit > 0.0 && auto_count > 0 {
                 let add = deficit / auto_count as f32;
-                for col in col_start..col_end {
-                    if col_auto.get(col).copied().unwrap_or(false) {
+                for (col, is_auto) in col_auto.iter().enumerate().take(col_end).skip(col_start) {
+                    if *is_auto {
                         auto_cols[col] += add;
                     }
                 }
@@ -1030,8 +1036,8 @@ fn distribute_span_demands(
                 .count();
             if deficit > 0.0 && auto_count > 0 {
                 let add = deficit / auto_count as f32;
-                for row in row_start..row_end {
-                    if row_auto.get(row).copied().unwrap_or(false) {
+                for (row, is_auto) in row_auto.iter().enumerate().take(row_end).skip(row_start) {
+                    if *is_auto {
                         auto_rows[row] += add;
                     }
                 }
@@ -1390,7 +1396,7 @@ mod tests {
         // which a `igui_ui`-built view already has. A bare `SceneTree` has to
         // be told — exactly what a host does when it installs its font, and it
         // does so *before* the first layout.
-        crate::set_text_measurer(&mut tree, Rc::new(crate::ApproxTextMeasurer::default()));
+        crate::set_text_measurer(&mut tree, Rc::new(crate::ApproxTextMeasurer));
         // The shape `igui_components` views are built in: the root is arranged
         // against the viewport and the column below it is the content.
         let root = add(
@@ -1521,11 +1527,13 @@ mod tests {
             TestControl::Flex(FlexStyle::row().wrap(true)),
         );
         for _ in 0..3 {
-            let mut data = ControlData::default();
-            data.min_size = Size::new(20.0, 10.0);
+            let data = ControlData {
+                min_size: Size::new(20.0, 10.0),
+                ..Default::default()
+            };
             add(&mut tree, root, data, panel(Color::RED));
         }
-        crate::set_text_measurer(&mut tree, Rc::new(crate::ApproxTextMeasurer::default()));
+        crate::set_text_measurer(&mut tree, Rc::new(crate::ApproxTextMeasurer));
         let wanted = crate::content_size(&tree, Size::new(10_000.0, 1_000.0));
         assert!(
             wanted.min.width < wanted.preferred.width,

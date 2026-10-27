@@ -85,6 +85,9 @@ impl Ui {
 
     /// Lays out `text` for control `id`, reusing the cached result when the
     /// inputs are unchanged.
+    // The cache, the measurer and the full set of text inputs are the call's
+    // context; see the note on `arrange_flex` about bundling it.
+    #[allow(clippy::too_many_arguments)]
     pub(super) fn layout_text_cached(
         &self,
         cache: &mut LayoutCache,

@@ -20,7 +20,7 @@ fn root_controls(tree: &SceneTree) -> Vec<NodeId> {
                 && control_visible(tree, *id)
                 && tree
                     .parent(*id)
-                    .map_or(true, |parent| tree.data::<Control>(parent).is_none())
+                    .is_none_or(|parent| tree.data::<Control>(parent).is_none())
         })
         .collect()
 }

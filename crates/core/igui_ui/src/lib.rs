@@ -211,12 +211,12 @@ pub fn control(tree: &SceneTree, id: NodeId) -> Option<&ControlData> {
 }
 
 /// The control's self-draw content, read from the node's extension slot.
-pub fn content<'a>(tree: &'a SceneTree, id: NodeId) -> Option<&'a dyn ControlContent> {
+pub fn content(tree: &SceneTree, id: NodeId) -> Option<&dyn ControlContent> {
     Ui.content(tree, id)
 }
 
 /// The control's container, read from the node's extension slot.
-pub fn container<'a>(tree: &'a SceneTree, id: NodeId) -> Option<&'a Container> {
+pub fn container(tree: &SceneTree, id: NodeId) -> Option<&Container> {
     Ui.container(tree, id)
 }
 

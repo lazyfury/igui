@@ -411,7 +411,7 @@ impl Node {
 
     /// Local visibility. Grouping nodes without a canvas are always visible.
     pub fn is_visible(&self) -> bool {
-        self.canvas.as_ref().map_or(true, |c| c.visible)
+        self.canvas.as_ref().is_none_or(|c| c.visible)
     }
 
     pub fn z_index(&self) -> i32 {
@@ -434,7 +434,7 @@ impl Node {
 
     /// Effective visibility including ancestors (valid after update).
     pub fn world_visible(&self) -> bool {
-        self.canvas.as_ref().map_or(true, |c| c.world_visible)
+        self.canvas.as_ref().is_none_or(|c| c.world_visible)
     }
 
     /// Layer data for a [`NodeKind::CanvasLayer`] node; `None` otherwise.

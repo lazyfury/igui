@@ -137,7 +137,7 @@ pub fn set_focus_nav(tree: &mut SceneTree, id: NodeId, nav: FocusNav) -> bool {
 }
 
 /// The focus wiring on `id`, if it is a control.
-pub fn focus_nav<'a>(tree: &'a SceneTree, id: NodeId) -> Option<&'a FocusNav> {
+pub fn focus_nav(tree: &SceneTree, id: NodeId) -> Option<&FocusNav> {
     control_of(tree, id).map(|control| &control.focus)
 }
 
@@ -303,7 +303,7 @@ fn nearest_in_direction(tree: &SceneTree, current: NodeId, dir: FocusDir) -> Opt
             continue;
         };
         let score = primary + 2.0 * secondary;
-        if best.map_or(true, |(best_score, _)| score < best_score) {
+        if best.is_none_or(|(best_score, _)| score < best_score) {
             best = Some((score, id));
         }
     }

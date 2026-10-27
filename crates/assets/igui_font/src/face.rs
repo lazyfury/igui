@@ -54,6 +54,9 @@ impl GlyphSlot {
 }
 
 /// A font face loaded from disk with an on-demand glyph cache.
+/// Shaped runs in font units, keyed by `(text, rtl)`, cached per face.
+type ShapeCache = RefCell<HashMap<(Box<str>, bool), Rc<[ShapedGlyph]>>>;
+
 pub(crate) struct FontFace {
     family: String,
     weight: FontWeight,
@@ -67,7 +70,7 @@ pub(crate) struct FontFace {
     rb: rustybuzz::Face<'static>,
     glyph_cache: RefCell<HashMap<(u32, u32), GlyphSlot>>,
     /// Shaped runs in font units, keyed by `(text, rtl)`.
-    shape_cache: RefCell<HashMap<(Box<str>, bool), Rc<[ShapedGlyph]>>>,
+    shape_cache: ShapeCache,
     advance_cache: RefCell<HashMap<(u32, u32), f32>>,
 }
 

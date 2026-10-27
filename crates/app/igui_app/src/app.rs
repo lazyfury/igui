@@ -239,6 +239,12 @@ pub struct App {
 
 impl App {
     /// Starts building an app with `config`.
+    ///
+    /// Returns a builder rather than `Self` on purpose: an app only exists once
+    /// its plugins are installed, so `App::new(..).plugin(..).build()` reads as
+    /// one chain. (`AppBuilder::new(config)` is the same entry point; rename
+    /// this to `App::builder` the next time the API may break.)
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(config: AppConfig) -> AppBuilder {
         AppBuilder::new(config)
     }

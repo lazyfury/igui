@@ -348,6 +348,7 @@ this file (the "Latest stage" bullet under "Stages" plus any doc updates).
 
 ```bash
 cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
 cargo check --workspace
 cargo test --workspace
 cargo bench --workspace --no-run
@@ -355,14 +356,14 @@ cargo bench --workspace --no-run
 
 `--workspace` excludes the **standalone** demos (`examples/deepseek_balance`,
 `examples/file_browser`). When you touch one, also run its own gate with
-`--manifest-path` (fmt / check / test) and its `--selfcheck`; see "Demo workspace
-modes & how to test" above. `image_editor` now lives in its own repo
+`--manifest-path` (fmt / clippy `-D warnings` / check / test) and its
+`--selfcheck`; see "Demo workspace modes & how to test" above. `image_editor` now lives in its own repo
 (`../image_editor`); changes there have their own gate.
 
-`.github/workflows/ci.yml` runs the same gate on every push / PR, plus clippy
-(report-only until its backlog is cleared), the backend-neutral MSRV check
-(1.82, from `rust-version`), the `wasm32` check and both standalone demos. Keep
-it green; the manual run stays the pre-report step.
+`.github/workflows/ci.yml` runs the same gate on every push / PR, plus the
+backend-neutral MSRV check (1.82, from `rust-version`), the `wasm32` check, the
+facade feature matrix and both standalone demos. Keep it green; the manual run
+stays the pre-report step.
 
 Then emit the report and stop for approval.
 

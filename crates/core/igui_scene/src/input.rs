@@ -52,10 +52,7 @@ impl SceneTree {
     /// Removes the `process(dt)` callback.
     pub fn clear_process(&mut self, id: NodeId) -> bool {
         match self.get_mut(id) {
-            Some(node) => {
-                let had = node.process.take().is_some();
-                had
-            }
+            Some(node) => node.process.take().is_some(),
             None => false,
         }
     }
@@ -100,10 +97,7 @@ impl SceneTree {
     /// Removes the `physics_process(dt)` callback.
     pub fn clear_physics_process(&mut self, id: NodeId) -> bool {
         match self.get_mut(id) {
-            Some(node) => {
-                let had = node.physics_process.take().is_some();
-                had
-            }
+            Some(node) => node.physics_process.take().is_some(),
             None => false,
         }
     }
