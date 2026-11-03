@@ -1,3 +1,58 @@
+# Release v0.6.0 — 2026-11-03
+
+Minor release: text can name a **font family per draw**, and draw sizes can be
+**em pixels**. Scope: `git log v0.5.1..v0.6.0`.
+
+## Additions
+
+### Per-draw font family
+
+`DrawCommand::DrawText` gains `family: Option<String>` and `PaintContext` gains
+`draw_text_in`; `None` keeps the backend default. `igui_ui::TextMeasurer` gains
+`advance_in`, `advance_weighted_in`, `line_height_in`, `ascent_in`,
+`measure_run_in` and `measure_run_weighted_in`, with defaults that ignore the
+family so existing measurers keep compiling. `igui_font`'s `FontServer` and
+`FontMetrics` gain the matching `*_in` entry points: `shape_in` picks the
+primary face while per-character fallback keeps working. The coverage cache is
+now keyed by the resolved primary, so naming a family cannot reuse a fallback
+decision made for another family. The wgpu backend forwards the family to
+shaping; Canvas quotes it in the CSS font shorthand (`font_spec_in`).
+
+This lets one region (a terminal, a code block, a numeric table) paint a
+fixed-pitch face while the rest of the UI stays proportional.
+
+### Em sizes
+
+`FontConfig::em_size` (default `false`) interprets every draw size as the
+font's **em** (CSS/VS Code semantics) instead of `ab_glyph`'s ascent+descent
+height. The conversion is per face (`height_unscaled / units_per_em`) and
+applies to advances, shaping, rasterization, line height and ascent, so `14.0`
+is a 14 px em for PingFang, Menlo and a terminal's mono face alike. Before, the
+same `14.0` produced a 10 px em on PingFang and a 12 px em on Menlo. The Canvas
+backend already used CSS `px`, so this also aligns the two backends.
+
+### Discovered faces
+
+Macintosh/Roman name records are now decoded as Mac OS Roman. Core macOS faces
+such as `Menlo` and `Monaco` carry only those records, so they were missing from
+`families()` and a request for them silently fell back to the proportional
+default.
+
+## Migration
+
+- `DrawCommand::DrawText` gained a field: exhaustive struct literals must add
+  `family: None`. `draw_text` / `draw_text_weighted` keep their signatures.
+- `FontConfig` gained a field: use `..FontConfig::default()` or set
+  `em_size: false` (the previous behaviour).
+- Existing `FontServer` / `FontMetrics` methods keep their semantics; they are
+  the `*_in(..., None)` path.
+- `em_size` is opt-in: hosts that do not set it see no visual change.
+
+## Verification
+
+Gate for the tag: `cargo fmt --all -- --check`, `cargo check --workspace
+--all-targets`, `cargo test --workspace`, `cargo bench --workspace --no-run`.
+
 # Release v0.5.1 — 2026-10-27
 
 Patch release: fixes `List::on_cell` cell indices for **icon leads**. Scope:
