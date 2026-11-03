@@ -72,11 +72,14 @@ pub(crate) struct FontFace {
     /// Shaped runs in font units, keyed by `(text, rtl)`.
     shape_cache: ShapeCache,
     advance_cache: RefCell<HashMap<(u32, u32), f32>>,
+    /// Interpret draw sizes as em (CSS px) instead of the font's
+    /// ascent+descent height. See [`crate::FontConfig::em_size`].
+    em_size: bool,
 }
 
 impl FontFace {
     /// Reads and parses `file` at `index`.
-    pub(crate) fn load(file: &Path, index: u32) -> Option<Self> {
+    pub(crate) fn load(file: &Path, index: u32, em_size: bool) -> Option<Self> {
         let bytes = std::fs::read(file).ok()?;
         let data: &'static [u8] = Box::leak(bytes.into_boxed_slice());
         let font = FontRef::try_from_slice_and_index(data, index).ok()?;
@@ -98,6 +101,7 @@ impl FontFace {
             glyph_cache: RefCell::new(HashMap::new()),
             shape_cache: RefCell::new(HashMap::new()),
             advance_cache: RefCell::new(HashMap::new()),
+            em_size,
         })
     }
 
@@ -132,7 +136,7 @@ impl FontFace {
         if let Some(advance) = self.advance_cache.borrow().get(&key).copied() {
             return advance;
         }
-        let scaled = self.font.as_scaled(px_scale(px));
+        let scaled = self.font.as_scaled(self.px_scale(px));
         let advance = scaled.h_advance(self.font.glyph_id(ch));
         let mut cache = self.advance_cache.borrow_mut();
         if cache.len() >= ADVANCE_CACHE_CAP {
@@ -153,12 +157,12 @@ impl FontFace {
 
     /// Natural line height (ascent + descent + line gap) in device pixels.
     pub(crate) fn line_height_px(&self, px: f32) -> f32 {
-        let scaled = self.font.as_scaled(px_scale(px));
+        let scaled = self.font.as_scaled(self.px_scale(px));
         scaled.height() + scaled.line_gap()
     }
 
     pub(crate) fn ascent_px(&self, px: f32) -> f32 {
-        let scaled = self.font.as_scaled(px_scale(px));
+        let scaled = self.font.as_scaled(self.px_scale(px));
         scaled.ascent()
     }
 
@@ -193,7 +197,7 @@ impl FontFace {
     /// Device-pixels-per-font-unit factor, matching `ab_glyph`'s scaling of
     /// `h_advance_unscaled` (so shaped and unshaped advances agree).
     fn unit_scale(&self, px: f32) -> f32 {
-        self.font.as_scaled(px_scale(px)).h_scale_factor()
+        self.font.as_scaled(self.px_scale(px)).h_scale_factor()
     }
 
     /// Shapes `text` as a single run in `rtl` direction, in font units.
@@ -249,12 +253,12 @@ impl FontFace {
     }
 
     fn rasterize(&self, glyph_id: u16, px: f32, atlas: &RefCell<Atlas>) -> GlyphSlot {
-        let scaled = self.font.as_scaled(px_scale(px));
+        let scaled = self.font.as_scaled(self.px_scale(px));
         let id = GlyphId(glyph_id);
         let advance = scaled.h_advance(id);
         let glyph = Glyph {
             id,
-            scale: px_scale(px),
+            scale: self.px_scale(px),
             position: point(0.0, 0.0),
         };
 
@@ -310,6 +314,19 @@ impl FontFace {
     }
 }
 
-fn px_scale(font_size: f32) -> PxScale {
-    PxScale::from(font_size.max(1.0))
+impl FontFace {
+    /// Scale for `font_size` logical pixels.
+    ///
+    /// `ab_glyph`'s [`PxScale`] is the font's **ascent+descent height**, not
+    /// its em. In em mode the requested size is converted so that
+    /// `units_per_em` maps to `font_size`, matching CSS/VS Code semantics and
+    /// the Canvas backend.
+    fn px_scale(&self, font_size: f32) -> PxScale {
+        let size = if self.em_size {
+            font_size * self.font.height_unscaled() / self.font.units_per_em().unwrap_or(1.0)
+        } else {
+            font_size
+        };
+        PxScale::from(size.max(1.0))
+    }
 }

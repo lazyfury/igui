@@ -64,6 +64,15 @@ pub struct FontConfig {
     /// `families()` picker, a family miss, or an uncovered character). Use it
     /// when the application ships or knows its font file.
     pub default_face: Option<FaceRef>,
+    /// Interpret every draw size as **em pixels** (CSS/VS Code semantics)
+    /// instead of the font's ascent+descent height.
+    ///
+    /// `ab_glyph`'s pixel scale is the font height, so `14.0` normally renders
+    /// PingFang at a 10 px em and Menlo at a 12 px em. With this flag the same
+    /// `14.0` renders a 14 px em for every family, which matches the Canvas
+    /// backend (CSS `px`) and lets one setting mean the same size across the
+    /// UI, the editor and a terminal. Defaults to `false` for compatibility.
+    pub em_size: bool,
 }
 
 impl Default for FontConfig {
@@ -73,6 +82,7 @@ impl Default for FontConfig {
             device_pixel_rasterization: true,
             default_family: None,
             default_face: None,
+            em_size: false,
         }
     }
 }
@@ -139,6 +149,8 @@ pub struct FontServer {
     atlas: RefCell<Atlas>,
     scale: Cell<f32>,
     device_pixels: Cell<bool>,
+    /// See [`FontConfig::em_size`].
+    em_size: bool,
 }
 
 impl FontServer {
@@ -205,6 +217,7 @@ impl FontServer {
             atlas: RefCell::new(Atlas::new()),
             scale: Cell::new(1.0),
             device_pixels: Cell::new(config.device_pixel_rasterization),
+            em_size: config.em_size,
         };
         let _ = server.default_family.set(default_family);
         server
@@ -224,6 +237,7 @@ impl FontServer {
             atlas: RefCell::new(Atlas::new()),
             scale: Cell::new(1.0),
             device_pixels: Cell::new(config.device_pixel_rasterization),
+            em_size: config.em_size,
         }
     }
 
@@ -234,6 +248,7 @@ impl FontServer {
             device_pixel_rasterization: false,
             default_family: None,
             default_face: None,
+            em_size: false,
         })
     }
 
@@ -390,7 +405,7 @@ impl FontServer {
             return Some(face);
         }
         let info = self.faces.borrow().get(index).cloned()?;
-        let face = Rc::new(FontFace::load(&info.file, info.index)?);
+        let face = Rc::new(FontFace::load(&info.file, info.index, self.em_size)?);
         self.loaded.borrow_mut()[index] = Some(face.clone());
         Some(face)
     }
@@ -623,6 +638,11 @@ impl FontServer {
     /// `Pixel`).
     pub fn mode(&self) -> FontMode {
         self.mode
+    }
+
+    /// Whether draw sizes are em pixels (see [`FontConfig::em_size`]).
+    pub fn em_size(&self) -> bool {
+        self.em_size
     }
 
     /// The default family name, or `None` in pixel mode.
@@ -980,6 +1000,56 @@ mod tests {
         let default_m = server.advance('M', 14.0, FontWeight::NORMAL);
         let default_i = server.advance('i', 14.0, FontWeight::NORMAL);
         assert!((default_m - default_i).abs() > 1.0);
+    }
+
+    #[test]
+    fn em_size_scales_by_the_font_height_ratio() {
+        let Some(_) = system_server() else {
+            return;
+        };
+        let height = FontServer::load();
+        let em = FontServer::load_with(FontConfig {
+            em_size: true,
+            ..FontConfig::default()
+        });
+        let h = height.advance('M', 14.0, FontWeight::NORMAL);
+        let e = em.advance('M', 14.0, FontWeight::NORMAL);
+        assert!(h > 0.0 && e > 0.0);
+        assert!(
+            e > h * 1.05,
+            "em mode should enlarge the em: height={h} em={e}"
+        );
+        // The same ratio applies to line height: in em mode the requested size
+        // is the em, so the font's natural line box grows by the height/em
+        // ratio (plus any scaled line gap).
+        let ratio = e / h;
+        let line = em.line_height(14.0);
+        assert!(
+            (line - 14.0 * ratio).abs() < 1.0,
+            "line={line} ratio={ratio}"
+        );
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn em_size_makes_a_cjk_glyph_one_em_wide() {
+        let em = FontServer::load_with(FontConfig {
+            default_family: Some("PingFang SC".into()),
+            em_size: true,
+            ..FontConfig::default()
+        });
+        let cjk = em.advance_in('中', 14.0, FontWeight::NORMAL, None);
+        assert!((cjk - 14.0).abs() < 0.2, "CJK advance {cjk}");
+        // Latin M is 0.882 em in PingFang.
+        let m = em.advance_in('M', 14.0, FontWeight::NORMAL, None);
+        assert!((m - 12.35).abs() < 0.2, "M advance {m}");
+
+        let height = FontServer::load_with(FontConfig {
+            default_family: Some("PingFang SC".into()),
+            ..FontConfig::default()
+        });
+        let old = height.advance_in('中', 14.0, FontWeight::NORMAL, None);
+        assert!((old - 10.0).abs() < 0.2, "height-mode advance {old}");
     }
 
     #[test]

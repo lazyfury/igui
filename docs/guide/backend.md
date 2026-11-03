@@ -110,8 +110,10 @@ the GPU pass is a single textured-triangle pipeline (`src/shader.wgsl`):
 - `FontConfig` chooses the look: `FontMode::System` (default) or
   `FontMode::Pixel` (the built-in bitmap), plus
   `device_pixel_rasterization` (default `true`) which rasterizes system glyphs
-  at `font_size * scale` for crisp HiDPI text while keeping logical metrics, and
-  an optional `default_family`. `WgpuBackend::set_font_config` rebuilds the atlas
+  at `font_size * scale` for crisp HiDPI text while keeping logical metrics, an
+  optional `default_family`, and `em_size` (default `false`) which interprets
+  sizes as em/CSS pixels instead of the font's ascent+descent height (matching
+  the Canvas backend; see [`font.md`](font.md#size-semantics)). `WgpuBackend::set_font_config` rebuilds the atlas
   at runtime. In pixel mode the 8x8 cell is drawn at `PIXEL_GLYPH_RATIO *
   font_size` (default 0.75, rounded to whole pixels; advances scale likewise) so
   it matches a proportional font's visual size instead of filling the whole em.

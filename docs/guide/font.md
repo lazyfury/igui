@@ -10,6 +10,18 @@ Decisions (2025-09):
 - **Fallback**: per-character font fallback is implemented.
 - **Canvas**: no font list / picker on the Canvas/WASM path; native/wgpu only.
 
+## Size semantics
+
+`FontServer`/`FontMetrics` sizes are logical pixels of the font's **line box**
+(ascent+descent) by default, because that is how `ab_glyph`'s `PxScale` is
+defined. Set [`FontConfig::em_size`] to interpret sizes as **em pixels**
+(CSS/VS Code semantics, and what the Canvas backend's `px` already means):
+`14.0` then renders a 14 px em for every family, instead of 10 px on PingFang
+and 12 px on Menlo. The conversion is per face
+(`ascent+descent / units_per_em`) and applies to advances, shaping,
+rasterization, line height and ascent alike, so a host that measures with
+`FontMetrics` stays in sync.
+
 ## What it does
 
 - **Discovery** (`FontServer::families`): scans the system font directories
