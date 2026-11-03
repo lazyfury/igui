@@ -150,7 +150,7 @@ pub(crate) fn family_name(face: &ttf_parser::Face<'_>) -> Option<String> {
             if name.name_id != wanted {
                 continue;
             }
-            let Some(text) = name.to_string() else {
+            let Some(text) = name_text(&name) else {
                 continue;
             };
             if name.language() == ttf_parser::Language::English_UnitedStates {
@@ -163,6 +163,41 @@ pub(crate) fn family_name(face: &ttf_parser::Face<'_>) -> Option<String> {
         }
     }
     None
+}
+
+/// Decodes a name record to text.
+///
+/// `ttf_parser::Name::to_string` only decodes Unicode/Windows records. Core
+/// macOS faces such as `Menlo` and `Monaco` carry only Macintosh/Roman name
+/// records, so without this fallback they never enter discovery and a request
+/// for them silently resolves to the proportional default family.
+fn name_text(name: &ttf_parser::name::Name<'_>) -> Option<String> {
+    if let Some(text) = name.to_string() {
+        return Some(text);
+    }
+    if name.platform_id == ttf_parser::PlatformId::Macintosh && name.encoding_id == 0 {
+        return Some(name.name.iter().map(|&byte| mac_roman(byte)).collect());
+    }
+    None
+}
+
+/// Mac OS Roman (`platform 1`, `encoding 0`) -> Unicode.
+fn mac_roman(byte: u8) -> char {
+    const HIGH: [char; 128] = [
+        'Ä', 'Å', 'Ç', 'É', 'Ñ', 'Ö', 'Ü', 'á', 'à', 'â', 'ä', 'ã', 'å', 'ç', 'é', 'è', 'ê', 'ë',
+        'í', 'ì', 'î', 'ï', 'ñ', 'ó', 'ò', 'ô', 'ö', 'õ', 'ú', 'ù', 'û', 'ü', '†', '°', '¢', '£',
+        '§', '•', '¶', 'ß', '®', '©', '™', '´', '¨', '≠', 'Æ', 'Ø', '∞', '±', '≤', '≥', '¥', 'µ',
+        '∂', '∑', '∏', 'π', '∫', 'ª', 'º', 'Ω', 'æ', 'ø', '¿', '¡', '¬', '√', 'ƒ', '≈', '∆', '«',
+        '»', '…', '\u{a0}', 'À', 'Ã', 'Õ', 'Œ', 'œ', '–', '—', '“', '”', '‘', '’', '÷', '◊', 'ÿ',
+        'Ÿ', '⁄', '€', '‹', '›', 'ﬁ', 'ﬂ', '‡', '·', '‚', '„', '‰', 'Â', 'Ê', 'Á', 'Ë', 'È', 'Í',
+        'Î', 'Ï', 'Ì', 'Ó', 'Ô', '\u{f8ff}', 'Ò', 'Ú', 'Û', 'Ù', 'ı', 'ˆ', '˜', '¯', '˘', '˙', '˚',
+        '¸', '˝', '˛', 'ˇ',
+    ];
+    if byte < 0x80 {
+        byte as char
+    } else {
+        HIGH[usize::from(byte - 0x80)]
+    }
 }
 
 fn has_font_extension(path: &Path) -> bool {
@@ -219,5 +254,29 @@ mod tests {
     #[test]
     fn scan_missing_dir_is_empty() {
         assert!(scan(&[PathBuf::from("/definitely/not/here")]).is_empty());
+    }
+
+    #[test]
+    fn mac_roman_decodes_names_beyond_ascii() {
+        assert_eq!(mac_roman(b'M'), 'M');
+        assert_eq!(mac_roman(0x80), 'Ä');
+        assert_eq!(mac_roman(0xA5), '•');
+        assert_eq!(mac_roman(0xCA), '\u{a0}');
+        assert_eq!(mac_roman(0xFF), 'ˇ');
+    }
+
+    /// Core macOS faces carry Macintosh/Roman name records only; they must
+    /// still be discovered or a fixed-pitch request silently falls back to the
+    /// proportional default.
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn macos_core_faces_are_discovered() {
+        let faces = scan(&system_dirs());
+        for family in ["Menlo", "Monaco"] {
+            assert!(
+                faces.iter().any(|face| face.family == family),
+                "{family} was not discovered"
+            );
+        }
     }
 }

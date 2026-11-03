@@ -74,6 +74,63 @@ pub trait TextMeasurer {
         let _ = weight;
         self.measure_run(text, font_size)
     }
+
+    // -- explicit family ---------------------------------------------------
+    //
+    // A UI can paint one region (a terminal, a code block, numeric columns) in
+    // a different family from the rest. These methods mirror the ones above
+    // with a `family` argument; `None` means the default family, and the
+    // defaults here ignore it entirely so a measurer without multi-family
+    // support keeps working.
+
+    /// [`advance`](TextMeasurer::advance) in `family`.
+    fn advance_in(&self, ch: char, font_size: f32, family: Option<&str>) -> f32 {
+        let _ = family;
+        self.advance(ch, font_size)
+    }
+
+    /// [`advance_weighted`](TextMeasurer::advance_weighted) in `family`.
+    fn advance_weighted_in(
+        &self,
+        ch: char,
+        font_size: f32,
+        weight: FontWeight,
+        family: Option<&str>,
+    ) -> f32 {
+        let _ = family;
+        self.advance_weighted(ch, font_size, weight)
+    }
+
+    /// [`line_height`](TextMeasurer::line_height) in `family`.
+    fn line_height_in(&self, font_size: f32, family: Option<&str>) -> f32 {
+        let _ = family;
+        self.line_height(font_size)
+    }
+
+    /// [`ascent`](TextMeasurer::ascent) in `family`.
+    fn ascent_in(&self, font_size: f32, family: Option<&str>) -> f32 {
+        let _ = family;
+        self.ascent(font_size)
+    }
+
+    /// [`measure_run`](TextMeasurer::measure_run) in `family`.
+    fn measure_run_in(&self, text: &str, font_size: f32, family: Option<&str>) -> f32 {
+        let _ = family;
+        self.measure_run(text, font_size)
+    }
+
+    /// [`measure_run_weighted`](TextMeasurer::measure_run_weighted) in
+    /// `family`.
+    fn measure_run_weighted_in(
+        &self,
+        text: &str,
+        font_size: f32,
+        weight: FontWeight,
+        family: Option<&str>,
+    ) -> f32 {
+        let _ = family;
+        self.measure_run_weighted(text, font_size, weight)
+    }
 }
 
 /// Default deterministic estimate.

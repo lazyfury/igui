@@ -401,6 +401,17 @@ backward-compatible addition and record it here.
   the nearest face (shared atlas). Additive and backward compatible: `draw_text`
   still draws `Normal`, and all existing `TextOptions` constructors default to
   `Normal`. See [`docs/guide/font.md`](font.md).
+- **Per-run font family**: text had no way to name a family, so a cell-grid
+  panel (a terminal) had to pretend a proportional face was monospace.
+  `DrawCommand::DrawText` gains `family: Option<String>`, `PaintContext` gains
+  `draw_text_in`, and `TextMeasurer` gains `advance_in` / `measure_run_in` /
+  `line_height_in` / `ascent_in` with defaults that ignore the family. The wgpu
+  backend forwards it to `FontServer::shape_in`; Canvas quotes it in the CSS
+  font shorthand; `FontMetrics` mirrors the metrics. Additive: `draw_text`
+  still means `family: None` (backend default) and existing measurers keep
+  compiling. The app uses it to paint its terminal with a fixed-pitch face
+  (`Menlo` / `SF Mono` / `JetBrains Mono`, …) while the editor keeps the UI
+  family.
 - **Theme-driven font sizes** (Stage 25.x): the `Theme::font_size(TextSize)` token
   existed but no component read it — `Text` used `TextSize::px()` directly and
   `Button` / `Menu` / controls / surfaces / overlays hardcoded `TextSize::X.px()`.

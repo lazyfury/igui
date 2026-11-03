@@ -195,6 +195,13 @@ pub enum DrawCommand {
         /// Regular or bold.
         weight: FontWeight,
         align: TextAlign,
+        /// Primary font family, or `None` for the backend's default family.
+        ///
+        /// Text that must line up on a cell grid (a terminal, a code block, a
+        /// tabular readout) sets a fixed-pitch family here while the rest of
+        /// the UI keeps the default family. Backends still apply per-character
+        /// fallback for glyphs the family does not cover (CJK, emoji, ...).
+        family: Option<String>,
         paint: Paint,
     },
 }

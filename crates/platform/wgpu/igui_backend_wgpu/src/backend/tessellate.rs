@@ -97,10 +97,19 @@ impl WgpuBackend {
                 font_size,
                 weight,
                 align,
+                family,
                 paint,
             } => {
                 let color = self.solid_color(paint);
-                self.draw_text(text, *position, *font_size, *weight, *align, color);
+                self.draw_text(
+                    text,
+                    *position,
+                    *font_size,
+                    *weight,
+                    *align,
+                    family.as_deref(),
+                    color,
+                );
             }
         }
     }
@@ -389,6 +398,7 @@ impl WgpuBackend {
         ])
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(super) fn draw_text(
         &mut self,
         text: &str,
@@ -396,6 +406,7 @@ impl WgpuBackend {
         font_size: f32,
         weight: FontWeight,
         align: TextAlign,
+        family: Option<&str>,
         color: [f32; 4],
     ) {
         if font_size <= 0.0 || text.is_empty() {
@@ -403,7 +414,8 @@ impl WgpuBackend {
         }
         // Shaped advances drive both alignment and glyph placement (kerning,
         // ligatures and bidi are resolved by the font under the given size).
-        let glyphs = self.font.shape(text, font_size, weight);
+        // `family` picks the primary face; uncovered glyphs still fall back.
+        let glyphs = self.font.shape_in(text, font_size, weight, family);
         let total: f32 = glyphs.iter().map(|slot| slot.advance).sum();
         let mut pen = match align {
             TextAlign::Left => position.x,

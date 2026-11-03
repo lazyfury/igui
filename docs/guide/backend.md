@@ -101,6 +101,12 @@ the GPU pass is a single textured-triangle pipeline (`src/shader.wgsl`):
   come from the font. `WgpuBackend::text_metrics()` exposes the same metrics as a
   `FontMetrics` so hosts can build a matching `igui_ui::TextMeasurer` (whose
   `measure_run` sums shaped advances).
+- `DrawText::family` (and `PaintContext::draw_text_in`) names a **primary
+  family** per run; `None` is the backend default. The wgpu backend passes it to
+  `FontServer::shape_in`, so a terminal or code block can paint a fixed-pitch
+  face while the rest of the UI stays proportional. Fallback still works per
+  character, and `FontMetrics::advance_in` / `measure_run_in` measure the same
+  named family for layout.
 - `FontConfig` chooses the look: `FontMode::System` (default) or
   `FontMode::Pixel` (the built-in bitmap), plus
   `device_pixel_rasterization` (default `true`) which rasterizes system glyphs

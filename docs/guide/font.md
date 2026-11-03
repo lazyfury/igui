@@ -22,7 +22,12 @@ Decisions (2025-09):
   `resolve`, or uncovered character. Without a seed it still scans up front (so
   a fontless system can fall back to the pixel bitmap before the first frame).
 - **Resolution** (`FontServer::resolve`): `(family, weight)` → the nearest
-  weight in that family, falling back to the default family.
+  weight in that family, falling back to the default family. The family-aware
+  entry points (`advance_in`, `advance_run_in`, `shape_in`, `line_height_in`,
+  `ascent_in`) select the primary face per call, so one server can paint the
+  proportional UI face and a fixed-pitch terminal face in the same frame.
+  Coverage/primary caches are keyed by the resolved primary, never just by
+  weight.
 - **Shaping** (`FontServer::shape`): bidi reordering + `rustybuzz`, split by
   font coverage so Latin, CJK and other scripts can come from different faces
   in one line.
@@ -56,7 +61,16 @@ let server = FontServer::load_with(FontConfig {
 
 `FontMetrics` wraps an `Rc<FontServer>` for hosts that build a
 `igui_ui::TextMeasurer`; it exposes `advance_weighted` / `measure_run_weighted`
-so layout measures the same faces the backend draws.
+so layout measures the same faces the backend draws. The `*_in` variants add a
+`family: Option<&str>` argument; `igui_ui::TextMeasurer` mirrors them with
+default implementations that ignore the family, so existing measurers keep
+compiling.
+
+```rust,ignore
+// The same family the draw names, so cell widths match the glyphs.
+let advance = metrics.advance_in('M', 14.0, Some("Menlo"));
+let glyphs = server.shape_in("ls -l", 14.0, FontWeight::NORMAL, Some("Menlo"));
+```
 
 To override discovery with a single face, pass [`FontConfig::default_face`].
 `igui_font` reads no environment variables; a host that wants an env override
@@ -76,7 +90,8 @@ resolves the file itself and builds the `FaceRef`. `IGUI_FONT_BOLD` is gone
 
 ## Model
 
-- **Family** — a named set of faces (`PingFang SC`).
+- **Family** — a named set of faces (`PingFang SC`, `Menlo`). A draw may name
+  one per run; `None` means the server default.
 - **Face** — one font in a family. For a static collection (TTC/OTC) it is
   `(file, face_index)`; for a variable font it is `(file, axis_coords)`. Weight
   is a face property (`OS/2.usWeightClass`, 100–900) or the `wght` axis.
@@ -125,7 +140,9 @@ backend is a thin re-export (`Font` = `FontServer`).
   else 16) and `OS/2.usWeightClass`, and keeps `(file, face_index)` metadata
   only. Files are **memory-mapped** (`memmap2`) and dropped: only the pages the
   `name`/`OS/2` tables touch are faulted in, instead of copying whole (possibly
-  tens-of-MB) collections into a heap buffer.
+  tens-of-MB) collections into a heap buffer. Name records that `ttf-parser`
+  cannot decode (Macintosh/Roman, which is all core faces such as `Menlo` and
+  `Monaco` carry) are decoded as Mac OS Roman, so those faces are discoverable.
 - A full scan is ~1–2 s in a debug build; a seed ([`FontConfig::default_face`])
   skips it (see "What it does").
 - `FontServer::resolve` matches the family case-insensitively and picks the

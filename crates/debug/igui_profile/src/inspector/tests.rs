@@ -39,6 +39,7 @@ fn clean_list_produces_no_findings() {
             font_size: 12.0,
             weight: FontWeight::NORMAL,
             align: TextAlign::Left,
+            family: None,
             paint: Paint::solid(Color::WHITE),
         },
     ]);
@@ -146,6 +147,7 @@ fn empty_text_is_info() {
         font_size: 12.0,
         weight: FontWeight::NORMAL,
         align: TextAlign::Left,
+        family: None,
         paint: Paint::solid(Color::WHITE),
     }]);
     let report = inspect(&list, &clean_stats());

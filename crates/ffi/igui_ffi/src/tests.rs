@@ -194,6 +194,7 @@ fn unmodelled_commands_read_as_unsupported() {
         font_size: 12.0,
         weight: igui_render::FontWeight::NORMAL,
         align: igui_render::TextAlign::Left,
+        family: None,
         paint: Paint::default(),
     });
     let record = command_record(&list.commands()[0]);

@@ -340,12 +340,34 @@ impl PaintContext {
         align: TextAlign,
         paint: impl Into<Paint>,
     ) {
+        self.draw_text_in(text, position, font_size, weight, align, None, paint);
+    }
+
+    /// [`draw_text`](Self::draw_text) in an explicit primary font family.
+    ///
+    /// `family == None` keeps the backend's default family. This is the
+    /// per-run seam that lets one part of the UI (a terminal, a code block, a
+    /// numeric table) use a fixed-pitch face while the rest stays
+    /// proportional. Measure with `TextMeasurer::advance_in` and friends
+    /// (`igui_ui`) using the same family, so layout and painting agree.
+    #[allow(clippy::too_many_arguments)]
+    pub fn draw_text_in(
+        &mut self,
+        text: impl Into<String>,
+        position: Vec2,
+        font_size: f32,
+        weight: FontWeight,
+        align: TextAlign,
+        family: Option<&str>,
+        paint: impl Into<Paint>,
+    ) {
         self.commands.push(DrawCommand::DrawText {
             text: text.into(),
             position,
             font_size,
             weight,
             align,
+            family: family.map(str::to_string),
             paint: paint.into(),
         });
     }
@@ -386,6 +408,38 @@ mod tests {
         assert_eq!(list.len(), 2);
         assert!(matches!(list.commands()[0], DrawCommand::FillRect { .. }));
         assert!(matches!(list.commands()[1], DrawCommand::StrokeRect { .. }));
+    }
+
+    #[test]
+    fn draw_text_in_records_the_family_and_defaults_to_none() {
+        let mut ctx = PaintContext::new();
+        ctx.draw_text_in(
+            "mono",
+            Vec2::new(1.0, 2.0),
+            12.0,
+            FontWeight::NORMAL,
+            TextAlign::Left,
+            Some("Menlo"),
+            Color::WHITE,
+        );
+        ctx.draw_text(
+            "ui",
+            Vec2::new(1.0, 16.0),
+            12.0,
+            TextAlign::Left,
+            Color::WHITE,
+        );
+        let list = ctx.into_draw_list();
+        match &list.commands()[0] {
+            DrawCommand::DrawText { family, .. } => {
+                assert_eq!(family.as_deref(), Some("Menlo"));
+            }
+            other => panic!("expected text, got {other:?}"),
+        }
+        match &list.commands()[1] {
+            DrawCommand::DrawText { family, .. } => assert_eq!(*family, None),
+            other => panic!("expected text, got {other:?}"),
+        }
     }
 
     #[test]

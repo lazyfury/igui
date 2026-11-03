@@ -183,11 +183,12 @@ pub(crate) fn resolve(
             font_size,
             weight,
             align,
+            family,
             paint,
         } => CanvasOp::DrawText {
             text: text.clone(),
             position: *position,
-            font: font_spec(*font_size, *weight),
+            font: font_spec_in(*font_size, *weight, family.as_deref()),
             align: align_keyword(*align),
             fill: fill(paint),
         },
@@ -203,7 +204,19 @@ pub(crate) fn resolve(
 /// A host-side `TextMeasurer` must measure with this exact spec so layout
 /// baselines match what the backend draws.
 pub fn font_spec(font_size: f32, weight: FontWeight) -> String {
-    format!("{} {font_size}px sans-serif", weight.value())
+    font_spec_in(font_size, weight, None)
+}
+
+/// [`font_spec`] with an explicit primary family (`None` = `sans-serif`).
+///
+/// The shorthand quotes a named family so names with spaces (`SF Mono`,
+/// `JetBrains Mono`) reach the browser's font matcher intact. `None` keeps the
+/// historical unquoted `sans-serif` output.
+pub fn font_spec_in(font_size: f32, weight: FontWeight, family: Option<&str>) -> String {
+    match family {
+        Some(family) => format!("{} {font_size}px \"{family}\"", weight.value()),
+        None => format!("{} {font_size}px sans-serif", weight.value()),
+    }
 }
 
 /// A colour as a Canvas `fillStyle` / `strokeStyle` string.
@@ -412,6 +425,7 @@ mod tests {
                 font_size: 14.0,
                 weight: FontWeight::BOLD,
                 align: TextAlign::Center,
+                family: None,
                 paint: paint(Color::BLACK),
             },
             1.0,

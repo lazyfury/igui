@@ -128,8 +128,14 @@ pub struct FontServer {
     loaded: RefCell<Vec<Option<Rc<FontFace>>>>,
     /// Resolved primary face per weight value.
     primary_cache: RefCell<HashMap<u16, usize>>,
-    /// Per-character chosen face (`(char, weight) -> face index`).
-    coverage_cache: RefCell<HashMap<(char, u16), usize>>,
+    /// Resolved primary face per explicit `(family, weight)` request.
+    family_cache: RefCell<HashMap<(String, u16), usize>>,
+    /// Per-character chosen face (`(char, weight, primary) -> face index`).
+    ///
+    /// The primary face is part of the key: naming a family must not reuse a
+    /// fallback decision made for a different primary (e.g. a fixed-pitch
+    /// terminal face vs. the proportional UI default).
+    coverage_cache: RefCell<HashMap<(char, u16, usize), usize>>,
     atlas: RefCell<Atlas>,
     scale: Cell<f32>,
     device_pixels: Cell<bool>,
@@ -194,6 +200,7 @@ impl FontServer {
             default_family: OnceCell::new(),
             loaded,
             primary_cache: RefCell::new(HashMap::new()),
+            family_cache: RefCell::new(HashMap::new()),
             coverage_cache: RefCell::new(HashMap::new()),
             atlas: RefCell::new(Atlas::new()),
             scale: Cell::new(1.0),
@@ -212,6 +219,7 @@ impl FontServer {
             default_family: OnceCell::new(),
             loaded: RefCell::new(Vec::new()),
             primary_cache: RefCell::new(HashMap::new()),
+            family_cache: RefCell::new(HashMap::new()),
             coverage_cache: RefCell::new(HashMap::new()),
             atlas: RefCell::new(Atlas::new()),
             scale: Cell::new(1.0),
@@ -241,6 +249,7 @@ impl FontServer {
         self.append_faces(scan);
         // New faces can change the nearest weight for a family.
         self.primary_cache.borrow_mut().clear();
+        self.family_cache.borrow_mut().clear();
         self.coverage_cache.borrow_mut().clear();
     }
 
@@ -325,11 +334,32 @@ impl FontServer {
         index
     }
 
+    /// The primary face index for an explicit family at `weight`.
+    ///
+    /// `None`/`""` is the default family (see [`FontServer::primary`]). A named
+    /// family that is not installed resolves through the documented fallback,
+    /// so callers that need to *detect* a family should compare metrics (see
+    /// the memoized cache here: resolution happens once per family/weight).
+    fn primary_in(&self, family: Option<&str>, weight: FontWeight) -> usize {
+        let Some(name) = family.filter(|name| !name.is_empty()) else {
+            return self.primary(weight);
+        };
+        let key = (name.to_ascii_lowercase(), weight.value());
+        if let Some(index) = self.family_cache.borrow().get(&key) {
+            return *index;
+        }
+        // A deferred scan may be what makes the family available.
+        self.ensure_discovered();
+        let index = self.resolve(&FontRequest::new(name, weight.value())).0;
+        self.family_cache.borrow_mut().insert(key, index);
+        index
+    }
+
     /// The face index that covers `ch`, preferring the primary and then the
     /// (deterministic) face order. An uncovered character triggers the
     /// deferred scan once.
     fn face_for(&self, ch: char, primary: usize, weight: FontWeight) -> usize {
-        let key = (ch, weight.value());
+        let key = (ch, weight.value(), primary);
         if let Some(index) = self.coverage_cache.borrow().get(&key) {
             return *index;
         }
@@ -367,8 +397,13 @@ impl FontServer {
 
     /// Splits `text` into `(face index, sub-text, rtl)` shaping runs, applying
     /// bidi reordering and per-character font fallback.
-    fn runs<'a>(&self, text: &'a str, weight: FontWeight) -> Vec<(usize, &'a str, bool)> {
-        let primary = self.primary(weight);
+    fn runs_in<'a>(
+        &self,
+        text: &'a str,
+        weight: FontWeight,
+        family: Option<&str>,
+    ) -> Vec<(usize, &'a str, bool)> {
+        let primary = self.primary_in(family, weight);
         let mut out = Vec::new();
         for (range, rtl) in bidi_runs(text) {
             let run = &text[range];
@@ -412,11 +447,22 @@ impl FontServer {
     }
 
     pub fn advance(&self, ch: char, font_size: f32, weight: FontWeight) -> f32 {
+        self.advance_in(ch, font_size, weight, None)
+    }
+
+    /// [`advance`](Self::advance) with an explicit primary family.
+    pub fn advance_in(
+        &self,
+        ch: char,
+        font_size: f32,
+        weight: FontWeight,
+        family: Option<&str>,
+    ) -> f32 {
         if self.mode == FontMode::Pixel {
             return pixel_cell(font_size);
         }
         let (px, divisor) = self.raster_params(font_size);
-        let primary = self.primary(weight);
+        let primary = self.primary_in(family, weight);
         let index = self.face_for(ch, primary, weight);
         self.face_at(index)
             .map(|face| face.advance_px(ch, px) / divisor)
@@ -424,32 +470,53 @@ impl FontServer {
     }
 
     pub fn line_height(&self, font_size: f32) -> f32 {
+        self.line_height_in(font_size, None)
+    }
+
+    /// [`line_height`](Self::line_height) with an explicit primary family.
+    pub fn line_height_in(&self, font_size: f32, family: Option<&str>) -> f32 {
         if self.mode == FontMode::Pixel {
             return font_size;
         }
         let (px, divisor) = self.raster_params(font_size);
-        self.face_at(self.primary(FontWeight::NORMAL))
+        self.face_at(self.primary_in(family, FontWeight::NORMAL))
             .map(|face| face.line_height_px(px) / divisor)
             .unwrap_or(font_size)
     }
 
     pub fn ascent(&self, font_size: f32) -> f32 {
+        self.ascent_in(font_size, None)
+    }
+
+    /// [`ascent`](Self::ascent) with an explicit primary family.
+    pub fn ascent_in(&self, font_size: f32, family: Option<&str>) -> f32 {
         if self.mode == FontMode::Pixel {
             return font_size * 0.5 + pixel_cell(font_size) * 0.5;
         }
         let (px, divisor) = self.raster_params(font_size);
-        self.face_at(self.primary(FontWeight::NORMAL))
+        self.face_at(self.primary_in(family, FontWeight::NORMAL))
             .map(|face| face.ascent_px(px) / divisor)
             .unwrap_or(font_size * 0.8)
     }
 
     /// Shaped advance width of `text` (logical units), with fallback.
     pub fn advance_run(&self, text: &str, font_size: f32, weight: FontWeight) -> f32 {
+        self.advance_run_in(text, font_size, weight, None)
+    }
+
+    /// [`advance_run`](Self::advance_run) with an explicit primary family.
+    pub fn advance_run_in(
+        &self,
+        text: &str,
+        font_size: f32,
+        weight: FontWeight,
+        family: Option<&str>,
+    ) -> f32 {
         if self.mode == FontMode::Pixel {
             return text.chars().count() as f32 * pixel_cell(font_size);
         }
         let (px, divisor) = self.raster_params(font_size);
-        self.runs(text, weight)
+        self.runs_in(text, weight, family)
             .into_iter()
             .map(|(index, sub, rtl)| {
                 self.face_at(index)
@@ -463,6 +530,21 @@ impl FontServer {
     /// units), applying bidi reordering, per-character fallback and
     /// rasterizing each glyph into the shared atlas.
     pub fn shape(&self, text: &str, font_size: f32, weight: FontWeight) -> Vec<GlyphSlot> {
+        self.shape_in(text, font_size, weight, None)
+    }
+
+    /// [`shape`](Self::shape) with an explicit primary family.
+    ///
+    /// `family` only selects the primary face; uncovered characters (CJK in a
+    /// Latin monospace face, emoji, ...) still fall back per character, so a
+    /// terminal can shape `中` while keeping Latin advances fixed.
+    pub fn shape_in(
+        &self,
+        text: &str,
+        font_size: f32,
+        weight: FontWeight,
+        family: Option<&str>,
+    ) -> Vec<GlyphSlot> {
         if self.mode == FontMode::Pixel {
             return text
                 .chars()
@@ -471,7 +553,7 @@ impl FontServer {
         }
         let (px, divisor) = self.raster_params(font_size);
         let mut slots = Vec::new();
-        for (index, sub, rtl) in self.runs(text, weight) {
+        for (index, sub, rtl) in self.runs_in(text, weight, family) {
             let Some(face) = self.face_at(index) else {
                 continue;
             };
@@ -591,6 +673,50 @@ impl FontMetrics {
     /// Shaped advance width of `text` at `weight`, with fallback.
     pub fn measure_run_weighted(&self, text: &str, font_size: f32, weight: FontWeight) -> f32 {
         self.server.advance_run(text, font_size, weight)
+    }
+
+    /// Advance width of `ch` in `family` (`None` = default family).
+    pub fn advance_in(&self, ch: char, font_size: f32, family: Option<&str>) -> f32 {
+        self.server
+            .advance_in(ch, font_size, FontWeight::NORMAL, family)
+    }
+
+    /// [`advance_in`](FontMetrics::advance_in) at `weight`.
+    pub fn advance_weighted_in(
+        &self,
+        ch: char,
+        font_size: f32,
+        weight: FontWeight,
+        family: Option<&str>,
+    ) -> f32 {
+        self.server.advance_in(ch, font_size, weight, family)
+    }
+
+    /// Line height in `family` (`None` = default family).
+    pub fn line_height_in(&self, font_size: f32, family: Option<&str>) -> f32 {
+        self.server.line_height_in(font_size, family)
+    }
+
+    /// Baseline distance in `family` (`None` = default family).
+    pub fn ascent_in(&self, font_size: f32, family: Option<&str>) -> f32 {
+        self.server.ascent_in(font_size, family)
+    }
+
+    /// Shaped advance width of `text` in `family`.
+    pub fn measure_run_in(&self, text: &str, font_size: f32, family: Option<&str>) -> f32 {
+        self.server
+            .advance_run_in(text, font_size, FontWeight::NORMAL, family)
+    }
+
+    /// [`measure_run_in`](FontMetrics::measure_run_in) at `weight`.
+    pub fn measure_run_weighted_in(
+        &self,
+        text: &str,
+        font_size: f32,
+        weight: FontWeight,
+        family: Option<&str>,
+    ) -> f32 {
+        self.server.advance_run_in(text, font_size, weight, family)
     }
 
     pub fn is_system(&self) -> bool {
@@ -784,6 +910,76 @@ mod tests {
         let unknown = server.resolve(&FontRequest::new("No Such Font 12345", 400));
         let default = server.resolve(&FontRequest::default_at(400));
         assert_eq!(unknown, default);
+    }
+
+    #[test]
+    fn a_named_default_family_measures_like_the_default() {
+        let Some(server) = system_server() else {
+            return;
+        };
+        let family = server.default_family().to_string();
+        assert_eq!(
+            server.advance_in('M', 16.0, FontWeight::NORMAL, Some(&family)),
+            server.advance('M', 16.0, FontWeight::NORMAL)
+        );
+        assert_eq!(
+            server.line_height_in(16.0, Some(&family)),
+            server.line_height(16.0)
+        );
+        assert_eq!(
+            server.advance_run_in("Hello 中", 16.0, FontWeight::NORMAL, Some(&family)),
+            server.advance_run("Hello 中", 16.0, FontWeight::NORMAL)
+        );
+    }
+
+    #[test]
+    fn a_missing_named_family_measures_like_the_default() {
+        let Some(server) = system_server() else {
+            return;
+        };
+        let missing = Some("No Such Font 12345");
+        assert_eq!(
+            server.advance_in('W', 16.0, FontWeight::NORMAL, missing),
+            server.advance('W', 16.0, FontWeight::NORMAL)
+        );
+        assert_eq!(
+            server.advance_run_in("abc", 16.0, FontWeight::NORMAL, missing),
+            server.advance_run("abc", 16.0, FontWeight::NORMAL)
+        );
+        assert_eq!(
+            server.line_height_in(16.0, missing),
+            server.line_height(16.0)
+        );
+        assert_eq!(server.ascent_in(16.0, missing), server.ascent(16.0));
+        assert_eq!(
+            server
+                .shape_in("abc", 16.0, FontWeight::NORMAL, missing)
+                .len(),
+            server.shape("abc", 16.0, FontWeight::NORMAL).len()
+        );
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn a_named_fixed_pitch_family_measures_fixed_advances() {
+        let Some(server) = system_server() else {
+            return;
+        };
+        let family = Some("Menlo");
+        let advance = |ch| server.advance_in(ch, 14.0, FontWeight::NORMAL, family);
+        let (m, i, w, space) = (advance('M'), advance('i'), advance('W'), advance(' '));
+        assert!(m > 1.0, "Menlo did not resolve");
+        for value in [i, w, space] {
+            assert!(
+                (value - m).abs() < 0.05,
+                "Menlo is not fixed-pitch: M={m} i={i} W={w} space={space}"
+            );
+        }
+        // The default family here is proportional (PingFang), so the named
+        // request must not simply reproduce the default metrics.
+        let default_m = server.advance('M', 14.0, FontWeight::NORMAL);
+        let default_i = server.advance('i', 14.0, FontWeight::NORMAL);
+        assert!((default_m - default_i).abs() > 1.0);
     }
 
     #[test]

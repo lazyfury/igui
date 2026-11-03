@@ -44,6 +44,44 @@ impl TextMeasurer for BackendTextMeasurer {
     fn measure_run_weighted(&self, text: &str, font_size: f32, weight: FontWeight) -> f32 {
         self.metrics.measure_run_weighted(text, font_size, weight)
     }
+
+    fn advance_in(&self, ch: char, font_size: f32, family: Option<&str>) -> f32 {
+        self.metrics.advance_in(ch, font_size, family)
+    }
+
+    fn advance_weighted_in(
+        &self,
+        ch: char,
+        font_size: f32,
+        weight: FontWeight,
+        family: Option<&str>,
+    ) -> f32 {
+        self.metrics
+            .advance_weighted_in(ch, font_size, weight, family)
+    }
+
+    fn line_height_in(&self, font_size: f32, family: Option<&str>) -> f32 {
+        self.metrics.line_height_in(font_size, family)
+    }
+
+    fn ascent_in(&self, font_size: f32, family: Option<&str>) -> f32 {
+        self.metrics.ascent_in(font_size, family)
+    }
+
+    fn measure_run_in(&self, text: &str, font_size: f32, family: Option<&str>) -> f32 {
+        self.metrics.measure_run_in(text, font_size, family)
+    }
+
+    fn measure_run_weighted_in(
+        &self,
+        text: &str,
+        font_size: f32,
+        weight: FontWeight,
+        family: Option<&str>,
+    ) -> f32 {
+        self.metrics
+            .measure_run_weighted_in(text, font_size, weight, family)
+    }
 }
 
 /// Registers the backend's real font metrics as the [`TextMeasurer`] service, so
