@@ -1,9 +1,11 @@
 //! One loaded font face: parsing, coverage, shaping and glyph rasterization.
 //!
-//! Bytes are leaked once when a face is first used, because `ab_glyph::FontRef`
-//! and `rustybuzz::Face` both borrow them for the `'static` lifetime of the
-//! server. Only faces that are actually rendered (the primary plus any fallback
-//! that covers a character) are loaded, so a discovery scan does not leak.
+//! `ab_glyph::FontRef` and `rustybuzz::Face` borrow their file bytes for the
+//! `'static` lifetime of the server. The server reads and leaks a file **once**
+//! and shares that buffer between every face index of the same collection (e.g.
+//! PingFang regular + semibold), so one `.ttc` is never kept in memory twice.
+//! Only faces that are actually rendered (the primary plus the fallback that
+//! covers a character) are loaded; coverage probes use metadata instead.
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -82,10 +84,13 @@ pub(crate) struct FontFace {
 }
 
 impl FontFace {
-    /// Reads and parses `file` at `index`.
-    pub(crate) fn load(file: &Path, index: u32, em_size: bool) -> Option<Self> {
-        let bytes = std::fs::read(file).ok()?;
-        let data: &'static [u8] = Box::leak(bytes.into_boxed_slice());
+    /// Parses `file` at `index` from the server's shared, leaked file bytes.
+    pub(crate) fn load(
+        file: &Path,
+        index: u32,
+        em_size: bool,
+        data: &'static [u8],
+    ) -> Option<Self> {
         let font = FontRef::try_from_slice_and_index(data, index).ok()?;
         let rb = rustybuzz::Face::from_slice(data, index)?;
         let family = crate::discovery::family_name(&rb).unwrap_or_else(|| {

@@ -3,7 +3,7 @@
 
 use std::cell::{Cell, OnceCell, RefCell};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
 use igui_core::FontWeight;
@@ -136,6 +136,10 @@ pub struct FontServer {
     default_family: OnceCell<String>,
     /// Lazily loaded faces, parallel to `faces` (`None` until first use).
     loaded: RefCell<Vec<Option<Rc<FontFace>>>>,
+    /// One leaked byte buffer per font file, shared by every face index in a
+    /// collection. Without this, PingFang regular + semibold each kept the
+    /// entire 75 MB `.ttc` alive.
+    files: RefCell<HashMap<PathBuf, &'static [u8]>>,
     /// Resolved primary face per weight value.
     primary_cache: RefCell<HashMap<u16, usize>>,
     /// Resolved primary face per explicit `(family, weight)` request.
@@ -211,6 +215,7 @@ impl FontServer {
             families: OnceCell::new(),
             default_family: OnceCell::new(),
             loaded,
+            files: RefCell::new(HashMap::new()),
             primary_cache: RefCell::new(HashMap::new()),
             family_cache: RefCell::new(HashMap::new()),
             coverage_cache: RefCell::new(HashMap::new()),
@@ -231,6 +236,7 @@ impl FontServer {
             families: OnceCell::new(),
             default_family: OnceCell::new(),
             loaded: RefCell::new(Vec::new()),
+            files: RefCell::new(HashMap::new()),
             primary_cache: RefCell::new(HashMap::new()),
             family_cache: RefCell::new(HashMap::new()),
             coverage_cache: RefCell::new(HashMap::new()),
@@ -405,9 +411,21 @@ impl FontServer {
             return Some(face);
         }
         let info = self.faces.borrow().get(index).cloned()?;
-        let face = Rc::new(FontFace::load(&info.file, info.index, self.em_size)?);
+        let data = self.file_bytes(&info.file)?;
+        let face = Rc::new(FontFace::load(&info.file, info.index, self.em_size, data)?);
         self.loaded.borrow_mut()[index] = Some(face.clone());
         Some(face)
+    }
+
+    /// The leaked bytes of `path`, read at most once per server.
+    fn file_bytes(&self, path: &Path) -> Option<&'static [u8]> {
+        if let Some(data) = self.files.borrow().get(path).copied() {
+            return Some(data);
+        }
+        let bytes = std::fs::read(path).ok()?;
+        let data: &'static [u8] = Box::leak(bytes.into_boxed_slice());
+        self.files.borrow_mut().insert(path.to_path_buf(), data);
+        Some(data)
     }
 
     /// Splits `text` into `(face index, sub-text, rtl)` shaping runs, applying
@@ -1109,6 +1127,21 @@ mod tests {
             missing.len(),
             missing.first()
         );
+    }
+
+    #[test]
+    fn a_font_file_is_read_once_for_every_face_index() {
+        let Some(server) = system_server() else {
+            return;
+        };
+        let info = server.faces.borrow()[server.primary(FontWeight::NORMAL)].clone();
+        let first = server.file_bytes(&info.file).expect("primary file");
+        let second = server.file_bytes(&info.file).expect("cached file");
+        assert!(
+            std::ptr::eq(first.as_ptr(), second.as_ptr()),
+            "the same font file was leaked twice"
+        );
+        assert_eq!(first.len(), second.len());
     }
 
     #[test]
