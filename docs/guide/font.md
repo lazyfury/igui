@@ -42,7 +42,11 @@ rasterization, line height and ascent alike, so a host that measures with
   weight.
 - **Shaping** (`FontServer::shape`): bidi reordering + `rustybuzz`, split by
   font coverage so Latin, CJK and other scripts can come from different faces
-  in one line.
+  in one line. Fallback probes read each candidate's cmap through a short-lived
+  memory map and load only the face that actually covers the character; a font
+  file's bytes are read once per path and shared by every collection index.
+  This avoids loading (and retaining) large `.ttc` collections such as Apple
+  Color Emoji while merely looking for a kana/symbol fallback.
 - **Rasterization** (`FontServer::take_dirty_atlas`): `ab_glyph` glyphs into one
   shared shelf atlas (all faces share it, so a backend uploads one texture).
   The atlas starts at 1024² and doubles its height on demand up to 1024×4096;
