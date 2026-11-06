@@ -11,6 +11,7 @@ pub(super) fn create_render_pipeline(
     shader: &wgpu::ShaderModule,
     bind_group_layout: &wgpu::BindGroupLayout,
     format: wgpu::TextureFormat,
+    vertex_entry: &str,
     fragment_entry: &str,
     samples: u32,
 ) -> wgpu::RenderPipeline {
@@ -24,7 +25,7 @@ pub(super) fn create_render_pipeline(
         layout: Some(&pipeline_layout),
         vertex: wgpu::VertexState {
             module: shader,
-            entry_point: Some("vs_main"),
+            entry_point: Some(vertex_entry),
             compilation_options: Default::default(),
             buffers: &[Vertex::layout()],
         },

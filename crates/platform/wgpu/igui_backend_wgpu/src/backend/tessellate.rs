@@ -440,7 +440,7 @@ impl WgpuBackend {
                     snap(position.y + slot.offset[1]),
                 );
                 let rect = Rect::from_min_size(min, Size::new(slot.size[0], slot.size[1]));
-                self.quad(rect, slot.uv, color, Surface::Font);
+                self.quad(rect, slot.texel, color, Surface::Font);
             }
             pen += slot.advance;
         }

@@ -311,6 +311,9 @@ pub struct WgpuBackend {
     pub(super) bind_group_layout: wgpu::BindGroupLayout,
     /// One pipeline per color-target format (offscreen plus surface formats).
     pub(super) pipelines: HashMap<wgpu::TextureFormat, wgpu::RenderPipeline>,
+    /// The same pipelines with the font vertex entry that normalizes texel UVs
+    /// against the live atlas size.
+    pub(super) font_pipelines: HashMap<wgpu::TextureFormat, wgpu::RenderPipeline>,
 
     pub(super) white_bind_group: wgpu::BindGroup,
     pub(super) font: Rc<Font>,
@@ -481,6 +484,7 @@ impl WgpuBackend {
         self.msaa_samples = samples;
         self.msaa = None;
         self.pipelines.clear();
+        self.font_pipelines.clear();
         self.effect_pipelines.clear();
     }
 
@@ -664,6 +668,7 @@ impl WgpuBackend {
             &self.shader,
             &self.bind_group_layout,
             format,
+            "vs_main",
             effect.entry_point(),
             self.msaa_samples,
         );

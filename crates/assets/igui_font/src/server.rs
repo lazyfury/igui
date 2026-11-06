@@ -585,7 +585,7 @@ impl FontServer {
     fn bitmap_glyph(&self, ch: char, font_size: f32) -> GlyphSlot {
         let cell = pixel_cell(font_size);
         GlyphSlot {
-            uv: bitmap::glyph_uv(ch),
+            texel: bitmap::glyph_texel(ch),
             size: [cell, cell],
             offset: [0.0, -cell],
             advance: cell,

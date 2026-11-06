@@ -77,19 +77,18 @@ pub(crate) fn build_atlas() -> Vec<u8> {
     data
 }
 
-/// Texture coordinates (`u0, v0, u1, v1`) for `ch`.
+/// Atlas texel rectangle (`x0, y0, x1, y1`) for `ch`.
 ///
-/// Characters outside printable ASCII map to the missing-glyph box.
-pub(crate) fn glyph_uv(ch: char) -> [f32; 4] {
+/// The backend normalizes it against the atlas size at draw time. Characters
+/// outside printable ASCII map to the missing-glyph box.
+pub(crate) fn glyph_texel(ch: char) -> [f32; 4] {
     let (cell_x, cell_y) = cell_origin_for_index(index_for(ch));
-    // Corner UVs: the glyph quad spans exactly this cell, so the quad's
-    // corners map to the cell's corners (not its texel centres). A half-texel
-    // inset would compress the glyph by one texel and skip edge columns.
-    let u0 = cell_x as f32 / ATLAS_WIDTH as f32;
-    let v0 = cell_y as f32 / ATLAS_HEIGHT as f32;
-    let u1 = (cell_x + GLYPH_SIZE) as f32 / ATLAS_WIDTH as f32;
-    let v1 = (cell_y + GLYPH_SIZE) as f32 / ATLAS_HEIGHT as f32;
-    [u0, v0, u1, v1]
+    [
+        cell_x as f32,
+        cell_y as f32,
+        (cell_x + GLYPH_SIZE) as f32,
+        (cell_y + GLYPH_SIZE) as f32,
+    ]
 }
 
 fn index_for(ch: char) -> u32 {
@@ -125,18 +124,18 @@ mod tests {
     }
 
     #[test]
-    fn glyph_uv_is_inside_atlas_and_increasing() {
-        let uv = glyph_uv('A');
-        assert!(uv[0] < uv[2] && uv[1] < uv[3]);
-        assert!(uv[0] >= 0.0 && uv[2] <= 1.0);
-        assert!(uv[1] >= 0.0 && uv[3] <= 1.0);
+    fn glyph_texel_is_inside_atlas_and_increasing() {
+        let texel = glyph_texel('A');
+        assert!(texel[0] < texel[2] && texel[1] < texel[3]);
+        assert!(texel[0] >= 0.0 && texel[2] <= ATLAS_WIDTH as f32);
+        assert!(texel[1] >= 0.0 && texel[3] <= ATLAS_HEIGHT as f32);
     }
 
     #[test]
     fn unsupported_char_falls_back_to_missing_glyph_box() {
-        let missing = glyph_uv(char::from_u32(0xFFFF).unwrap());
-        assert_eq!(glyph_uv('中'), missing);
-        assert_ne!(glyph_uv('?'), missing);
+        let missing = glyph_texel(char::from_u32(0xFFFF).unwrap());
+        assert_eq!(glyph_texel('中'), missing);
+        assert_ne!(glyph_texel('?'), missing);
     }
 
     #[test]

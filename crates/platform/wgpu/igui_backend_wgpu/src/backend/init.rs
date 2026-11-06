@@ -55,7 +55,9 @@ impl WgpuBackend {
             entries: &[
                 wgpu::BindGroupLayoutEntry {
                     binding: 0,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    // The font vertex entry reads `textureDimensions` to
+                    // normalize texel UVs against the live atlas size.
+                    visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
                     ty: wgpu::BindingType::Texture {
                         sample_type: wgpu::TextureSampleType::Float { filterable: true },
                         view_dimension: wgpu::TextureViewDimension::D2,
@@ -152,6 +154,7 @@ impl WgpuBackend {
             shader,
             bind_group_layout,
             pipelines: HashMap::new(),
+            font_pipelines: HashMap::new(),
             white_bind_group,
             font,
             font_config: FontConfig::default(),

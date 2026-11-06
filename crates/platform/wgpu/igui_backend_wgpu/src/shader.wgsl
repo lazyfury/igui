@@ -30,6 +30,19 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     return output;
 }
 
+// Font glyphs carry atlas **texel** coordinates in `uv`, so the atlas can grow
+// without rebaking cached glyph slots or a cached DrawList. Normalize against
+// the live texture size; other surfaces keep normalized UVs.
+@vertex
+fn vs_font(input: VertexInput) -> VertexOutput {
+    var output: VertexOutput;
+    output.position = vec4<f32>(input.position, 0.0, 1.0);
+    let size = vec2<f32>(textureDimensions(u_texture, 0));
+    output.uv = input.uv / size;
+    output.color = input.color;
+    return output;
+}
+
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     let texel = textureSample(u_texture, u_sampler, input.uv);

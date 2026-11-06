@@ -53,10 +53,24 @@ impl WgpuBackend {
             &self.shader,
             &self.bind_group_layout,
             format,
+            "vs_main",
             "fs_main",
             self.msaa_samples,
         );
         self.pipelines.insert(format, pipeline);
+        if self.font_pipelines.contains_key(&format) {
+            return;
+        }
+        let font = create_render_pipeline(
+            &self.device,
+            &self.shader,
+            &self.bind_group_layout,
+            format,
+            "vs_font",
+            "fs_main",
+            self.msaa_samples,
+        );
+        self.font_pipelines.insert(format, font);
     }
 
     /// Resets per-frame staging and validates the lifecycle.
@@ -183,6 +197,7 @@ impl WgpuBackend {
         let Some(default_pipeline) = self.pipelines.get(&format) else {
             return;
         };
+        let font_pipeline = self.font_pipelines.get(&format).unwrap_or(default_pipeline);
 
         let mut encoder = self
             .device
@@ -230,7 +245,9 @@ impl WgpuBackend {
                         Surface::Texture(id) => self.effect_for(id),
                         _ => TextureEffect::None,
                     };
-                    let pipeline = if effect == TextureEffect::None {
+                    let pipeline = if range.surface == Surface::Font {
+                        font_pipeline
+                    } else if effect == TextureEffect::None {
                         default_pipeline
                     } else {
                         self.effect_pipelines

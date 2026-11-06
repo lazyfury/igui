@@ -14,7 +14,7 @@ use ab_glyph::{point, Font, FontRef, Glyph, GlyphId, PxScale, ScaleFont};
 use igui_core::FontWeight;
 use rustybuzz::UnicodeBuffer;
 
-use crate::atlas::{Atlas, ATLAS_HEIGHT, ATLAS_WIDTH};
+use crate::atlas::Atlas;
 use crate::shaping::{direction, run_script};
 
 /// A shaped glyph in font units (before scaling by `font_size / upem`).
@@ -38,7 +38,11 @@ const ADVANCE_CACHE_CAP: usize = 8192;
 /// left) with y down.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct GlyphSlot {
-    pub uv: [f32; 4],
+    /// Atlas placement in **texels**: `(x0, y0, x1, y1)`, not normalized UVs.
+    ///
+    /// A backend normalizes against the live atlas size at draw time, so
+    /// growing the atlas never invalidates cached slots or a cached draw list.
+    pub texel: [f32; 4],
     pub size: [f32; 2],
     pub offset: [f32; 2],
     pub advance: f32,
@@ -46,7 +50,7 @@ pub struct GlyphSlot {
 
 impl GlyphSlot {
     pub const EMPTY: Self = Self {
-        uv: [0.0; 4],
+        texel: [0.0; 4],
         size: [0.0; 2],
         offset: [0.0; 2],
         advance: 0.0,
@@ -297,14 +301,14 @@ impl FontFace {
         };
         atlas.blit(origin_x, origin_y, width, height, &coverage);
 
-        let uv = [
-            origin_x as f32 / ATLAS_WIDTH as f32,
-            origin_y as f32 / ATLAS_HEIGHT as f32,
-            (origin_x + width) as f32 / ATLAS_WIDTH as f32,
-            (origin_y + height) as f32 / ATLAS_HEIGHT as f32,
+        let texel = [
+            origin_x as f32,
+            origin_y as f32,
+            (origin_x + width) as f32,
+            (origin_y + height) as f32,
         ];
         GlyphSlot {
-            uv,
+            texel,
             size: [width as f32, height as f32],
             // `px_bounds` is already in y-down screen space relative to the
             // glyph position (baseline); its `min` is the top-left corner.
