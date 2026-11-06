@@ -140,6 +140,9 @@ pub struct FontServer {
     /// collection. Without this, PingFang regular + semibold each kept the
     /// entire 75 MB `.ttc` alive.
     files: RefCell<HashMap<PathBuf, &'static [u8]>>,
+    /// Unicode coverage per face, loaded lazily from the cmap. Fallback probes
+    /// use this instead of loading every candidate font file.
+    coverage: RefCell<Vec<Option<Rc<discovery::Coverage>>>>,
     /// Resolved primary face per weight value.
     primary_cache: RefCell<HashMap<u16, usize>>,
     /// Resolved primary face per explicit `(family, weight)` request.
@@ -208,6 +211,7 @@ impl FontServer {
         let default_family =
             pick_default(&build_families(&faces), config.default_family.as_deref());
         let loaded = RefCell::new(vec![None; faces.len()]);
+        let coverage = RefCell::new(vec![None; faces.len()]);
         let server = Self {
             mode: FontMode::System,
             faces: RefCell::new(faces),
@@ -216,6 +220,7 @@ impl FontServer {
             default_family: OnceCell::new(),
             loaded,
             files: RefCell::new(HashMap::new()),
+            coverage,
             primary_cache: RefCell::new(HashMap::new()),
             family_cache: RefCell::new(HashMap::new()),
             coverage_cache: RefCell::new(HashMap::new()),
@@ -237,6 +242,7 @@ impl FontServer {
             default_family: OnceCell::new(),
             loaded: RefCell::new(Vec::new()),
             files: RefCell::new(HashMap::new()),
+            coverage: RefCell::new(Vec::new()),
             primary_cache: RefCell::new(HashMap::new()),
             family_cache: RefCell::new(HashMap::new()),
             coverage_cache: RefCell::new(HashMap::new()),
@@ -278,6 +284,7 @@ impl FontServer {
     fn append_faces(&self, scan: Vec<FaceInfo>) {
         let mut faces = self.faces.borrow_mut();
         let mut loaded = self.loaded.borrow_mut();
+        let mut coverage = self.coverage.borrow_mut();
         for info in scan {
             if faces
                 .iter()
@@ -287,6 +294,7 @@ impl FontServer {
             }
             faces.push(info);
             loaded.push(None);
+            coverage.push(None);
         }
     }
 
@@ -403,7 +411,34 @@ impl FontServer {
     }
 
     fn face_covers(&self, index: usize, ch: char) -> bool {
-        self.face_at(index).is_some_and(|face| face.covers(ch))
+        if let Some(face) = self.loaded.borrow().get(index).and_then(Option::as_ref) {
+            return face.covers(ch);
+        }
+        self.coverage_for(index)
+            .is_some_and(|coverage| coverage.contains(ch))
+    }
+
+    /// The lazily read cmap coverage of a face.
+    ///
+    /// This memory-maps the font only to parse its cmap and drops the mapping;
+    /// no whole file is copied or leaked just to answer "does this face cover
+    /// the character?".
+    fn coverage_for(&self, index: usize) -> Option<Rc<discovery::Coverage>> {
+        if let Some(coverage) = self
+            .coverage
+            .borrow()
+            .get(index)
+            .and_then(Option::as_ref)
+            .cloned()
+        {
+            return Some(coverage);
+        }
+        let info = self.faces.borrow().get(index).cloned()?;
+        let coverage = Rc::new(discovery::coverage(&info.file, info.index)?);
+        if let Some(slot) = self.coverage.borrow_mut().get_mut(index) {
+            *slot = Some(coverage.clone());
+        }
+        Some(coverage)
     }
 
     fn face_at(&self, index: usize) -> Option<Rc<FontFace>> {
@@ -1127,6 +1162,75 @@ mod tests {
             missing.len(),
             missing.first()
         );
+    }
+
+    #[test]
+    fn a_fallback_shapes_the_character_without_loading_the_whole_catalogue() {
+        let Some(server) = system_server() else {
+            return;
+        };
+        let before = server
+            .loaded
+            .borrow()
+            .iter()
+            .filter(|face| face.is_some())
+            .count();
+        // Kana is a good probe: it is outside the common CJK primary on most
+        // hosts and needs a script fallback.
+        let slots = server.shape("あ", 13.0, FontWeight::NORMAL);
+        assert!(
+            slots
+                .iter()
+                .any(|slot| slot.advance > 0.0 && slot.size[0] > 0.0 && slot.size[1] > 0.0),
+            "kana did not shape to ink"
+        );
+        let after = server
+            .loaded
+            .borrow()
+            .iter()
+            .filter(|face| face.is_some())
+            .count();
+        assert!(
+            after <= before + 2,
+            "fallback loaded {} font files",
+            after - before
+        );
+    }
+
+    #[test]
+    fn a_coverage_probe_does_not_load_the_face() {
+        let Some(server) = system_server() else {
+            return;
+        };
+        let unloaded =
+            (0..server.faces.borrow().len()).find(|&index| server.loaded.borrow()[index].is_none());
+        let Some(index) = unloaded else {
+            return;
+        };
+        server.face_covers(index, 'A');
+        assert!(
+            server.loaded.borrow()[index].is_none(),
+            "coverage probing loaded face {index}"
+        );
+    }
+
+    #[test]
+    fn metadata_coverage_matches_the_loaded_face() {
+        let Some(server) = system_server() else {
+            return;
+        };
+        let index = server.primary(FontWeight::NORMAL);
+        let Some(face) = server.face_at(index) else {
+            return;
+        };
+        let coverage = server.coverage_for(index).expect("coverage");
+        for ch in ['A', 'i', ' ', '中', '\u{1F600}'] {
+            assert_eq!(
+                coverage.contains(ch),
+                face.covers(ch),
+                "coverage mismatch for {ch:?}"
+            );
+        }
     }
 
     #[test]

@@ -8,6 +8,72 @@ use std::path::{Path, PathBuf};
 
 use igui_core::FontWeight;
 
+/// Sorted, merged Unicode codepoint ranges covered by one face.
+///
+/// Built from the cmap with only the file memory-mapped and the mapping dropped
+/// afterwards, so a fallback probe never copies (or leaks) a whole font file.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct Coverage {
+    ranges: Vec<(u32, u32)>,
+}
+
+impl Coverage {
+    fn from_codepoints(mut points: Vec<u32>) -> Self {
+        points.sort_unstable();
+        points.dedup();
+        let mut ranges: Vec<(u32, u32)> = Vec::new();
+        for point in points {
+            if let Some((_, end)) = ranges.last_mut() {
+                if point == end.saturating_add(1) {
+                    *end = point;
+                    continue;
+                }
+            }
+            ranges.push((point, point));
+        }
+        Self { ranges }
+    }
+
+    pub(crate) fn contains(&self, ch: char) -> bool {
+        let point = ch as u32;
+        self.ranges
+            .binary_search_by(|&(start, end)| {
+                if point < start {
+                    std::cmp::Ordering::Greater
+                } else if point > end {
+                    std::cmp::Ordering::Less
+                } else {
+                    std::cmp::Ordering::Equal
+                }
+            })
+            .is_ok()
+    }
+}
+
+/// Reads the Unicode coverage of `file`/`index` without keeping the file.
+pub(crate) fn coverage(file: &Path, index: u32) -> Option<Coverage> {
+    let mapping = map_file(file)?;
+    let face = ttf_parser::Face::parse(&mapping, index).ok()?;
+    let cmap = face.tables().cmap?;
+    let mut points = Vec::new();
+    for subtable in cmap.subtables {
+        if !subtable.is_unicode() {
+            continue;
+        }
+        subtable.codepoints(|point| {
+            let Some(ch) = char::from_u32(point) else {
+                return;
+            };
+            // `codepoints` also lists mappings whose glyph id is 0; only keep
+            // entries the face can actually draw.
+            if face.glyph_index(ch).is_some() {
+                points.push(point);
+            }
+        });
+    }
+    Some(Coverage::from_codepoints(points))
+}
+
 /// One discovered face: enough to resolve and load it, without the bytes.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct FaceInfo {
@@ -242,6 +308,38 @@ fn home_dir() -> Option<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn coverage_merges_contiguous_codepoints() {
+        let coverage = Coverage::from_codepoints(vec![0x44, 0x41, 0x42, 0x42, 0x50]);
+        assert!(coverage.contains('A'));
+        assert!(coverage.contains('B'));
+        assert!(!coverage.contains('C'));
+        assert!(coverage.contains('D'));
+        assert!(coverage.contains('P'));
+        assert!(!coverage.contains('Q'));
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn metadata_coverage_matches_a_parsed_face() {
+        let Some(mapping) = map_file(Path::new("/System/Library/Fonts/Menlo.ttc")) else {
+            return;
+        };
+        let Some(face) = ttf_parser::Face::parse(&mapping, 0).ok() else {
+            return;
+        };
+        let Some(coverage) = coverage(Path::new("/System/Library/Fonts/Menlo.ttc"), 0) else {
+            return;
+        };
+        for ch in ['A', 'i', ' ', '中', '\u{1F600}'] {
+            assert_eq!(
+                coverage.contains(ch),
+                face.glyph_index(ch).is_some(),
+                "coverage mismatch for {ch:?}"
+            );
+        }
+    }
 
     #[test]
     fn font_extension_is_recognized() {
