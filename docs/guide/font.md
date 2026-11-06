@@ -45,6 +45,11 @@ rasterization, line height and ascent alike, so a host that measures with
   in one line.
 - **Rasterization** (`FontServer::take_dirty_atlas`): `ab_glyph` glyphs into one
   shared shelf atlas (all faces share it, so a backend uploads one texture).
+  The atlas starts at 1024² and doubles its height on demand up to 1024×4096;
+  slots carry texel coordinates, so a growable atlas needs no UV rebake. The
+  update is a tight dirty rectangle (the full atlas after a growth).
+  `atlas_size()` reports the live size; a backend recreates its texture when
+  that changes.
 
 ## API
 

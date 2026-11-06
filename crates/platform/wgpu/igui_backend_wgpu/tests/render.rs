@@ -733,6 +733,48 @@ fn pixel_font_maps_glyph_texels_one_to_one() {
 }
 
 #[test]
+fn atlas_growth_keeps_font_uvs_valid() {
+    let Some(mut backend) = backend() else {
+        return;
+    };
+    if !backend.text_metrics().is_system() {
+        return;
+    }
+    backend.set_clear_color(Color::BLACK);
+
+    // Enough unique CJK glyphs at 24 px to force the atlas past 1024².
+    let text: String = (0..1800u32)
+        .filter_map(|code| char::from_u32(0x4E00 + code))
+        .collect();
+    let mut ctx = PaintContext::new();
+    ctx.draw_text(
+        &text,
+        Vec2::new(0.0, 24.0),
+        24.0,
+        TextAlign::Left,
+        Paint::new(Color::WHITE),
+    );
+    // Erase the row, then draw one glyph after the growth. Its slot carries
+    // texel coordinates, so it must normalize against the new atlas size.
+    ctx.fill_rect(
+        Rect::from_min_size(Vec2::ZERO, Size::splat(32.0)),
+        Color::BLACK,
+    );
+    ctx.draw_text(
+        "中",
+        Vec2::new(4.0, 24.0),
+        24.0,
+        TextAlign::Left,
+        Paint::new(Color::WHITE),
+    );
+    let pixels = render(&mut backend, ctx, viewport(32.0, 32.0));
+    assert!(
+        pixels.data.chunks(4).any(|pixel| pixel[0] > 128),
+        "no ink after the atlas grew"
+    );
+}
+
+#[test]
 fn text_alignment_shifts_the_glyph() {
     let Some(mut backend) = backend() else {
         return;

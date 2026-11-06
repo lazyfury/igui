@@ -96,9 +96,13 @@ the GPU pass is a single textured-triangle pipeline (`src/shader.wgsl`):
 - `DrawText` uses the [`igui_font`](font.md) service: a [`FontServer`] discovers
   system fonts, resolves family/weight, shapes with `rustybuzz`
   + `unicode-bidi` (per-character fallback), and rasterizes `ab_glyph` glyphs by
-  glyph id on demand at the requested size into a `1024x1024` shelf-packed atlas
-  uploaded to the GPU after each `submit`. UVs, shaped advances and baselines
-  come from the font. `WgpuBackend::text_metrics()` exposes the same metrics as a
+  glyph id on demand at the requested size into a shelf-packed atlas that grows
+  from `1024x1024` to `1024x4096` when a new glyph no longer fits. Glyph slots
+  carry **texel** coordinates; the font vertex entry normalizes them against the
+  live atlas size, so growth never invalidates cached slots or a cached
+  `DrawList`. After each `submit` only the dirty rectangle is uploaded (a growth
+  recreates the texture once). Shaped advances and baselines come from the
+  font. `WgpuBackend::text_metrics()` exposes the same metrics as a
   `FontMetrics` so hosts can build a matching `igui_ui::TextMeasurer` (whose
   `measure_run` sums shaped advances).
 - `DrawText::family` (and `PaintContext::draw_text_in`) names a **primary

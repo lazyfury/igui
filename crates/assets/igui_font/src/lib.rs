@@ -40,6 +40,7 @@ mod face;
 mod server;
 mod shaping;
 
+pub use atlas::AtlasUpdate;
 pub use face::GlyphSlot;
 pub use server::{
     FaceRef, FontConfig, FontFamilyInfo, FontId, FontMetrics, FontMode, FontRequest, FontServer,

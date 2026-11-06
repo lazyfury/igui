@@ -145,6 +145,7 @@ impl WgpuBackend {
                 "font_atlas",
             )
         };
+        let font_atlas_size = font.atlas_size();
 
         Ok(Self {
             instance,
@@ -159,6 +160,7 @@ impl WgpuBackend {
             font,
             font_config: FontConfig::default(),
             font_texture,
+            font_atlas_size,
             font_bind_group,
             font_sampler,
             image_sampler,

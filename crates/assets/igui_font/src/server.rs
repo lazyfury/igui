@@ -8,7 +8,7 @@ use std::rc::Rc;
 
 use igui_core::FontWeight;
 
-use crate::atlas::{Atlas, ATLAS_HEIGHT, ATLAS_WIDTH};
+use crate::atlas::{Atlas, AtlasUpdate};
 use crate::bitmap;
 use crate::discovery::{self, FaceInfo};
 use crate::face::{FontFace, GlyphSlot};
@@ -594,10 +594,12 @@ impl FontServer {
 
     // -- atlas / config ----------------------------------------------------
 
-    /// `(width, height)` of the atlas texture this server needs.
+    /// Current `(width, height)` of the atlas texture.
+    ///
+    /// The system atlas grows on demand; call this again after drawing text.
     pub fn atlas_size(&self) -> (u32, u32) {
         if self.mode == FontMode::System {
-            (ATLAS_WIDTH, ATLAS_HEIGHT)
+            self.atlas.borrow().size()
         } else {
             (bitmap::ATLAS_WIDTH, bitmap::ATLAS_HEIGHT)
         }
@@ -606,14 +608,16 @@ impl FontServer {
     /// Initial atlas contents (system fonts start empty).
     pub fn initial_atlas(&self) -> Vec<u8> {
         if self.mode == FontMode::System {
-            vec![0u8; (ATLAS_WIDTH * ATLAS_HEIGHT * 4) as usize]
+            self.atlas.borrow().pixels().to_vec()
         } else {
             bitmap::build_atlas()
         }
     }
 
-    /// Full atlas pixels if new glyphs were rasterized since the last call.
-    pub fn take_dirty_atlas(&self) -> Option<Vec<u8>> {
+    /// The tight atlas update since the last call, or `None` if nothing new was
+    /// rasterized. A growth reports the full atlas so the backend can recreate
+    /// its texture.
+    pub fn take_dirty_atlas(&self) -> Option<AtlasUpdate> {
         if self.mode == FontMode::System {
             self.atlas.borrow_mut().take_dirty()
         } else {
@@ -1068,6 +1072,43 @@ mod tests {
             "no glyph rasterized"
         );
         assert!(server.take_dirty_atlas().is_some());
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn a_large_cjk_document_grows_the_atlas_instead_of_losing_glyphs() {
+        let server = FontServer::load_with(FontConfig {
+            default_family: Some("PingFang SC".into()),
+            em_size: true,
+            device_pixel_rasterization: true,
+            ..FontConfig::default()
+        });
+        server.set_scale(2.0);
+        let before = server.atlas_size();
+        let mut missing = Vec::new();
+        for code in 0x4E00u32..0x4E00 + 1800 {
+            let Some(ch) = char::from_u32(code) else {
+                continue;
+            };
+            let slots = server.shape(&ch.to_string(), 13.0, FontWeight::NORMAL);
+            if slots
+                .iter()
+                .all(|slot| slot.size[0] == 0.0 || slot.size[1] == 0.0)
+            {
+                missing.push(ch);
+            }
+        }
+        assert!(
+            server.atlas_size().1 > before.1,
+            "the atlas did not grow (before {before:?}, after {:?})",
+            server.atlas_size()
+        );
+        assert!(
+            missing.is_empty(),
+            "{} CJK glyphs rasterized to empty slots (first {:?})",
+            missing.len(),
+            missing.first()
+        );
     }
 
     #[test]

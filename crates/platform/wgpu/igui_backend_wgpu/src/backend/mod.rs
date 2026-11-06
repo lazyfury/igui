@@ -319,6 +319,7 @@ pub struct WgpuBackend {
     pub(super) font: Rc<Font>,
     pub(super) font_config: FontConfig,
     pub(super) font_texture: wgpu::Texture,
+    pub(super) font_atlas_size: (u32, u32),
     pub(super) font_bind_group: wgpu::BindGroup,
     pub(super) font_sampler: wgpu::Sampler,
     pub(super) image_sampler: wgpu::Sampler,
@@ -425,6 +426,7 @@ impl WgpuBackend {
         );
         self.font = font;
         self.font_texture = texture;
+        self.font_atlas_size = (width, height);
         self.font_bind_group = group;
         Ok(())
     }
@@ -736,26 +738,54 @@ impl WgpuBackend {
 
     /// Uploads any glyphs rasterized while processing the last `submit`.
     fn upload_pending_font_glyphs(&mut self) {
-        let Some(pixels) = self.font.take_dirty_atlas() else {
+        let Some(update) = self.font.take_dirty_atlas() else {
             return;
         };
-        let (width, height) = self.font.atlas_size();
+        if self.font_atlas_size != (update.atlas_width, update.atlas_height) {
+            // Growth: recreate the texture (and its bind group) once at the new
+            // size. Cached glyph slots and DrawLists stay valid because they
+            // carry atlas texel coordinates, not normalized UVs.
+            let texture = upload_texture(
+                &self.device,
+                &self.queue,
+                "igui_backend_wgpu.font_atlas",
+                &update.pixels,
+                update.atlas_width,
+                update.atlas_height,
+            );
+            let view = texture.create_view(&Default::default());
+            let group = bind_group(
+                &self.device,
+                &self.bind_group_layout,
+                &view,
+                &self.font_sampler,
+                "font_atlas",
+            );
+            self.font_texture = texture;
+            self.font_atlas_size = (update.atlas_width, update.atlas_height);
+            self.font_bind_group = group;
+            return;
+        }
         self.queue.write_texture(
             wgpu::TexelCopyTextureInfo {
                 texture: &self.font_texture,
                 mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
+                origin: wgpu::Origin3d {
+                    x: update.x,
+                    y: update.y,
+                    z: 0,
+                },
                 aspect: wgpu::TextureAspect::All,
             },
-            &pixels,
+            &update.pixels,
             wgpu::TexelCopyBufferLayout {
                 offset: 0,
-                bytes_per_row: Some(width * 4),
-                rows_per_image: Some(height),
+                bytes_per_row: Some(update.width * 4),
+                rows_per_image: Some(update.height),
             },
             wgpu::Extent3d {
-                width,
-                height,
+                width: update.width,
+                height: update.height,
                 depth_or_array_layers: 1,
             },
         );
