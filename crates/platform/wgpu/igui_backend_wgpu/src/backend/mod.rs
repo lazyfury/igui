@@ -428,6 +428,10 @@ impl WgpuBackend {
         self.font_texture = texture;
         self.font_atlas_size = (width, height);
         self.font_bind_group = group;
+        // The cached vertex list still addresses the old atlas; force the next
+        // frame to tessellate against the new server (and rasterize its
+        // glyphs) instead of replaying stale quads.
+        self.cached_geometry = None;
         Ok(())
     }
 
