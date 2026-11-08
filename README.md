@@ -233,11 +233,8 @@ facade does not flatten names). Keep views headless-testable.
 
 ## License
 
-Dual-licensed under either of
+Licensed under the MIT license ([`LICENSE-MIT`](LICENSE-MIT)).
 
-- Apache License, Version 2.0 ([`LICENSE-APACHE`](LICENSE-APACHE))
-- MIT license ([`LICENSE-MIT`](LICENSE-MIT))
-
-at your option. Unless you explicitly state otherwise, any contribution
-intentionally submitted for inclusion in this project shall be dual-licensed as
-above, without any additional terms or conditions.
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in this project shall be licensed as above, without any additional
+terms or conditions.

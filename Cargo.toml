@@ -45,7 +45,7 @@ edition = "2021"
 # in `const fn`, stable from 1.82. The wgpu / winit layer must declare more (see
 # `igui_backend_wgpu`); the CI `msrv` job builds exactly this line.
 rust-version = "1.82"
-license = "MIT OR Apache-2.0"
+license = "MIT"
 repository = "https://github.com/lazyfury/igui"
 
 [workspace.dependencies]
