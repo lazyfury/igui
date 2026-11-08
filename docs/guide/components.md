@@ -392,8 +392,9 @@ shortcut cannot also fire while typing. Hosts must not also send Space/Tab as
 ### Selection & clipboard
 
 - **Drag** to select: the field receives a tree-aware pointer callback
-  (`Component::on_pointer_tree`) with a `PointerPhase`
-  (`Down`/`Move`/`Up`/`DoubleClick`). `Down` places the caret, `Move` extends the
+  (`Component::on_pointer`, whose `PointerFn` gets the tree, node, `PointerPhase`
+  (`Down`/`Move`/`Up`/`DoubleClick`), the control rect and the pointer position).
+  `Down` places the caret, `Move` extends the
   selection (and scrolls a `TextArea` when the pointer goes past its top/bottom),
   `Up` ends the drag.
 - **Double-click** selects the word under the pointer. The host detects the
@@ -434,10 +435,10 @@ committed text: a host emits `InputEvent::KeyDown` for named keys and
 selects all).
 
 > **Note.** `InputEvent::KeyDown`/`KeyUp` are unchanged; the modifier state
-> now arrives through the new `InputEvent::ModifiersChanged`, and the text
-> field uses a new tree-aware `Component::on_pointer_tree` (the original
-> `on_pointer` is unchanged). `TextInput` no longer mounts a `value_ref` label —
-> read `shared()` instead.
+> now arrives through `InputEvent::ModifiersChanged`, and the text field uses
+> the tree-aware `Component::on_pointer` (the split
+> `on_pointer` / `on_pointer_tree` was merged when the scene went single-tree).
+> `TextInput` no longer mounts a `value_ref` label — read `shared()` instead.
 
 ### Host wiring
 

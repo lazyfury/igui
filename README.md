@@ -84,13 +84,17 @@ control.
 
 ## Status
 
-Stage 31 (`igui_app` plugin runtime) is accepted: a non-core `igui_app`
-runtime (`App`/`AppBuilder`/`Plugin`/`AppLogic`/`Runner` + a neutral
-`Presenter`) with the `igui_winit` platform plugins and a winit-free
-`igui_headless` recording presenter. Next up is Stage 32 (remaining `igui`
-facade backend features). See [`docs/internals/architecture.md`](docs/internals/architecture.md)
-for the stage ledger and [`docs/internals/godot-migration.md`](docs/internals/godot-migration.md)
-for the migration plan.
+All numbered stages through Stage 33 are accepted; the current release is
+`v0.6.0` (per-draw font family, em text sizes — see [`release.md`](release.md)),
+and `igui_font` has since grown a resizable atlas plus metadata-only coverage
+probes ([`docs/guide/font.md`](docs/guide/font.md)). The Godot-style scene
+migration, the single-tree
+viewport model (M1-M6, with per-viewport UI layout/input still deferred) and the
+`igui_app` + `igui_winit` runtime are in place. Open work is Phase 8
+(observability), per-viewport UI layout/input, and migrating the remaining
+hosts (`file_browser`, `deepseek_balance`) to `igui_app`. See
+[`docs/internals/architecture.md`](docs/internals/architecture.md) for the stage
+ledger and [`docs/internals/plan.md`](docs/internals/plan.md) for what is open.
 
 ## Examples
 
@@ -102,6 +106,7 @@ for the migration plan.
 | `examples/multi_tree` | Headless: repeated `into_tree()` calls yield independent trees (no shared ids/state) |
 | `examples/cpp_ffi` | C++ UI + OpenGL backend on the `igui` C ABI (`igui_ffi`/`demoapp_ffi`/`wgpu_ffi`) |
 | `examples/deepseek_balance` | Standalone macOS menu-bar tool: DeepSeek balance panel built from `igui_theme`/`igui_components` on a transparent `wgpu` surface |
+| `examples/file_browser` | Standalone directory browser: virtualized `List`, wheel/keyboard navigation, resizable split hex/text preview, worker-thread scan |
 
 ## Build & test
 

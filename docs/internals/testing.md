@@ -23,10 +23,26 @@
   wrapping (spaces, CJK, hard breaks), `TextOptions` (`max_lines`/`ellipsis`),
   button wrapping, that paint emits one `DrawText` per laid-out line, and that
   swapping the measurer recomputes the cached text layout.
-- Font tests — `igui_backend_wgpu` asserts bitmap-fallback dimensions/missing
-  glyph, and (when a system font is present) proportional advances (`i` < `W`),
-  `ascent`/`line_height`, and that ASCII + CJK glyphs rasterize. Render tests
-  assert `DrawText` ink and CJK ink headlessly.
+- Font service tests — `igui_font` needs no browser: discovery metadata
+  (`name` / `OS/2` / per-face `cmap` coverage), family/weight resolution,
+  shaping + bidi, per-character fallback, and atlas growth (a slot's texel rect
+  stays valid after the atlas doubles).
+- Font render tests — `igui_backend_wgpu` asserts bitmap-fallback dimensions
+  and missing glyphs, and (when a system font is present) proportional advances
+  (`i` < `W`), `ascent`/`line_height`, and that ASCII + CJK glyphs rasterize.
+  Render tests assert `DrawText` ink and CJK ink headlessly.
+- Image / SVG / animation tests — `igui_assets` decodes PNG fixtures to RGBA8
+  and rejects bad input; `igui_svg` parses the Lucide subset into flattened
+  polylines (stroke only); `igui_anim` advances time by hand (no clock) and
+  asserts easing, completion and `is_animating`.
+- Runtime tests — `igui_app` unit-tests the type-keyed `ServiceMap` (plugin
+  order/lifecycle is covered end-to-end by `wgpu_demo`'s `--selfcheck`);
+  `igui_headless` asserts a recorded frame; `igui_winit` tests its pure platform
+  → `InputEvent` mappings (named keys, wheel device/phase, pinch/rotate,
+  double-click, IME) without opening a window.
+- FFI tests — `igui_ffi` pins the builder → iterator round-trip and the ABI
+  version (the C header stays the layout contract); `demoapp_ffi` / `wgpu_ffi`
+  are exercised by `examples/cpp_ffi --selfcheck`.
 - Profiler / inspector tests — `igui_profile` (ring buffer, summary math, every
   `FindingCode`, budget escalation). Pure data, no clock.
 - Component debug tests — `igui_ui` asserts `paint_debug` emits one yellow
@@ -67,10 +83,15 @@ capturing one.
 
 ## Doc examples
 
-Every Rust doc example compiles. Fences are `no_run` (never `ignore`) with hidden
-`# ` setup lines, so `cargo test --doc --workspace` — part of the normal gate —
-fails when an API moves and a snippet stops matching it. Prefer fixing a snippet
-to match the API over hiding it again.
+Every Rust doc example in `src/` is a `no_run` doctest with hidden `# ` setup
+lines, so `cargo test --doc --workspace` — part of the normal gate — fails when
+an API moves and a snippet stops matching it. Prefer fixing a snippet to match
+the API over hiding it again.
+
+Markdown is compiled too: `scripts/check-docs.py` runs `cargo check` on every
+fence tagged `rust` in `README.md`, `AGENTS.md`, `release.md` and `docs/`. A
+fence that is a genuine fragment is tagged `rust,ignore` and says in one line
+what is missing; `text` / `bash` / `toml` / `cpp` fences are skipped.
 
 ## Golden / snapshot tests
 

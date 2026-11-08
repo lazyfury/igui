@@ -292,11 +292,12 @@ state and the open follow-ups; the per-stage history lives in those two docs.
 - **Un-numbered enhancement (accepted, in progress): single-tree viewport model
   + world-space `Control` (H2).** **M1** (tree-aware node callbacks with
   clone-out dispatch, one shape `(&mut SceneTree, NodeId, …)` across
-  `igui_scene` / `igui_ui` / `igui_game`), **M2** (H2: a `Control` under a
-  `Node2D` resolves anchors against the node and paints under
+  `igui_scene` / `igui_ui`, plus `igui_game` while it existed), **M2** (H2: a
+  `Control` under a `Node2D` resolves anchors against the node and paints under
   `canvas_transform * world_transform`, so a health bar / name tag follows its
-  actor — UI-only apps unchanged), **M5** (`examples/game_demo` rewritten
-  game-first on one tree; `igui_game::GameView` and its `ui` feature removed),
+  actor — UI-only apps unchanged), **M5** (the game demos rewritten game-first
+  on one tree — `examples/game_demo`, later `civ_demo`; both were deleted with
+  the game layer — and `igui_game::GameView` plus its `ui` feature removed),
   and a partial **M4** (`MouseFilter::Pass`, a no-op, removed) are done. **M3**
   (scene-level multi-instance `Viewport` + `SubViewport`: per-viewport cameras,
   `paint_viewport`, and a compositing container; per-viewport UI layout and input
@@ -314,6 +315,19 @@ state and the open follow-ups; the per-stage history lives in those two docs.
   left/right, tab_index, group, group_hover}` and makes `Button` focusable by
   default. `examples/demo_app` gained Focus navigation / Group hover cards with
   end-to-end tests. Recorded in `docs/guide/design-system.md`; see `docs/guide/components.md`.
+- **Un-numbered enhancement (accepted): growable glyph atlas + family-aware
+  text.** `igui_font` addresses glyph slots in atlas **texels**, grows the shared
+  shelf atlas from `1024²` to `1024×4096` on demand, and `take_dirty_atlas`
+  returns a dirty rectangle (the full atlas after a growth), so the wgpu backend
+  uploads only that rect and recreates the texture once per growth. Fallback
+  probes answer a coverage question from a font file's metadata and share one
+  file buffer across all of a collection's face indexes, so answering "does
+  this face cover the character?" no longer loads (and retains) a collection
+  such as Apple Color Emoji. Text can also name a family per draw
+  (`DrawText::family` / `PaintContext::draw_text_in` / the `*_in` metric entry
+  points) and sizes can be **em pixels** (`FontConfig::em_size`). The family
+  and em parts are in `release.md` v0.6.0; the atlas/probe work is post-tag and
+  recorded in `docs/guide/font.md` and `docs/guide/backend.md`.
 - **Stage 32 — `igui` facade backend + observability features [accepted].** The
   facade gained `wgpu` / `canvas` / `wasm` / `profile` / `debug` / `recording` /
   `bench` feature-gated re-exports (`wasm` implies `canvas`; `debug` implies

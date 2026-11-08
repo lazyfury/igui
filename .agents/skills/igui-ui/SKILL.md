@@ -12,12 +12,17 @@ name) and `docs/guide/design-system.md` (tokens).
 ## Frame loop (the order matters)
 
 ```rust
-app.update(viewport, dt);          // state -> view
-igui_ui::layout(&mut tree, viewport);  // resolve geometry
-tree.update();                     // flush deferred tree changes
-let list = tree.paint(viewport);   // Paint step -> DrawList
+app.update(viewport, dt);                     // state -> view
+igui_ui::layout(&mut tree, viewport);         // resolve geometry
+tree.update();                                // flush deferred tree changes
+let mut ctx = igui_render::PaintContext::new();
+igui_ui::paint(&tree, &mut ctx);              // world + controls, one pass
+let list = ctx.into_draw_list();
 backend.begin_frame(viewport)?; backend.submit(&list)?; backend.end_frame()?;
 ```
+
+`List` / `ScrollView` / `Router` also call `state.sync(&mut tree)` after layout
+and want one more `layout` when it returns `true`.
 
 ## Build
 

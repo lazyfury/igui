@@ -277,8 +277,8 @@ Read this section before scanning the repo; then open only the file you need.
   set_on_drag, set_on_scroll}`.
 - Mount/route/paint: `igui_scene::SceneChild::into_tree`,
   `SceneTree::{add_child, set_visible, update}`,
-  `igui_ui::{layout, paint, route_input, set_text_measurer, mark_dirty, control,
-  widget, content_size, hovered_cursor}`.
+  `igui_ui::{layout, paint, route_input, set_text_measurer, mark_dirty,
+  request_paint, control, content_size, hovered_cursor}`.
 - Tokens: `igui_theme::{Theme, DefaultTheme, Tone, SurfaceLevel, space, radius,
   TextSize}`; use `igui_theme::default_theme(Mode::Dark)` / `compact_theme(..)`,
   or implement `Theme` for your own type, and pass the `&'static dyn Theme`.

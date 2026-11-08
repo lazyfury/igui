@@ -88,8 +88,10 @@ themed library. Remaining polish, in priority order:
 1. **Reactive text bindings** — add `Text::dynamic(|| …)` (a text source on
    labels) so `update()` stops calling `igui_components::set_text`; the runtime
    re-evaluates the closure at layout/paint.
-2. **Explicit rect anchors** — allow a popover/menu to anchor to a raw `Rect` or
-   pointer position (context menus), not only a laid-out `NodeId`.
+2. **Explicit rect anchors** — a popover/menu can already anchor to a pointer
+   position (`Overlays::menu_at(Vec2)`, context menus); anchoring to a raw
+   `Rect` is still missing — only a laid-out `NodeId` (`Overlays::popover` /
+   `menu`) or a point works today.
 3. **Keys + reconciliation** — if a host rebuilds a subtree per frame, add a
    reconciler that diffs by type/key, reusing the existing dirty tracking /
    partial relayout.
@@ -127,15 +129,16 @@ The layout cache, GUI interaction state and text measurer live on the root; the
 
 Findings from a design review of `igui_core` / `igui_render` / `igui_scene` /
 `igui_ui` / `igui_components`. All fixes keep the core backend-neutral; land them in
-priority order and add native tests.
+priority order and add native tests. Remaining:
 
 | # | Item | Severity | Where |
 |---|---|---|---|
-| 1 | Extension slot is **single-type**: `Node::set_data` replaces the one `Box<dyn Any>`, so storing app data on a `Control` node silently destroys its `Control` runtime, and a node cannot hold both. Make the slot type-keyed (`HashMap<TypeId, Box<dyn Any>>`) or give `Control` a dedicated field. | high | `igui_scene/src/node.rs:369`, `tree.rs:176` |
-| 2 | `SceneTree::paint` includes **every** canvas item with a `Visual`, not just `Node2D`; a `Control` with a `Visual` would be painted twice (scene + `igui_ui`). Filter by node kind / ownership. | medium | `igui_scene/src/paint.rs:66` |
-| 3 | **Resource lifecycle is not in the IR contract**: `RenderBackend` has no texture registration; each backend registers privately (e.g. Canvas `register_image`). Document it as a backend extension point, and consider a minimal `register_texture` contract. | medium | `igui_render/src/backend.rs`, `texture.rs` |
 | 4 | `DrawCommand::DrawText` owns a `String` (one allocation per text command per frame). Revisit (`Rc<str>`/interned text) only if it shows in the benchmarks. | low | `igui_render/src/command.rs` |
-| 5 | Naming: cross-link `igui_core::ViewportSize` vs `igui_scene::Viewport` docs; clarify that the internal zero-sized `igui_ui` `Ui` namespace is not a public object. | low | `igui_core`, `igui_ui/src/ui/mod.rs` |
+| 5 | Naming: cross-link `igui_core::ViewportSize` vs `igui_scene::Viewport` docs (the former cannot link back — `igui_core` has no `igui_scene` dependency); the crate-internal `igui_ui` `Ui` namespace is documented as "not a public object" in `igui_ui/src/ui/mod.rs`. | low | `igui_core`, `igui_ui/src/ui/mod.rs` |
+
+Resolved (moved to "Done" below): the single-type extension slot, the
+`Control`-painted-twice `SceneTree::paint`, and the missing
+texture-registration contract.
 
 ## Demo (`examples/demo_app`)
 
@@ -175,14 +178,13 @@ from `examples/file_browser`:
   inside a second host.
 - **Phase 11 — layer context menu.** Right-click a layer row opens a context
   menu at the pointer (rename / duplicate / delete / hide / move / merge down /
-  opacity). Two additive prerequisites:
-  1. `Overlays` anchored to a **raw rect or pointer position**, not only a
-     laid-out `NodeId` (Component-layer item 2 above).
-  2. Right-click routing: `PointerButton::Right` exists, but
-     `igui_ui::handle_input` only reacts to the left button. Add an additive
-     context callback (`Control::context_callback` +
-     `Component::on_context_menu`) so any control can own a context menu, rather
-     than the host hit-testing rows itself.
+  opacity). Both prerequisites are in place:
+  1. `Overlays` anchors to a pointer position (`Overlays::menu_at(Vec2)`); a raw
+     `Rect` anchor is still missing (Component-layer item 2 above).
+  2. Right-click routing: `igui_ui::handle_input` now dispatches
+     `PointerButton::Right` to the nearest `Control::secondary_callback`
+     (`Component::on_secondary_click`), so any control can own a context menu
+     instead of the host hit-testing rows itself.
 
 Cross-cutting: Phases 9 and 11 both need "a popover full of commands", so the
 `Menu` component should land first and be reused by both.
@@ -203,12 +205,29 @@ Cross-cutting: Phases 9 and 11 both need "a popover full of commands", so the
 Stage history is the ledger in [`docs/internals/architecture.md`](architecture.md); this
 section keeps non-stage work items.
 
+- **Type-keyed node extension slot** (was core-hardening #1). `Node` keeps a
+  `Vec<(TypeId, Box<dyn Any>)>` (`Extensions` in `igui_scene/src/node.rs`), so
+  `set_data` / `data` / `data_mut` / `has_data` / `take_data` address one value
+  per type: a `Control` runtime bundle and app data coexist on the same node
+  instead of replacing each other.
+- **`SceneTree::paint` is world-only** (was core-hardening #2). Paint now goes
+  through `paint_items_into`, which skips items whose `Visual::None` (a
+  `Control`); `paint_items` / `paint_items_in` expose the full canvas-item list
+  for the unified painter (`igui_ui::paint`, Stage 33) and `paint_viewport`, so a
+  control is never drawn twice.
+- **Texture registration is in the IR contract** (was core-hardening #3).
+  `RenderBackend::register_texture(TextureId, width, height, &[u8])` is a
+  defaulted method on the trait (an unsupported backend may no-op); filters and
+  effects stay backend-side properties of the `TextureId`, so `DrawImage` remains
+  backend-neutral.
 - **Wheel pump in every host.** `examples/file_browser` already translated
   winit's `MouseScrollDelta` into `InputEvent::Wheel`; `examples/wgpu_demo`
-  (`app::wheel_pixels`) and the Canvas runner (`igui_wasm::wheel`) now do too, so
-  a `List` scrolls under the wheel in all three hosts. Each keeps its own pure,
-  unit-tested sign convention (winit negates an up-scroll; DOM already reports
-  "down" as positive), so the core stays sign-agnostic.
+  (now through `igui_winit`'s `PointerPlugin`) and the Canvas runner
+  (`igui_wasm::wheel_pixels`) do too, so a `List` scrolls under the wheel in
+  all three hosts. Each keeps its own pure, unit-tested sign convention (winit
+  negates an up-scroll; DOM already reports "down" as positive), so the core
+  stays sign-agnostic. Every host also reports the `ScrollDevice`, and the
+  `TouchPhase` where the platform has a gesture lifecycle.
 - `igui_svg` (`crates/assets/igui_svg`): backend-neutral SVG vector rendering with **no
 external dependency**. It parses a small SVG subset (the Lucide grammar:
 `path`/`rect`/`circle`/`ellipse`/`line`/`polyline`/`polygon`, full path data
@@ -235,7 +254,7 @@ Lucide case.
   headless `--selfcheck` that asserts the frame does not grow when the listing
   goes from 5 000 to 200 000 rows (85 controls, 64 commands, 19 pooled rows at
   900x620). It is also the first host to translate a platform wheel into
-  `InputEvent::Wheel` (`host::wheel_pixels`). Its right pane is a **resizable
+  `InputEvent::Wheel` (`host::wheel`). Its right pane is a **resizable
   split** (`ResizeHandle::vertical` driving the main pane's basis) holding a
   second `List`: the selected file's first 64 KiB, shown either as a hex dump or
   as text (`PreviewMode::{Binary,Text}`, toggled with `T` or by clicking the pane's

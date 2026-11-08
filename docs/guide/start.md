@@ -301,7 +301,7 @@ the first `layout()` — hosts do it in a plugin (`igui_winit::TextMeasurePlugin
 | `igui_components` | `Component`/`Spec`, base builders, themed library, overlays | [`components.md`](components.md) |
 | `igui_font` | system font discovery, family/weight + fallback, shaping, atlas | [`font.md`](font.md) |
 | `igui_svg` | SVG subset → stroked polylines (icon packs such as Lucide) | [`svg.md`](svg.md) |
-| `igui_assets` | PNG bytes → packed RGBA8 + size | [`font.md`](font.md) |
+| `igui_assets` | PNG bytes → packed RGBA8 + size (then `register_texture`) | [`backend.md`](backend.md) |
 | `igui_anim` | tweens/easing; `is_animating()` is the "needs another frame" signal | [`../internals/plan.md`](../internals/plan.md) |
 | `igui_profile` | frame timing, stage split, `inspect()` findings | [`debug.md`](debug.md) |
 | `igui_debug_ui` | component bounds + performance panel overlays | [`debug.md`](debug.md) |

@@ -702,7 +702,7 @@ mod tests {
     }
 
     /// 滚轮 -> `igui_ui::handle_input` -> 列表的滚动回调。核心路由通了，宿主
-    /// 只要把平台滚轮造成 `InputEvent::Wheel` 就行（见 `host::wheel_pixels`）。
+    /// 只要把平台滚轮造成 `InputEvent::Wheel` 就行（见 `host::wheel`）。
     #[test]
     fn the_wheel_scrolls_the_list() {
         let mut app = browser(ROWS);

@@ -37,7 +37,10 @@ Build them as `staticlib`/`cdylib`; the reference host is `examples/cpp_ffi`
   is an ABI break.
 - Commands carry a tag + the fields for that tag (see the table in
   `docs/guide/cpp-ffi.md`); unknown/newer tags must be skipped, not misread.
-- Text arrives pre-shaped as glyph runs; the host still owns fonts and textures.
+- **ABI v1 has no text or image record**: `DrawText` / `DrawImage` walk back as
+  `IGUI_CMD_UNSUPPORTED` and the host skips them. The host owns fonts, so text
+  (`igui_font` is Rust) needs a future ABI version that passes a glyph atlas +
+  quads.
 - `--dump` is the debugging tool: it prints the `DrawList` without a GPU, so
   layout bugs are diagnosable headlessly. Filter its output instead of printing
   everything.

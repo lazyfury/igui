@@ -1,11 +1,13 @@
 # Godot-style migration
 
-Status: **Stage 25 accepted.** Phases 1-5 and sub-stages 25.1-25.16 landed;
-Phases 6-9 (`igui_game`, native continuous loop, observability, `igui` facade)
-are future stages, not part of Stage 25's acceptance. Post-25.16 work:
-`igui_font` (system font service + numeric `FontWeight`) and `Theme` as a trait
-+ `DefaultTheme`. **Stages 26-32 (animation + game + GameView + facade + the
-`igui_app` runtime) are approved**; see "Approved plan — Stages 26-32" below.
+Status: **Stages 25-33 accepted.** Phases 1-5 and sub-stages 25.1-25.16 landed;
+so did Phases 6-9 (the game layer was later removed). Post-25.16 work:
+`igui_font` (system font service + numeric `FontWeight`), `Theme` as a trait
++ `DefaultTheme`, the `igui_app` / `igui_winit` runtime (Stage 31), the facade
+backend features (Stage 32) and the unified canvas-item paint (Stage 33). Open:
+**Phase 8 (observability)** and the per-`SubViewport` UI layout / input left over
+from M3. The Phase / Stage text below is kept as the plan and history of each
+step.
 
 > **Game layer removed (breaking):** `igui_game` and `examples/civ_demo` were
 > deleted and the `igui` facade's `game` feature is gone (only `civ_demo`
@@ -554,9 +556,13 @@ frozen closed `Widget` enum):
 - **Removed** `Widget`, `ButtonData`, `ButtonState`, `button_state`,
   `BoxLayout`, `igui_ui::widget`; `click_count` moved onto `Control`.
 
-Layer-aware layout (H2: UI resolving relative to its `CanvasLayer`) remains a
-follow-up; controls still draw in viewport coordinates (ignoring the camera),
-as before. The `igui_components::base` split into
+H2 (a `Control` in the world) landed with the single-tree viewport model's M2:
+a `Control` under a `Node2D` resolves anchors against the node and paints under
+`canvas_transform * world_transform`, and a `Control` under a transformed
+`CanvasLayer` composites under it (see `docs/internals/viewport-model.md`). Still
+deferred: per-`SubViewport` UI layout (a `Control` inside a `SubViewport` resolves
+against the root viewport rect) and per-viewport input routing. The
+`igui_components::base` split into
 `base/{mod,primitives,containers,setters}.rs` is a first pass at the file-size
 rule; the remaining oversized files are a follow-up. Recorded in
 `docs/guide/design-system.md`.

@@ -46,9 +46,12 @@ with the same spec (`measureText`, whole runs for shaping/kerning) and is
 injected via `igui_ui::set_text_measurer`, so layout ascents, run widths and
 painted baselines agree.
 
-The runner also reflects hover feedback: `App::pointer_cursor` (usually
-`igui_ui::hovered_is_button` or `igui_ui::is_interactive`) drives the canvas
-CSS `cursor` property (`pointer` / `default`).
+The runner also reflects hover feedback: its app hook `igui_wasm::App::cursor`
+(the app usually returns `igui_ui::hovered_cursor(&tree)`) is evaluated every
+frame and mapped onto the canvas CSS `cursor` property (`default` / `pointer` /
+`text` / …). The native side works the same way through `igui_app`:
+`AppLogic::cursor` returns the `Cursor`, and `WinitPlugin` applies it to the
+window (`igui_winit::input::cursor_icon`).
 
 ## Recording (`igui_backend_recording`)
 

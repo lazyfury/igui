@@ -186,9 +186,12 @@ cached per `(char, weight)`. Emoji/color fonts are out of scope (no outline).
 
 ## Memory / lifetime
 
-Each used face leaks its file bytes once (`&'static [u8]`) because
-`ab_glyph::FontRef` and `rustybuzz::Face` borrow them for the server's lifetime.
-The discovery scan does **not** leak (it drops bytes after reading metadata).
+Each used font **file** leaks its bytes once (`&'static [u8]`) because
+`ab_glyph::FontRef` and `rustybuzz::Face` borrow them for the server's lifetime;
+every face index of a collection borrows that same buffer, so a `.ttc` is never
+kept in memory twice. Only faces that are actually rendered are loaded: a
+coverage probe reads the `cmap` from a short-lived memory map and drops it. The
+discovery scan does **not** leak either (it drops bytes after reading metadata).
 `Rc`/`RefCell`, single-threaded.
 
 ## Status
@@ -196,6 +199,9 @@ The discovery scan does **not** leak (it drops bytes after reading metadata).
 - [x] `igui_font` crate + discovery (`families`, `resolve`, default family).
 - [x] Numeric `FontWeight` + nearest-weight resolution.
 - [x] Per-character fallback + shared atlas.
+- [x] Growable shelf atlas (texel slots) + dirty-rect uploads.
+- [x] Per-draw family + em-pixel sizes (`DrawText::family`, `FontConfig::em_size`).
+- [x] Metadata-only coverage probes; one file buffer per collection.
 - [x] `igui_backend_wgpu` consumes the service; Canvas weight is numeric.
 - [x] `FontConfig::default_face` seed + deferred scan; discovery files mmap'd.
 - [ ] Variable-font `wght` axes.
@@ -212,7 +218,8 @@ The discovery scan does **not** leak (it drops bytes after reading metadata).
 - **Lifetime**: used faces leak their bytes (bounded by the faces actually
   rendered, but not reclaimable).
 - **Per-script fallback cost**: an uncovered character walks the fallback list,
-  loading faces until one covers it.
+  probing each candidate's `cmap` from metadata (no face loaded) until one
+  covers it, then loads only that face.
 - **Canvas/WASM**: the browser cannot enumerate system fonts, so the picker is
   native/wgpu only.
 - **Metrics per face**: `line_height`/`ascent` come from the primary face;

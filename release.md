@@ -92,7 +92,10 @@ non-interactive and checkboxes keep toggling themselves. A cell click stops at
 the cell, so `.on_activate` does not also run — the app selects the row from the
 callback's fallback arm if it wants that.
 
-```rust
+Fragment: `theme`, `source`, `depth`, `draw_triangle` and the three app
+callbacks stand in for real values.
+
+```rust,ignore
 List::new(theme, 28.0, source)
     .spacer(|row| depth(row) * 12.0)
     .icon(14.0, draw_triangle)          // cell 0
@@ -123,7 +126,15 @@ forwarded instead of dropped. Scope: `git log v0.3.1..v0.4.0`.
 ### `InputEvent::Wheel` gained `phase` and `device`
 
 ```rust
-Wheel { position: Vec2, delta: Vec2, phase: TouchPhase, device: ScrollDevice },
+use igui_core::{InputEvent, ScrollDevice, TouchPhase, Vec2};
+
+// Wheel { position: Vec2, delta: Vec2, phase: TouchPhase, device: ScrollDevice }
+let _ = InputEvent::Wheel {
+    position: Vec2::ZERO,
+    delta: Vec2::ZERO,
+    phase: TouchPhase::Moved,
+    device: ScrollDevice::Wheel,
+};
 ```
 
 - `ScrollDevice::{Wheel, Trackpad}` — a detented wheel vs a precise scrolling
@@ -149,8 +160,21 @@ today's behaviour), or match with `..`.
 ### `InputEvent::Pinch` / `InputEvent::Rotate`
 
 ```rust
-Pinch  { position: Vec2, factor: f32, phase: TouchPhase },  // factor = 1 + magnification
-Rotate { position: Vec2, delta: f32, phase: TouchPhase },   // degrees, positive = clockwise
+use igui_core::{InputEvent, TouchPhase, Vec2};
+
+// factor = 1 + magnification; delta is in degrees, positive = clockwise.
+// Pinch  { position: Vec2, factor: f32, phase: TouchPhase }
+// Rotate { position: Vec2, delta: f32, phase: TouchPhase }
+let _ = InputEvent::Pinch {
+    position: Vec2::ZERO,
+    factor: 1.1,
+    phase: TouchPhase::Moved,
+};
+let _ = InputEvent::Rotate {
+    position: Vec2::ZERO,
+    delta: 15.0,
+    phase: TouchPhase::Moved,
+};
 ```
 
 `igui_winit`'s `PointerPlugin` forwards winit's macOS/iOS-only

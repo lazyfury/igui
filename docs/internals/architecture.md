@@ -122,8 +122,9 @@ logical size plus the world -> screen `canvas_transform`.)
   tree composes with `.child(..)` and chainable modifiers that post-process the
   built node. Stage 25 replaced this layer with component-native `.child()`.
 - Stage 25 — unified scene + component API [accepted]: one `SceneTree` owns
-  world and UI. `igui_scene::{Viewport, Camera2D, CanvasLayer}` drive the world
-  and layer UI in viewport coordinates. Components are values built with
+  world and UI. `igui_scene::{Viewport, Node2D}` plus the `Camera2DData` /
+  `CanvasLayerData` node payloads drive the world and layer UI in viewport
+  coordinates. Components are values built with
   `SceneTree::add_child`; every `igui_components::Component` carries a `Spec` and
   supports `.child()`/`.background()`/`.grow()` natively (no `View`/`ViewExt`
   layer). The theme is a value passed to constructors — it is no longer stored on

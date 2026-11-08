@@ -11,9 +11,9 @@ PaintContext, RenderBackend}`.
 ## The contract
 
 `RenderBackend` is `begin_frame(viewport)` -> `submit(&DrawList)` (one per
-camera/viewport) -> `end_frame()`, plus `register_texture(rgba, w, h)` for
-`DrawImage`. Backends only ever see bytes and IR commands — no scene, no UI, no
-GPU type crosses the boundary.
+camera/viewport) -> `end_frame()`, plus `register_texture(TextureId, width,
+height, &rgba)` for `DrawImage`. Backends only ever see bytes and IR commands —
+no scene, no UI, no GPU type crosses the boundary.
 
 ## Which one
 
@@ -38,7 +38,8 @@ GPU type crosses the boundary.
 
 - `wgpu` surfaces: drop the frame's `TextureView` in `end_frame`, or DX12
   `ResizeBuffers` fails (see `release.md` v0.3.1).
-- Canvas font metrics must match `igui_ui`'s measurer (`canvas_font_spec`), or
-  text layout and ink disagree.
+- Canvas font metrics must match `igui_ui`'s measurer
+  (`igui_backend_canvas::font_spec` / `font_spec_in`), or text layout and ink
+  disagree.
 - A headless backend may ignore what it cannot store; callers must not read
   `Ok` from `register_texture` as "displayed".
